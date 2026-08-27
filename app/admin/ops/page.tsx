@@ -11,5 +11,323 @@ import { useToast } from "@/app/components/ui/Toast";
 import { AdminAPI } from "@/app/lib/admin-api";
 import { formatDate, formatMinorMoney } from "@/app/lib/format";
 
-type Health={status:string;database:{status:string;latency_ms:number};maintenance:{last_run_at?:string;last_error:string};ai_circuit_breaker:{open:boolean;open_until?:string;consecutive_failures:number};pending_notifications:number};type Audit={id:number;admin_user_id?:number;actor:string;action:string;subject_type:string;subject_id:string;payload:string;created_at:string};type Plan={id:number;code:string;name:string;billing_interval:string;price_minor:number;list_price_minor:number;included_credits:number;daily_credit_limit:number;is_public:boolean};type Block={id:number;user_id?:number;scope:string;reason_code:string;notes:string;active:boolean;expires_at?:string;created_at:string};type AdminIdentity={id:number;user_id:number;role:string;disabled_at?:string;user:{username:string;email?:string}};
-export default function OpsPage(){const admin=useAdminSession();const{toast}=useToast();const[health,setHealth]=useState<Health|null>(null);const[audit,setAudit]=useState<Audit[]>([]);const[plans,setPlans]=useState<Plan[]>([]);const[blocks,setBlocks]=useState<Block[]>([]);const[admins,setAdmins]=useState<AdminIdentity[]>([]);const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[newBlockUser,setNewBlockUser]=useState("");const[newAdminUser,setNewAdminUser]=useState("");useEffect(()=>{const calls:[Promise<Health>,Promise<{entries:Audit[]}>,Promise<{plans:Plan[]}>,Promise<{blocks:Block[]}>]=[AdminAPI.get("health"),AdminAPI.get("audit-log?page_size=100"),AdminAPI.get("plans"),AdminAPI.get("ai/abuse-blocks?page_size=100")];Promise.all(calls).then(async([h,a,p,b])=>{setHealth(h);setAudit(a.entries);setPlans(p.plans);setBlocks(b.blocks);if(admin?.role==="owner"){const result=await AdminAPI.get<{admin_users:AdminIdentity[]}>("admin-users");setAdmins(result.admin_users)}}).catch((reason)=>setError(reason instanceof Error?reason.message:"Unable to load ops data")).finally(()=>setLoading(false))},[admin?.role]);async function savePlan(plan:Plan){try{const saved=await AdminAPI.put<Plan>(`plans/${plan.code}`,plan);setPlans((current)=>current.map((item)=>item.code===saved.code?saved:item));toast({title:"Plan saved",description:"Modelled revenue will use the new price."})}catch(reason){setError(reason instanceof Error?reason.message:"Unable to save plan")}}async function createBlock(){const id=Number(newBlockUser);if(!id)return;try{const block=await AdminAPI.post<Block>("ai/abuse-blocks",{user_id:id,scope:"all_ai",reason_code:"admin_review",notes:"Created from admin console",created_by:String(admin?.user.id||"")});setBlocks((current)=>[block,...current]);setNewBlockUser("");toast({title:"AI access blocked"})}catch(reason){setError(reason instanceof Error?reason.message:"Unable to create block")}}async function lift(block:Block){try{const updated=await AdminAPI.patch<Block>(`ai/abuse-blocks/${block.id}`,{active:false,notes:"Lifted from admin console"});setBlocks((current)=>current.map((item)=>item.id===updated.id?updated:item));toast({title:"Block lifted"})}catch(reason){setError(reason instanceof Error?reason.message:"Unable to lift block")}}async function addAdmin(){const userID=Number(newAdminUser);if(!userID)return;try{const created=await AdminAPI.post<AdminIdentity>("admin-users",{user_id:userID,role:"viewer"});setAdmins((current)=>[...current,created]);setNewAdminUser("");toast({title:"Admin viewer added"})}catch(reason){setError(reason instanceof Error?reason.message:"Unable to add admin")}}if(loading)return <PageSkeleton/>;return <div className="space-y-7"><header><p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Operations & governance</p><h1 className="mt-2 text-3xl font-bold font-rounded">Ops</h1><p className="mt-2 text-sm text-text-muted">System health, audit evidence, moderation, plans, and admin access.</p></header>{error&&<div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}{health&&<section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatTile label="Database" value={health.database.status} hint={`${health.database.latency_ms} ms latency`}/><StatTile label="AI circuit" value={health.ai_circuit_breaker.open?"Open":"Closed"} hint={`${health.ai_circuit_breaker.consecutive_failures} consecutive failures`}/><StatTile label="Pending notifications" value={health.pending_notifications}/><StatTile label="Maintenance" value={health.maintenance.last_error?"Needs attention":"Healthy"} hint={health.maintenance.last_run_at?`Last ${formatDate(health.maintenance.last_run_at)}`:"Not run in this process"}/></section>}<section><div className="mb-4 flex items-center gap-2"><Database className="h-5 w-5 text-accent"/><h2 className="text-lg font-bold font-rounded">Audit log</h2></div><DataTable rows={audit} columns={[{key:"time",label:"Time",render:(row)=>formatDate(row.created_at)},{key:"admin",label:"Admin",render:(row)=>row.admin_user_id?`#${row.admin_user_id}`:<span className="text-text-muted">Machine token</span>},{key:"action",label:"Action",render:(row)=><span className="font-mono text-xs">{row.action}</span>},{key:"subject",label:"Subject",render:(row)=>`${row.subject_type}${row.subject_id?` #${row.subject_id}`:""}`},{key:"payload",label:"Payload",render:(row)=><span className="line-clamp-1 max-w-xs font-mono text-[10px] text-text-muted">{row.payload}</span>}]}/></section><RoleGate minimum="support"><section className="rounded-panel border border-border bg-card p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><div className="flex items-center gap-2"><Ban className="h-5 w-5 text-accent"/><h2 className="text-lg font-bold font-rounded">AI abuse blocks</h2></div><p className="mt-1 text-xs text-text-muted">Support actions are audited.</p></div><div className="flex gap-2"><input type="number" value={newBlockUser} onChange={(event)=>setNewBlockUser(event.target.value)} placeholder="User ID" className="min-h-10 w-28 rounded-xl border border-border bg-background px-3 text-sm"/><button onClick={()=>void createBlock()} className="min-h-10 rounded-xl bg-red-600 px-4 text-xs font-bold text-white">Block AI</button></div></div><div className="mt-5"><DataTable rows={blocks} columns={[{key:"subject",label:"Subject",render:(row)=>row.user_id?`User #${row.user_id}`:"Guest"},{key:"reason",label:"Reason",render:(row)=>row.reason_code},{key:"scope",label:"Scope",render:(row)=>row.scope},{key:"status",label:"Status",render:(row)=>row.active?"Active":"Lifted"},{key:"action",label:"",render:(row)=>row.active?<button onClick={()=>void lift(row)} className="rounded-lg bg-zinc-100 px-3 py-2 text-xs font-bold dark:bg-zinc-800">Lift</button>:null}]}/></div></section></RoleGate><RoleGate minimum="owner"><section className="rounded-panel border border-border bg-card p-6"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-accent"/><h2 className="text-lg font-bold font-rounded">Plan editor</h2></div><p className="mt-1 text-xs text-text-muted">Prices are integer paise and feed the modelled MRR calculation.</p><div className="mt-5 space-y-3">{plans.map((plan)=><div key={plan.code} className="grid gap-3 rounded-2xl border border-border p-4 lg:grid-cols-[1.2fr_repeat(3,1fr)_auto]"><div><p className="font-bold">{plan.name}</p><p className="text-xs text-text-muted">{plan.code} · {formatMinorMoney(plan.price_minor)}</p></div>{(["price_minor","included_credits","daily_credit_limit"] as const).map((field)=><label key={field} className="text-[10px] font-bold uppercase text-text-muted">{field.replaceAll("_"," ")}<input type="number" value={plan[field]} onChange={(event)=>setPlans((current)=>current.map((item)=>item.id===plan.id?{...item,[field]:Number(event.target.value)}:item))} className="mt-1 min-h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"/></label>)}<button onClick={()=>void savePlan(plan)} className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-white" aria-label={`Save ${plan.name}`}><Save className="h-4 w-4"/></button></div>)}</div></section><section className="rounded-panel border border-border bg-card p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div className="flex items-center gap-2"><UserPlus className="h-5 w-5 text-accent"/><h2 className="text-lg font-bold font-rounded">Admin identities</h2></div><div className="flex gap-2"><input type="number" value={newAdminUser} onChange={(event)=>setNewAdminUser(event.target.value)} placeholder="User ID" className="min-h-10 w-28 rounded-xl border border-border bg-background px-3 text-sm"/><button onClick={()=>void addAdmin()} className="min-h-10 rounded-xl bg-accent px-4 text-xs font-bold text-white">Add viewer</button></div></div><div className="mt-5"><DataTable rows={admins} columns={[{key:"user",label:"User",render:(row)=>row.user?.username||`#${row.user_id}`},{key:"id",label:"User ID",render:(row)=>row.user_id},{key:"role",label:"Role",render:(row)=>row.role},{key:"status",label:"Status",render:(row)=>row.disabled_at?"Disabled":"Active"}]}/></div></section></RoleGate></div>}
+type Health = {
+    status: string;
+    database: { status: string; latency_ms: number };
+    maintenance: { last_run_at?: string; last_error: string };
+    ai_circuit_breaker: { open: boolean; open_until?: string; consecutive_failures: number };
+    pending_notifications: number;
+};
+type Audit = {
+    id: number;
+    admin_user_id?: number;
+    actor: string;
+    action: string;
+    subject_type: string;
+    subject_id: string;
+    payload: string;
+    created_at: string;
+};
+type Plan = {
+    id: number;
+    code: string;
+    name: string;
+    billing_interval: string;
+    price_minor: number;
+    list_price_minor: number;
+    included_credits: number;
+    daily_credit_limit: number;
+    is_public: boolean;
+};
+type Block = {
+    id: number;
+    user_id?: number;
+    scope: string;
+    reason_code: string;
+    notes: string;
+    active: boolean;
+    expires_at?: string;
+    created_at: string;
+};
+type AdminIdentity = { id: number; user_id: number; role: string; disabled_at?: string; user: { username: string; email?: string } };
+export default function OpsPage() {
+    const admin = useAdminSession();
+    const { toast } = useToast();
+    const [health, setHealth] = useState<Health | null>(null);
+    const [audit, setAudit] = useState<Audit[]>([]);
+    const [plans, setPlans] = useState<Plan[]>([]);
+    const [blocks, setBlocks] = useState<Block[]>([]);
+    const [admins, setAdmins] = useState<AdminIdentity[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [newBlockUser, setNewBlockUser] = useState("");
+    const [newAdminUser, setNewAdminUser] = useState("");
+    useEffect(() => {
+        const calls: [Promise<Health>, Promise<{ entries: Audit[] }>, Promise<{ plans: Plan[] }>, Promise<{ blocks: Block[] }>] = [
+            AdminAPI.get("health"),
+            AdminAPI.get("audit-log?page_size=100"),
+            AdminAPI.get("plans"),
+            AdminAPI.get("ai/abuse-blocks?page_size=100"),
+        ];
+        Promise.all(calls)
+            .then(async ([h, a, p, b]) => {
+                setHealth(h);
+                setAudit(a.entries);
+                setPlans(p.plans);
+                setBlocks(b.blocks);
+                if (admin?.role === "owner") {
+                    const result = await AdminAPI.get<{ admin_users: AdminIdentity[] }>("admin-users");
+                    setAdmins(result.admin_users);
+                }
+            })
+            .catch((reason) => setError(reason instanceof Error ? reason.message : "Unable to load ops data"))
+            .finally(() => setLoading(false));
+    }, [admin?.role]);
+    async function savePlan(plan: Plan) {
+        try {
+            const saved = await AdminAPI.put<Plan>(`plans/${plan.code}`, plan);
+            setPlans((current) => current.map((item) => (item.code === saved.code ? saved : item)));
+            toast({ title: "Plan saved", description: "Modelled revenue will use the new price." });
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Unable to save plan");
+        }
+    }
+    async function createBlock() {
+        const id = Number(newBlockUser);
+        if (!id) return;
+        try {
+            const block = await AdminAPI.post<Block>("ai/abuse-blocks", {
+                user_id: id,
+                scope: "all_ai",
+                reason_code: "admin_review",
+                notes: "Created from admin console",
+                created_by: String(admin?.user.id || ""),
+            });
+            setBlocks((current) => [block, ...current]);
+            setNewBlockUser("");
+            toast({ title: "AI access blocked" });
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Unable to create block");
+        }
+    }
+    async function lift(block: Block) {
+        try {
+            const updated = await AdminAPI.patch<Block>(`ai/abuse-blocks/${block.id}`, {
+                active: false,
+                notes: "Lifted from admin console",
+            });
+            setBlocks((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+            toast({ title: "Block lifted" });
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Unable to lift block");
+        }
+    }
+    async function addAdmin() {
+        const userID = Number(newAdminUser);
+        if (!userID) return;
+        try {
+            const created = await AdminAPI.post<AdminIdentity>("admin-users", { user_id: userID, role: "viewer" });
+            setAdmins((current) => [...current, created]);
+            setNewAdminUser("");
+            toast({ title: "Admin viewer added" });
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Unable to add admin");
+        }
+    }
+    if (loading) return <PageSkeleton />;
+    return (
+        <div className="space-y-7">
+            <header>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Operations & governance</p>
+                <h1 className="mt-2 text-3xl font-bold font-rounded">Ops</h1>
+                <p className="mt-2 text-sm text-text-muted">System health, audit evidence, moderation, plans, and admin access.</p>
+            </header>
+            {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+            {health && (
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatTile label="Database" value={health.database.status} hint={`${health.database.latency_ms} ms latency`} />
+                    <StatTile
+                        label="AI circuit"
+                        value={health.ai_circuit_breaker.open ? "Open" : "Closed"}
+                        hint={`${health.ai_circuit_breaker.consecutive_failures} consecutive failures`}
+                    />
+                    <StatTile label="Pending notifications" value={health.pending_notifications} />
+                    <StatTile
+                        label="Maintenance"
+                        value={health.maintenance.last_error ? "Needs attention" : "Healthy"}
+                        hint={
+                            health.maintenance.last_run_at
+                                ? `Last ${formatDate(health.maintenance.last_run_at)}`
+                                : "Not run in this process"
+                        }
+                    />
+                </section>
+            )}
+            <section>
+                <div className="mb-4 flex items-center gap-2">
+                    <Database className="h-5 w-5 text-accent" />
+                    <h2 className="text-lg font-bold font-rounded">Audit log</h2>
+                </div>
+                <DataTable
+                    rows={audit}
+                    columns={[
+                        { key: "time", label: "Time", render: (row) => formatDate(row.created_at) },
+                        {
+                            key: "admin",
+                            label: "Admin",
+                            render: (row) =>
+                                row.admin_user_id ? `#${row.admin_user_id}` : <span className="text-text-muted">Machine token</span>,
+                        },
+                        { key: "action", label: "Action", render: (row) => <span className="font-mono text-xs">{row.action}</span> },
+                        {
+                            key: "subject",
+                            label: "Subject",
+                            render: (row) => `${row.subject_type}${row.subject_id ? ` #${row.subject_id}` : ""}`,
+                        },
+                        {
+                            key: "payload",
+                            label: "Payload",
+                            render: (row) => (
+                                <span className="line-clamp-1 max-w-xs font-mono text-[10px] text-text-muted">{row.payload}</span>
+                            ),
+                        },
+                    ]}
+                />
+            </section>
+            <RoleGate minimum="support">
+                <section className="rounded-panel border border-border bg-card p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <Ban className="h-5 w-5 text-accent" />
+                                <h2 className="text-lg font-bold font-rounded">AI abuse blocks</h2>
+                            </div>
+                            <p className="mt-1 text-xs text-text-muted">Support actions are audited.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={newBlockUser}
+                                onChange={(event) => setNewBlockUser(event.target.value)}
+                                placeholder="User ID"
+                                className="min-h-10 w-28 rounded-xl border border-border bg-background px-3 text-sm"
+                            />
+                            <button
+                                onClick={() => void createBlock()}
+                                className="min-h-10 rounded-xl bg-red-600 px-4 text-xs font-bold text-white"
+                            >
+                                Block AI
+                            </button>
+                        </div>
+                    </div>
+                    <div className="mt-5">
+                        <DataTable
+                            rows={blocks}
+                            columns={[
+                                { key: "subject", label: "Subject", render: (row) => (row.user_id ? `User #${row.user_id}` : "Guest") },
+                                { key: "reason", label: "Reason", render: (row) => row.reason_code },
+                                { key: "scope", label: "Scope", render: (row) => row.scope },
+                                { key: "status", label: "Status", render: (row) => (row.active ? "Active" : "Lifted") },
+                                {
+                                    key: "action",
+                                    label: "",
+                                    render: (row) =>
+                                        row.active ? (
+                                            <button
+                                                onClick={() => void lift(row)}
+                                                className="rounded-lg bg-zinc-100 px-3 py-2 text-xs font-bold dark:bg-zinc-800"
+                                            >
+                                                Lift
+                                            </button>
+                                        ) : null,
+                                },
+                            ]}
+                        />
+                    </div>
+                </section>
+            </RoleGate>
+            <RoleGate minimum="owner">
+                <section className="rounded-panel border border-border bg-card p-6">
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5 text-accent" />
+                        <h2 className="text-lg font-bold font-rounded">Plan editor</h2>
+                    </div>
+                    <p className="mt-1 text-xs text-text-muted">Prices are integer paise and feed the modelled MRR calculation.</p>
+                    <div className="mt-5 space-y-3">
+                        {plans.map((plan) => (
+                            <div
+                                key={plan.code}
+                                className="grid gap-3 rounded-2xl border border-border p-4 lg:grid-cols-[1.2fr_repeat(3,1fr)_auto]"
+                            >
+                                <div>
+                                    <p className="font-bold">{plan.name}</p>
+                                    <p className="text-xs text-text-muted">
+                                        {plan.code} · {formatMinorMoney(plan.price_minor)}
+                                    </p>
+                                </div>
+                                {(["price_minor", "included_credits", "daily_credit_limit"] as const).map((field) => (
+                                    <label key={field} className="text-[10px] font-bold uppercase text-text-muted">
+                                        {field.replaceAll("_", " ")}
+                                        <input
+                                            type="number"
+                                            value={plan[field]}
+                                            onChange={(event) =>
+                                                setPlans((current) =>
+                                                    current.map((item) =>
+                                                        item.id === plan.id ? { ...item, [field]: Number(event.target.value) } : item,
+                                                    ),
+                                                )
+                                            }
+                                            className="mt-1 min-h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                                        />
+                                    </label>
+                                ))}
+                                <button
+                                    onClick={() => void savePlan(plan)}
+                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-white"
+                                    aria-label={`Save ${plan.name}`}
+                                >
+                                    <Save className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+                <section className="rounded-panel border border-border bg-card p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="flex items-center gap-2">
+                            <UserPlus className="h-5 w-5 text-accent" />
+                            <h2 className="text-lg font-bold font-rounded">Admin identities</h2>
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={newAdminUser}
+                                onChange={(event) => setNewAdminUser(event.target.value)}
+                                placeholder="User ID"
+                                className="min-h-10 w-28 rounded-xl border border-border bg-background px-3 text-sm"
+                            />
+                            <button
+                                onClick={() => void addAdmin()}
+                                className="min-h-10 rounded-xl bg-accent px-4 text-xs font-bold text-white"
+                            >
+                                Add viewer
+                            </button>
+                        </div>
+                    </div>
+                    <div className="mt-5">
+                        <DataTable
+                            rows={admins}
+                            columns={[
+                                { key: "user", label: "User", render: (row) => row.user?.username || `#${row.user_id}` },
+                                { key: "id", label: "User ID", render: (row) => row.user_id },
+                                { key: "role", label: "Role", render: (row) => row.role },
+                                { key: "status", label: "Status", render: (row) => (row.disabled_at ? "Disabled" : "Active") },
+                            ]}
+                        />
+                    </div>
+                </section>
+            </RoleGate>
+        </div>
+    );
+}

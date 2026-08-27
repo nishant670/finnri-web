@@ -41,13 +41,27 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
             const token = typeof payload.token === "string" ? payload.token : "";
             delete payload.token;
             const response = NextResponse.json(payload, { status: upstream.status });
-            if (token) response.cookies.set(ADMIN_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: ADMIN_MAX_AGE });
+            if (token)
+                response.cookies.set(ADMIN_COOKIE, token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: "strict",
+                    path: "/",
+                    maxAge: ADMIN_MAX_AGE,
+                });
             return response;
         }
 
         const response = new NextResponse(bytes, { status: upstream.status, headers: { "Content-Type": responseType } });
         if (disposition) response.headers.set("Content-Disposition", disposition);
-        if (isLogout || upstream.status === 401) response.cookies.set(ADMIN_COOKIE, "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: 0 });
+        if (isLogout || upstream.status === 401)
+            response.cookies.set(ADMIN_COOKIE, "", {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+                maxAge: 0,
+            });
         return response;
     } catch {
         return NextResponse.json({ error: "admin_backend_unavailable" }, { status: 502 });

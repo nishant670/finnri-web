@@ -3,7 +3,13 @@ export type AdminMe = { user: { id: number; username: string; email?: string }; 
 export type AdminPage<T> = { page: number; page_size: number; total: number } & T;
 
 export class AdminAPIError extends Error {
-    constructor(message: string, public status: number, public payload?: unknown) { super(message); }
+    constructor(
+        message: string,
+        public status: number,
+        public payload?: unknown,
+    ) {
+        super(message);
+    }
 }
 
 export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -15,14 +21,15 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
     const contentType = response.headers.get("content-type") || "";
     const payload = contentType.includes("json") ? await response.json() : await response.text();
     if (!response.ok) {
-        const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+        const record = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
         throw new AdminAPIError(String(record.message || record.error || "Admin request failed"), response.status, payload);
     }
     return payload as T;
 }
 
 export const AdminAPI = {
-    login: (email: string, pin: string) => adminFetch<AdminMe & { expires_at: string }>("login", { method: "POST", body: JSON.stringify({ email, pin }) }),
+    login: (email: string, pin: string) =>
+        adminFetch<AdminMe & { expires_at: string }>("login", { method: "POST", body: JSON.stringify({ email, pin }) }),
     logout: () => adminFetch<{ logged_out: boolean }>("logout", { method: "POST" }),
     me: () => adminFetch<AdminMe>("me"),
     get: <T>(path: string) => adminFetch<T>(path),
@@ -45,7 +52,9 @@ export function inclusiveDateRange(start: string, end: string) {
 
 export function withQuery(path: string, values: Record<string, string | number | boolean | undefined>) {
     const query = new URLSearchParams();
-    Object.entries(values).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
+    Object.entries(values).forEach(([key, value]) => {
+        if (value !== undefined && value !== "") query.set(key, String(value));
+    });
     const suffix = query.toString();
     return suffix ? `${path}?${suffix}` : path;
 }

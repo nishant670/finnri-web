@@ -22,6 +22,17 @@ export function formatMoney(value: MoneyValue): string {
     return currency.format(Number.isFinite(amount) ? amount : 0);
 }
 
+/** Integer paise from billing/admin APIs, formatted only at the render boundary. */
+export function formatMinorMoney(value: MoneyValue): string {
+    const minor = typeof value === "string" ? Number(value) : Number(value ?? 0);
+    return formatMoney(Number.isFinite(minor) ? minor / 100 : 0);
+}
+
+export function formatUSDMicros(value: MoneyValue): string {
+    const micros = typeof value === "string" ? Number(value) : Number(value ?? 0);
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(Number.isFinite(micros) ? micros / 1_000_000 : 0);
+}
+
 function parseDate(value: DateValue): Date | null {
     if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
     const source = value?.trim();

@@ -510,6 +510,8 @@ export interface NotificationListResponse {
 export interface CategoriesResponse {
     categories: string[];
     default: string;
+    income_categories: string[];
+    income_default: string;
 }
 
 export interface EntitlementPayload {

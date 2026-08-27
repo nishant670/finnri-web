@@ -22,11 +22,13 @@ export { categoryOptionsFor } from "@/app/lib/category-options";
  * that can drift.
  */
 
-const CACHE_KEY = "finnri_categories_v1";
+const CACHE_KEY = "finnri_categories_v2";
 
 export type CategorySet = {
   categories: string[];
   default: string;
+  income_categories: string[];
+  income_default: string;
 };
 
 type CachedCategorySet = CategorySet & { fetched_at: string };
@@ -41,7 +43,14 @@ function readCache(): CategorySet | null {
     const parsed = JSON.parse(raw) as CachedCategorySet;
     if (!Array.isArray(parsed.categories) || parsed.categories.length === 0) return null;
     if (typeof parsed.default !== "string" || !parsed.default) return null;
-    return { categories: parsed.categories, default: parsed.default };
+    if (!Array.isArray(parsed.income_categories) || parsed.income_categories.length === 0) return null;
+    if (typeof parsed.income_default !== "string" || !parsed.income_default) return null;
+    return {
+      categories: parsed.categories,
+      default: parsed.default,
+      income_categories: parsed.income_categories,
+      income_default: parsed.income_default,
+    };
   } catch {
     window.localStorage.removeItem(CACHE_KEY);
     return null;
@@ -74,6 +83,8 @@ export async function loadCategories(): Promise<CategorySet> {
       const value: CategorySet = {
         categories: response.data.categories,
         default: response.data.default,
+        income_categories: response.data.income_categories,
+        income_default: response.data.income_default,
       };
       writeCache(value);
       return value;

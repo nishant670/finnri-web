@@ -13,6 +13,8 @@
   "include": [
     "app/lib/accounts.ts",
     "app/lib/accounts.test.ts",
+	"app/lib/admin-metrics.ts",
+	"app/lib/admin-metrics.test.ts",
     "app/lib/calculators.ts",
     "app/lib/calculators.test.ts",
     "app/lib/category-options.ts",

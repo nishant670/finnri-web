@@ -1,0 +1,211 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Download, Save } from "lucide-react";
+import StatTile from "@/app/components/admin/StatTile";
+import TrendChart from "@/app/components/admin/TrendChart";
+import DataTable from "@/app/components/admin/DataTable";
+import RoleGate from "@/app/components/admin/RoleGate";
+import { PageSkeleton } from "@/app/components/ui/Skeleton";
+import { useToast } from "@/app/components/ui/Toast";
+import { AdminAPI, dateWindow, withQuery } from "@/app/lib/admin-api";
+import { percent } from "@/app/lib/admin-metrics";
+import { formatDate, formatUSDMicros } from "@/app/lib/format";
+
+type Metrics = {
+    total_events: number;
+    successful_events: number;
+    failed_after_provider_events: number;
+    total_credits_charged: number;
+    estimated_cost_usd_micros: number;
+    actual_cost_usd_micros: number;
+    parse_success_rate: number;
+    active_users: number;
+    cost_per_active_user_usd_micros: number;
+    by_model: { key: string; events: number; credits: number; estimated_cost_usd_micros: number }[];
+    by_action: { key: string; events: number; credits: number }[];
+    alerts: { code: string; message: string }[];
+};
+type CreditSummary = {
+    totals: { granted: number; consumed: number; expired: number; outstanding: number };
+    by_source: Record<string, unknown>;
+};
+type Limit = {
+    id: number;
+    user_id?: number;
+    reason: string;
+    action_code: string;
+    required_credits: number;
+    available_credits: number;
+    plan_code: string;
+    created_at: string;
+};
+type Pricing = {
+    id: number;
+    provider: string;
+    model: string;
+    operation: string;
+    input_token_usd_micros: number;
+    output_token_usd_micros: number;
+    audio_minute_usd_micros: number;
+    request_usd_micros: number;
+    credit_usd_micros: number;
+};
+export default function AIPage() {
+    const { toast } = useToast();
+    const [metrics, setMetrics] = useState<Metrics | null>(null);
+    const [series, setSeries] = useState<Record<string, unknown>[]>([]);
+    const [summary, setSummary] = useState<CreditSummary | null>(null);
+    const [limits, setLimits] = useState<Limit[]>([]);
+    const [pricing, setPricing] = useState<Pricing[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const window = useMemo(() => dateWindow(30), []);
+    useEffect(() => {
+        Promise.all([
+            AdminAPI.get<Metrics>(withQuery("ai/metrics", window)),
+            AdminAPI.get<{ series: Record<string, unknown>[] }>(withQuery("ai/metrics/timeseries", { ...window, bucket: "day" })),
+            AdminAPI.get<CreditSummary>("credits/summary"),
+            AdminAPI.get<{ events: Limit[] }>("ai/limit-events?page_size=50"),
+            AdminAPI.get<{ pricing: Pricing[] }>("ai/model-pricing"),
+        ])
+            .then(([m, s, c, l, p]) => {
+                setMetrics(m);
+                setSeries(s.series);
+                setSummary(c);
+                setLimits(l.events);
+                setPricing(p.pricing);
+            })
+            .catch((reason) => setError(reason instanceof Error ? reason.message : "Unable to load AI metrics"))
+            .finally(() => setLoading(false));
+    }, [window]);
+    async function save(row: Pricing) {
+        try {
+            const saved = await AdminAPI.put<Pricing>("ai/model-pricing", row);
+            setPricing((current) => current.map((item) => (item.id === row.id ? saved : item)));
+            toast({ title: "Model pricing saved" });
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Unable to save pricing");
+        }
+    }
+    if (loading) return <PageSkeleton />;
+    return (
+        <div className="space-y-7">
+            <header className="flex items-end justify-between">
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Cost controls</p>
+                    <h1 className="mt-2 text-3xl font-bold font-rounded">AI & credits</h1>
+                    <p className="mt-2 text-sm text-text-muted">Provider cost, credit consumption, cap pressure, and pricing inputs.</p>
+                </div>
+                <a
+                    href="/api/admin/export/ai-usage.csv"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-bold"
+                >
+                    <Download className="h-4 w-4" />
+                    Export
+                </a>
+            </header>
+            {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+            {metrics && summary && (
+                <>
+                    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <StatTile label="AI events" value={metrics.total_events.toLocaleString("en-IN")} />
+                        <StatTile label="Credits charged" value={metrics.total_credits_charged.toLocaleString("en-IN")} />
+                        <StatTile label="Success rate" value={percent(metrics.parse_success_rate * 100)} />
+                        <StatTile label="Estimated cost" value={formatUSDMicros(metrics.estimated_cost_usd_micros)} />
+                        <StatTile label="Actual cost" value={formatUSDMicros(metrics.actual_cost_usd_micros)} />
+                        <StatTile label="Active AI users" value={metrics.active_users} />
+                        <StatTile label="Cost / active user" value={formatUSDMicros(metrics.cost_per_active_user_usd_micros)} />
+                        <StatTile
+                            label="Outstanding credits"
+                            value={summary.totals.outstanding.toLocaleString("en-IN")}
+                            hint="Unexpired credit liability"
+                        />
+                    </section>
+                    <section className="grid gap-5 xl:grid-cols-2">
+                        <article className="rounded-panel border border-border bg-card p-6">
+                            <h2 className="text-lg font-bold font-rounded">Credits over time</h2>
+                            <TrendChart data={series} dataKey="credits" label="Daily AI credits" />
+                        </article>
+                        <article className="rounded-panel border border-border bg-card p-6">
+                            <h2 className="text-lg font-bold font-rounded">Cost over time</h2>
+                            <TrendChart data={series} dataKey="cost_usd_micros" label="Daily AI cost" formatter={formatUSDMicros} />
+                        </article>
+                    </section>
+                    <section className="grid gap-5 xl:grid-cols-2">
+                        <div>
+                            <h2 className="mb-4 text-lg font-bold font-rounded">By model</h2>
+                            <DataTable
+                                rows={metrics.by_model || []}
+                                columns={[
+                                    { key: "model", label: "Model", render: (row) => row.key },
+                                    { key: "events", label: "Events", render: (row) => row.events },
+                                    { key: "credits", label: "Credits", render: (row) => row.credits },
+                                    { key: "cost", label: "Cost", render: (row) => formatUSDMicros(row.estimated_cost_usd_micros) },
+                                ]}
+                            />
+                        </div>
+                        <div>
+                            <h2 className="mb-4 text-lg font-bold font-rounded">Cap hits</h2>
+                            <DataTable
+                                rows={limits}
+                                columns={[
+                                    { key: "user", label: "Subject", render: (row) => (row.user_id ? `User #${row.user_id}` : "Guest") },
+                                    { key: "reason", label: "Reason", render: (row) => row.reason },
+                                    { key: "required", label: "Required", render: (row) => row.required_credits },
+                                    { key: "available", label: "Available", render: (row) => row.available_credits },
+                                    { key: "date", label: "Date", render: (row) => formatDate(row.created_at) },
+                                ]}
+                            />
+                        </div>
+                    </section>
+                </>
+            )}
+            <RoleGate minimum="owner">
+                <section className="rounded-panel border border-border bg-card p-6">
+                    <h2 className="text-lg font-bold font-rounded">Model pricing editor</h2>
+                    <p className="mt-1 text-xs text-text-muted">USD micros. Changes affect cost attribution and are audited.</p>
+                    <div className="mt-5 space-y-3">
+                        {pricing.map((row) => (
+                            <div
+                                key={row.id}
+                                className="grid gap-3 rounded-2xl border border-border p-4 lg:grid-cols-[1.2fr_0.7fr_repeat(3,1fr)_auto]"
+                            >
+                                <div>
+                                    <p className="font-bold">
+                                        {row.provider} · {row.model}
+                                    </p>
+                                    <p className="text-xs text-text-muted">{row.operation}</p>
+                                </div>
+                                {(["input_token_usd_micros", "output_token_usd_micros", "credit_usd_micros"] as const).map((field) => (
+                                    <label key={field} className="text-[10px] font-bold uppercase text-text-muted">
+                                        {field.replaceAll("_", " ")}
+                                        <input
+                                            type="number"
+                                            value={row[field]}
+                                            onChange={(event) =>
+                                                setPricing((current) =>
+                                                    current.map((item) =>
+                                                        item.id === row.id ? { ...item, [field]: Number(event.target.value) } : item,
+                                                    ),
+                                                )
+                                            }
+                                            className="mt-1 min-h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                                        />
+                                    </label>
+                                ))}
+                                <button
+                                    onClick={() => void save(row)}
+                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-white"
+                                    aria-label={`Save ${row.model}`}
+                                >
+                                    <Save className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </RoleGate>
+        </div>
+    );
+}

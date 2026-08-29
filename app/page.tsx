@@ -468,6 +468,7 @@ export default function Home() {
             <div className="flex flex-wrap justify-center gap-8 text-sm font-medium text-text-muted">
               <Link href="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-accent transition-colors">Terms of Service</Link>
+              <Link href="/delete-account" className="hover:text-accent transition-colors">Delete Account</Link>
               <a href="mailto:support@finnri.app?subject=Finnri%20Support" className="hover:text-accent transition-colors">Contact Support</a>
             </div>
 

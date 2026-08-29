@@ -102,6 +102,9 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
     // list to fall back on — see app/lib/categories.ts.
     const [category, setCategory] = useState("");
     const [categories, setCategories] = useState<string[]>([]);
+    const [incomeCategories, setIncomeCategories] = useState<string[]>([]);
+    const [expenseDefault, setExpenseDefault] = useState("");
+    const [incomeDefault, setIncomeDefault] = useState("");
     const [categoriesError, setCategoriesError] = useState("");
     const [date, setDate] = useState(() => toLocalISO(new Date(), "minute"));
     const [accountID, setAccountID] = useState<number | "">("");
@@ -132,6 +135,9 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
             if (groupsResult.status === "fulfilled") setSplitGroups(groupsResult.value.data);
             if (categoriesResult.status === "fulfilled") {
                 setCategories(categoriesResult.value.categories);
+                setIncomeCategories(categoriesResult.value.income_categories);
+                setExpenseDefault(categoriesResult.value.default);
+                setIncomeDefault(categoriesResult.value.income_default);
                 setCategoriesError("");
                 // The server's own fallback, not a guess. Anything the user does
                 // not classify lands in the bucket that means "unclassified"
@@ -192,7 +198,10 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
     // Keeps a value the canonical list does not contain selectable — a category
     // the user created deliberately, which the backend stores verbatim. Without
     // this, opening such an entry would silently rewrite it.
-    const categoryOptions = useMemo(() => categoryOptionsFor(categories, category), [categories, category]);
+    const categoryOptions = useMemo(
+        () => categoryOptionsFor(type === "income" ? incomeCategories : categories, category),
+        [categories, category, incomeCategories, type]
+    );
     const selectedAccount = useMemo(() => accounts.find((item) => item.id === accountID), [accountID, accounts]);
     const requiresExplicitPaymentMode = selectedAccount?.type === "other" && paymentModeForAccountType(selectedAccount.type) === null;
 
@@ -510,13 +519,13 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                             <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Type<FieldStatus field="type" /></label>
                                             <div className={fieldClass("type", "flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl")}>
                                                 <button
-                                                    onClick={() => { setType("expense"); markFieldChanged("type"); }}
+                                                    onClick={() => { setType("expense"); setCategory(expenseDefault); markFieldChanged("type"); }}
                                                     className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all", type === "expense" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-400")}
                                                 >
                                                     Expense
                                                 </button>
                                                 <button
-                                                    onClick={() => { setType("income"); setEntrySplit(null); markFieldChanged("type"); }}
+                                                    onClick={() => { setType("income"); setCategory(incomeDefault); setEntrySplit(null); markFieldChanged("type"); }}
                                                     className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all", type === "income" ? "bg-white dark:bg-zinc-700 text-green-500 shadow-sm" : "text-zinc-400")}
                                                 >
                                                     Income

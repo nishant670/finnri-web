@@ -51,7 +51,7 @@ export default function PrivacyPolicyPage() {
             <section>
                 <h2>6. Retention and deletion</h2>
                 <p>We retain account and financial records while your account is active so Finnri can provide the service. You can edit or delete individual transactions. Deleting your Finnri account permanently removes the authenticated profile and its owned entries, accounts, budgets, subscriptions, split-ledger records, quick prompts, notifications, and active authentication sessions from the service.</p>
-                <p className="mt-3">Account deletion is available in the mobile app under Security &amp; Privacy. You may also contact support for help with an access, correction, or deletion request.</p>
+                <p className="mt-3">Account deletion is available in the mobile app under Security &amp; Privacy. If you no longer have the app, use the <a href="/delete-account">public account-deletion request page</a>.</p>
             </section>
 
             <section>

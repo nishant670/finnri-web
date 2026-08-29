@@ -37,6 +37,7 @@ export default function LegalPage({ title, effectiveDate, intro, children }: Leg
                     <nav aria-label="Legal links" className="flex flex-wrap gap-5">
                         <Link href="/privacy" className="hover:text-accent">Privacy</Link>
                         <Link href="/terms" className="hover:text-accent">Terms</Link>
+                        <Link href="/delete-account" className="hover:text-accent">Delete account</Link>
                         <a href="mailto:support@finnri.app?subject=Finnri%20Support" className="hover:text-accent">Support</a>
                     </nav>
                 </div>

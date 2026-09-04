@@ -24,6 +24,8 @@
     "app/lib/notifications.ts",
     "app/lib/notifications.test.ts",
     "app/lib/plans.ts",
-    "app/lib/plans.test.ts"
+    "app/lib/plans.test.ts",
+    "app/lib/billing-format.ts",
+    "app/lib/billing-format.test.ts"
   ]
 }

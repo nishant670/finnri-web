@@ -10,6 +10,7 @@ import {
     Calculator,
     CheckCheck,
     ChartNoAxesColumnIncreasing,
+    CreditCard,
     Inbox,
     HandCoins,
     LayoutDashboard,
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
     { name: "Planning & tools", href: "/dashboard/tools", icon: Calculator },
     { name: "Accounts", href: "/dashboard/accounts", icon: Wallet },
     { name: "Splits", href: "/dashboard/splits", icon: HandCoins },
+    { name: "Plan & billing", href: "/dashboard/billing", icon: CreditCard },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

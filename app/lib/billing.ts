@@ -95,8 +95,18 @@ export interface RazorpayHandlerResponse {
     razorpay_signature: string;
 }
 
+export interface RazorpayInstance {
+    open: () => void;
+    /**
+     * Razorpay reports a rejected payment through this, not through the
+     * handler. Without it a declined card or an unusable key leaves the page
+     * with no callback at all.
+     */
+    on: (event: string, handler: (payload: unknown) => void) => void;
+}
+
 interface RazorpayConstructor {
-    new (options: RazorpayOptions): { open: () => void };
+    new (options: RazorpayOptions): RazorpayInstance;
 }
 
 declare global {

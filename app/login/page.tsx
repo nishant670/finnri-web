@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { apiErrorMessage, AuthAPI } from "@/app/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
+import { EMAIL_LOGIN_ENABLED } from "@/app/lib/auth-policy";
 
 type LoginStep = "choice" | "identifier" | "otp" | "pin";
 type AuthMode = "login" | "register" | "reset";
@@ -320,7 +321,7 @@ export default function LoginPage() {
                         {error && <div role="alert" className="mb-5 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-600 dark:bg-red-950/30 dark:text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
 
                         {step === "choice" && <div className="space-y-3">
-                            <div className="mb-6 text-center"><h1 className="text-2xl font-bold font-rounded">Open your dashboard</h1><p className="mt-2 text-sm leading-6 text-zinc-500">Sign in to your FINNRI account or start securely as a guest.</p></div>
+                            <div className="mb-6 text-center"><h1 className="text-2xl font-bold font-rounded">Open your dashboard</h1><p className="mt-2 text-sm leading-6 text-zinc-500">Sign in with Google, or start securely as a guest.</p></div>
                             <div className="min-h-12 w-full">
                                 {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
                                     <div className={`flex w-full justify-center [&>div]:!w-full [&_iframe]:!w-full ${isGoogleLoading ? "pointer-events-none opacity-60" : ""}`} ref={googleButtonRef} />
@@ -330,9 +331,17 @@ export default function LoginPage() {
                                     </button>
                                 )}
                             </div>
+                            {/*
+                              Email and phone sign-in are switched off for
+                              launch — the backend refuses OTP outright, so
+                              offering these would walk someone into a 503 on
+                              the one screen they cannot get past.
+                            */}
+                            {EMAIL_LOGIN_ENABLED && <>
                             <div className="relative py-3"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><span className="relative mx-auto block w-fit bg-white px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-300 dark:bg-zinc-900">or use PIN</span></div>
                             <button onClick={() => chooseType("email")} className="group flex min-h-20 w-full items-center justify-between rounded-2xl border border-border bg-zinc-50 p-4 text-left transition hover:border-accent/30 hover:bg-white dark:bg-zinc-800/50 dark:hover:bg-zinc-800"><span className="flex items-center gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-accent/10 text-accent"><Mail className="h-5 w-5" /></span><span><span className="block font-bold">Continue with email</span><span className="mt-1 block text-xs text-zinc-400">PIN for returning users, OTP to register</span></span></span><ChevronRight className="h-5 w-5 text-zinc-300 transition group-hover:translate-x-1 group-hover:text-accent" /></button>
                             <button onClick={() => chooseType("phone")} className="group flex min-h-20 w-full items-center justify-between rounded-2xl border border-border bg-zinc-50 p-4 text-left transition hover:border-accent/30 hover:bg-white dark:bg-zinc-800/50 dark:hover:bg-zinc-800"><span className="flex items-center gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-accent/10 text-accent"><Phone className="h-5 w-5" /></span><span><span className="block font-bold">Continue with phone</span><span className="mt-1 block text-xs text-zinc-400">Use your number with country code</span></span></span><ChevronRight className="h-5 w-5 text-zinc-300 transition group-hover:translate-x-1 group-hover:text-accent" /></button>
+                            </>}
                             <div className="relative py-3"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><span className="relative mx-auto block w-fit bg-white px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-300 dark:bg-zinc-900">or</span></div>
                             <button onClick={() => void handleGuestLogin()} disabled={isLoading} className="flex min-h-20 w-full items-center justify-between rounded-2xl border border-dashed border-accent/30 bg-accent/5 p-4 text-left text-accent disabled:opacity-60"><span className="flex items-center gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-accent text-white">{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <UserRound className="h-5 w-5" />}</span><span><span className="block font-bold">Continue as guest</span><span className="mt-1 block text-xs text-accent/70">A real private workspace—no sample data</span></span></span><ArrowRight className="h-4 w-4" /></button>
                         </div>}
@@ -348,7 +357,17 @@ export default function LoginPage() {
                             <button type="button" onClick={() => { setStep("identifier"); setError(null); }} className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-accent"><ArrowLeft className="h-4 w-4" /> Change {loginType}</button>
                             <div><h1 className="text-2xl font-bold font-rounded">Verify your {loginType}</h1><p className="mt-2 text-sm leading-6 text-zinc-500">Enter the 6-digit code sent to <strong>{identifier}</strong>.</p></div>
                             {otpNotice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"><p className="font-bold">{otpNotice}</p><p className="mt-1 text-xs opacity-75">{expirySeconds > 0 ? `Code expires in ${formatCountdown(expirySeconds)}.` : "This code has expired. Request a new one."}</p></div>}
-                            {devOTP && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"><p className="text-[10px] font-bold uppercase tracking-[0.18em]">Local development code</p><div className="mt-2 flex items-center justify-between"><code className="text-xl font-bold tracking-[0.25em]">{devOTP}</code><button type="button" onClick={() => setOtp(devOTP)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold dark:bg-amber-900/40">Use code</button></div></div>}
+                            {/*
+                              This panel printed a working sign-in code on the
+                              page with a one-click Use code button. It was
+                              meant for local development, but the server
+                              decides whether dev_otp is returned — and a
+                              deployed environment with the debug flag left on
+                              turned this screen into an account-takeover tool
+                              for anyone who knew an email address. It renders
+                              only outside production now.
+                            */}
+                            {devOTP && process.env.NODE_ENV !== "production" && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"><p className="text-[10px] font-bold uppercase tracking-[0.18em]">Local development code</p><div className="mt-2 flex items-center justify-between"><code className="text-xl font-bold tracking-[0.25em]">{devOTP}</code><button type="button" onClick={() => setOtp(devOTP)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold dark:bg-amber-900/40">Use code</button></div></div>}
                             <input required type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} placeholder="000000" aria-label="Verification code" className="min-h-16 w-full rounded-2xl bg-zinc-100 px-4 text-center text-2xl font-bold tracking-[0.45em] outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800" autoFocus />
                             <button disabled={isLoading} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-base font-bold text-white shadow-xl shadow-accent/20 disabled:opacity-60">{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Verify code <CheckCircle2 className="h-4 w-4" /></>}</button>
                             <button type="button" onClick={() => void resendCode()} disabled={isLoading || resendSeconds > 0} className="w-full text-center text-xs font-bold text-zinc-400 hover:text-accent disabled:opacity-50">{resendSeconds > 0 ? `Send a new code in ${resendSeconds}s` : "Send a new code"}</button>

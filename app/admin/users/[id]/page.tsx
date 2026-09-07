@@ -128,7 +128,7 @@ export default function AdminUserDetail() {
                     <button
                         key={item}
                         onClick={() => setTab(item)}
-                        className={`min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold ${tab === item ? "bg-accent text-white" : "border border-border bg-card text-text-muted"}`}
+                        className={`min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold ${tab === item ? "bg-accent text-zinc-950" : "border border-border bg-card text-text-muted"}`}
                     >
                         {tabLabels[item]}
                     </button>
@@ -200,7 +200,7 @@ export default function AdminUserDetail() {
                                 />
                                 <button
                                     onClick={() => setConfirm(true)}
-                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-white"
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950"
                                 >
                                     <Coins className="h-4 w-4" />
                                     Grant

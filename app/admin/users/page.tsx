@@ -92,7 +92,7 @@ export default function AdminUsersPage() {
                     <option value="registered">Registered</option>
                     <option value="guest">Guests</option>
                 </select>
-                <button className="min-h-11 rounded-xl bg-accent px-6 text-sm font-bold text-white">Search</button>
+                <button className="min-h-11 rounded-xl bg-accent px-6 text-sm font-bold text-zinc-950">Search</button>
             </form>
             {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-300">{error}</div>}
             {loading ? (

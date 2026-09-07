@@ -174,7 +174,7 @@ export default function FeedbackPage() {
                                 />
                                 <button
                                     onClick={() => void save(item)}
-                                    className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-white"
+                                    className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-zinc-950"
                                     aria-label="Save feedback"
                                 >
                                     <Save className="h-4 w-4" />

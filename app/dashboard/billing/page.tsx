@@ -295,7 +295,7 @@ function PlanCard({
                 type="button"
                 onClick={onBuy}
                 disabled={disabled || !plan.checkout_enabled}
-                className="mt-6 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-white shadow-lg shadow-accent/20 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                className="mt-6 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-zinc-950 shadow-lg shadow-accent/20 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             >
                 {isThisPlanBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
                 {isThisPlanBusy ? "Working…" : plan.checkout_enabled ? `Buy ${plan.name}` : "Coming soon"}

@@ -114,7 +114,7 @@ export default function SettingsScreen() {
                         <button type="button" onClick={resetForm} disabled={!dirty || loading} className="rounded-xl px-6 py-3 text-sm font-bold text-zinc-500 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-zinc-800">
                             Discard Changes
                         </button>
-                        <button type="button" onClick={handleSave} disabled={!dirty || loading} className="flex items-center justify-center gap-2 rounded-xl bg-accent px-8 py-3 text-sm font-bold text-white shadow-xl shadow-accent/20 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
+                        <button type="button" onClick={handleSave} disabled={!dirty || loading} className="flex items-center justify-center gap-2 rounded-xl bg-accent px-8 py-3 text-sm font-bold text-zinc-950 shadow-xl shadow-accent/20 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : success ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
                             {loading ? "Saving…" : "Save Profile"}
                         </button>

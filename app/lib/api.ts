@@ -156,6 +156,16 @@ export interface SplitGroup {
     updated_at: string;
 }
 
+export interface SplitInvitePreview {
+    token: string;
+    group_id: number;
+    group_name: string;
+    owner_name: string;
+    member_count: number;
+    status: string;
+    expires_at?: string | null;
+}
+
 export interface SplitParticipant {
     id: number;
     friend_id: number;
@@ -608,6 +618,21 @@ api.interceptors.response.use(
     },
 );
 
+/**
+ * Whether the request never got an answer at all — the device is offline, DNS
+ * failed, the API is down, or CORS rejected the response before the browser
+ * would hand it over.
+ *
+ * The distinction matters wherever a page would otherwise report a transient
+ * outage as a permanent verdict. `/invite/split/[token]` is the case that
+ * forced this out: a failed preview used to read "this invite is no longer
+ * available", which tells the recipient of a perfectly good link to stop
+ * trying.
+ */
+export function isApiUnreachable(error: unknown) {
+    return axios.isAxiosError(error) && !error.response;
+}
+
 export function apiErrorMessage(error: unknown, fallback: string) {
     if (error instanceof SessionExpiredError) return "";
     if (error instanceof EntitlementError) {
@@ -616,7 +641,14 @@ export function apiErrorMessage(error: unknown, fallback: string) {
     }
     if (!axios.isAxiosError(error)) return fallback;
     if (!error.response) {
-        return "Cannot reach the FINNRI API. Confirm the backend is running and allows this web address.";
+        // This used to tell the reader to confirm the backend was running and
+        // allowed this web address. That is a note to whoever wrote the page,
+        // and `/pay` and the split-invite page both put it in front of members
+        // of the public — one of them mid-payment. The operational detail is
+        // still worth having, so it stays outside production.
+        return process.env.NODE_ENV === "production"
+            ? "Finnri could not be reached. Check your connection and try again."
+            : "No response from the FINNRI API. Confirm the backend is running and that ALLOW_ORIGINS includes this web address.";
     }
     const payload = error.response?.data as { message?: string; fields?: Record<string, string> } | undefined;
     const fieldMessage = payload?.fields ? Object.values(payload.fields)[0] : undefined;
@@ -635,6 +667,10 @@ export const AuthAPI = {
     login: (payload: { identifier: string; pin: string; device_id?: string }) => api.post<AuthResponse>("/v1/auth/login", payload),
     resetPIN: (payload: { claim_token: string; pin: string; device_id?: string; biometrics_enabled?: boolean }) =>
         api.post<AuthResponse>("/v1/auth/pin/reset", payload),
+    logout: (token?: string) => api.post<{ message: string }>("/v1/auth/logout", undefined, token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : undefined),
+    revokeAllSessions: () => api.post<{ message: string; revoked: number }>("/v1/auth/sessions/revoke-all"),
 };
 
 export const EntriesAPI = {
@@ -701,6 +737,8 @@ export const SubscriptionsAPI = {
 
 
 export const SplitAPI = {
+    previewInvite: (token: string) => api.get<SplitInvitePreview>(`/v1/split/invites/${encodeURIComponent(token)}/preview`),
+    acceptInvite: (token: string) => api.post(`/v1/split/invites/${encodeURIComponent(token)}/accept`),
     listFriends: (status: "active" | "all" = "active") => api.get<SplitFriend[]>("/v1/split/friends", { params: { status } }),
     createFriend: (data: SplitFriendInput) => api.post<SplitFriend>("/v1/split/friends", data),
     updateFriend: (id: number, data: SplitFriendInput) => api.put<SplitFriend>(`/v1/split/friends/${id}`, data),

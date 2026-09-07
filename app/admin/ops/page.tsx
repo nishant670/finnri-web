@@ -284,7 +284,7 @@ export default function OpsPage() {
                                 ))}
                                 <button
                                     onClick={() => void savePlan(plan)}
-                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-white"
+                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-zinc-950"
                                     aria-label={`Save ${plan.name}`}
                                 >
                                     <Save className="h-4 w-4" />
@@ -309,7 +309,7 @@ export default function OpsPage() {
                             />
                             <button
                                 onClick={() => void addAdmin()}
-                                className="min-h-10 rounded-xl bg-accent px-4 text-xs font-bold text-white"
+                                className="min-h-10 rounded-xl bg-accent px-4 text-xs font-bold text-zinc-950"
                             >
                                 Add viewer
                             </button>

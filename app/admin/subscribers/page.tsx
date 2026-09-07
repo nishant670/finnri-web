@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { AlertTriangle, Download } from "lucide-react";
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import StatTile from "@/app/components/admin/StatTile";
 import DataTable from "@/app/components/admin/DataTable";
 import TrendChart from "@/app/components/admin/TrendChart";
@@ -12,6 +12,11 @@ import { useToast } from "@/app/components/ui/Toast";
 import { AdminAPI, AdminPage, dateWindow, withQuery } from "@/app/lib/admin-api";
 import { percent } from "@/app/lib/admin-metrics";
 import { formatDate, formatMinorMoney } from "@/app/lib/format";
+
+const PlanMixChart = dynamic(() => import("@/app/components/charts/PlanMixChart"), {
+    ssr: false,
+    loading: () => <div className="h-full animate-pulse rounded-2xl bg-surface-muted" aria-hidden="true" />,
+});
 
 type Revenue = {
     active_subscribers: number;
@@ -38,8 +43,6 @@ type Quote = {
     average_monthly_credits: number;
     created_at: string;
 };
-const colors = ["#FF8865", "#8B5CF6", "#0EA5E9", "#10B981", "#F59E0B"];
-
 export default function SubscribersPage() {
     const { toast } = useToast();
     const [revenue, setRevenue] = useState<Revenue | null>(null);
@@ -126,17 +129,7 @@ export default function SubscribersPage() {
                         <article className="rounded-panel border border-border bg-card p-6">
                             <h2 className="text-lg font-bold font-rounded">Plan mix</h2>
                             <div className="h-72">
-                                <ResponsiveContainer>
-                                    <PieChart>
-                                        <Pie data={mix} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
-                                            {mix.map((_, index) => (
-                                                <Cell key={index} fill={colors[index % colors.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                <PlanMixChart data={mix} />
                             </div>
                         </article>
                     </section>

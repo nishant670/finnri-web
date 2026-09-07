@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,7 +17,6 @@ import {
     Tags,
     Wallet,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { TransactionFilterPanel, useTransactionFilters } from "@/app/components/dashboard/TransactionFilters";
 import { Account, AccountsAPI, apiErrorMessage, ReportsAPI, TransactionReportResponse } from "@/app/lib/api";
 import { formatMoney } from "@/app/lib/format";
@@ -25,6 +25,16 @@ import { transactionHref } from "@/app/lib/transaction-links";
 import { cn } from "@/app/lib/utils";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { useToast } from "@/app/components/ui/Toast";
+
+const chartLoading = () => <div className="h-full animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-800" aria-hidden="true" />;
+const CategoryMixChart = dynamic(
+    () => import("@/app/components/charts/ReportCharts").then((module) => module.CategoryMixChart),
+    { ssr: false, loading: chartLoading },
+);
+const MonthlyTrendChart = dynamic(
+    () => import("@/app/components/charts/ReportCharts").then((module) => module.MonthlyTrendChart),
+    { ssr: false, loading: chartLoading },
+);
 
 function EmptyPanel({ label }: { label: string }) {
     return <div className="grid min-h-52 place-items-center rounded-2xl bg-zinc-50 p-6 text-center text-sm font-semibold text-zinc-400 dark:bg-zinc-800">{label}</div>;
@@ -143,7 +153,7 @@ export default function ReportsScreen() {
                                     <div className="rounded-panel border border-border bg-white p-6 dark:bg-zinc-900 sm:p-8">
                                         <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent"><Tags className="h-4 w-4" /></span><div><h2 className="font-bold font-rounded">Category mix</h2><p className="text-xs text-zinc-400">Expense distribution · select a bar to inspect</p></div></div>
                                         <div className="mt-7 h-[320px] min-w-0">
-                                            {categoryChart.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={categoryChart} layout="vertical" margin={{ left: 8, right: 8 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--chart-grid)" /><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={116} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--chart-axis)" }} /><Tooltip formatter={(value) => formatMoney(Number(value))} cursor={{ fill: "var(--accent-secondary)" }} contentStyle={{ borderRadius: 16, border: "1px solid var(--border)", background: "var(--chart-tooltip)", color: "var(--foreground)" }} /><Bar dataKey="amount" fill="var(--accent)" radius={[0, 8, 8, 0]} barSize={24} className="cursor-pointer" onClick={(item) => { if (item.payload?.name) router.push(drilldownHref({ type: "expense", category: item.payload.name })); }} /></BarChart></ResponsiveContainer> : <EmptyPanel label="No expense categories in this range." />}
+                                            {categoryChart.length ? <CategoryMixChart data={categoryChart} onSelectCategory={(category) => router.push(drilldownHref({ type: "expense", category }))} /> : <EmptyPanel label="No expense categories in this range." />}
                                         </div>
                                     </div>
                                     <div className="rounded-panel border border-border bg-white p-6 dark:bg-zinc-900 sm:p-8">
@@ -156,7 +166,7 @@ export default function ReportsScreen() {
                                     <div className="rounded-panel border border-border bg-white p-6 dark:bg-zinc-900 sm:p-8">
                                         <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30"><CalendarRange className="h-4 w-4" /></span><div><h2 className="font-bold font-rounded">Monthly trend</h2><p className="text-xs text-zinc-400">Expense and income over time</p></div></div>
                                         <div className="mt-7 h-[300px] min-w-0">
-                                            {monthChart.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={monthChart} margin={{ left: 4, right: 12, top: 8, bottom: 4 }}><CartesianGrid vertical={false} stroke="var(--chart-grid)" strokeDasharray="3 3" /><XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--chart-axis)" }} /><YAxis hide /><Tooltip formatter={(value) => formatMoney(Number(value))} contentStyle={{ borderRadius: 16, border: "1px solid var(--border)", background: "var(--chart-tooltip)", color: "var(--foreground)" }} /><Line type="monotone" dataKey="expense" stroke="var(--accent)" strokeWidth={3} dot={{ r: 3 }} /><Line type="monotone" dataKey="income" stroke="var(--chart-positive)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer> : <EmptyPanel label="Monthly trend appears after dated records." />}
+                                            {monthChart.length ? <MonthlyTrendChart data={monthChart} /> : <EmptyPanel label="Monthly trend appears after dated records." />}
                                         </div>
                                     </div>
                                     <div className="rounded-panel border border-border bg-white p-6 dark:bg-zinc-900 sm:p-8">

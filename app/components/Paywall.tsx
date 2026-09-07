@@ -44,12 +44,12 @@ export default function Paywall({ error, featureLabel, compact = false }: Paywal
                 </p>
             )}
             {!allowancePaused && user?.is_guest && (
-                <button type="button" onClick={beginGuestClaim} className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-bold text-white">
+                <button type="button" onClick={beginGuestClaim} className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-bold text-zinc-950">
                     Save workspace to continue
                 </button>
             )}
             {!allowancePaused && !user?.is_guest && !compact && (
-                <Link href="/dashboard/settings" className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-bold text-white">
+                <Link href="/dashboard/settings" className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-bold text-zinc-950">
                     Review account options
                 </Link>
             )}

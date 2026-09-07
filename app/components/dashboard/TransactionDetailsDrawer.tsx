@@ -15,7 +15,6 @@ import {
     Pencil,
 } from "lucide-react";
 import { cn } from "@/app/lib/utils";
-import { motion, useReducedMotion } from "framer-motion";
 import { apiErrorMessage, EntriesAPI, SplitAPI, SplitBill, Transaction } from "@/app/lib/api";
 import { formatDate, formatMoney, formatTime, toLocalISO } from "@/app/lib/format";
 import Dialog from "@/app/components/ui/Dialog";
@@ -32,7 +31,6 @@ interface TransactionDetailsDrawerProps {
 }
 
 export default function TransactionDetailsDrawer({ isOpen, onClose, onChanged, transaction, reviewStatus, onEdit }: TransactionDetailsDrawerProps) {
-    const reduceMotion = useReducedMotion();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [confirmAction, setConfirmAction] = useState<"delete" | "duplicate" | null>(null);
@@ -116,12 +114,7 @@ export default function TransactionDetailsDrawer({ isOpen, onClose, onChanged, t
     return (
         <>
             <Dialog open={isOpen} onClose={onClose} labelledBy="transaction-details-title" className="justify-end p-0" panelClassName="h-dvh max-w-md rounded-none border-y-0 border-r-0">
-                    <motion.div
-                        initial={reduceMotion ? false : { x: "100%" }}
-                        animate={{ x: 0 }}
-                        transition={reduceMotion ? { duration: 0 } : { type: "spring", damping: 25, stiffness: 200 }}
-                        className="flex h-dvh flex-col bg-card"
-                    >
+                    <div className="drawer-enter flex h-dvh flex-col bg-card">
                         {/* Drawer Header */}
                         <div className="p-8 border-b border-border flex items-center justify-between">
                             <h3 id="transaction-details-title" className="text-xl font-bold font-rounded">Transaction Details</h3>
@@ -188,7 +181,7 @@ export default function TransactionDetailsDrawer({ isOpen, onClose, onChanged, t
                             {onEdit && <button
                                 onClick={handleEdit}
                                 disabled={loading || splitLoadState === "loading"}
-                                className="w-full flex items-center justify-center gap-3 bg-accent text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70"
+                                className="w-full flex items-center justify-center gap-3 bg-accent text-zinc-950 py-4 rounded-2xl font-bold text-sm shadow-xl shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70"
                             >
                                 <Pencil className="w-4 h-4" /> {splitLoadState === "loading" ? "Loading details…" : "Edit Transaction"}
                             </button>}
@@ -207,7 +200,7 @@ export default function TransactionDetailsDrawer({ isOpen, onClose, onChanged, t
                                 <Trash2 className="w-4 h-4" /> Delete Permanently
                             </button>
                         </div>
-                    </motion.div>
+                    </div>
             </Dialog>
             <ConfirmDialog open={confirmAction === "delete"} title={`Delete ${transaction.merchant || transaction.title}?`} description="This permanently removes the financial record. It cannot be undone." confirmLabel="Delete permanently" busy={loading} onClose={() => setConfirmAction(null)} onConfirm={handleDelete} />
             <ConfirmDialog open={confirmAction === "duplicate"} title={`Duplicate ${transaction.merchant || transaction.title}?`} description={`This will create another ${formatMoney(transaction.amount)} record dated today.`} confirmLabel="Create duplicate" destructive={false} busy={loading} onClose={() => setConfirmAction(null)} onConfirm={handleDuplicate} />

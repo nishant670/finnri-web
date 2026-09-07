@@ -145,7 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white lg:flex">
-            <a href="#dashboard-content" className="fixed left-4 top-3 z-[180] -translate-y-20 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white transition-transform focus:translate-y-0">Skip to content</a>
+            <a href="#dashboard-content" className="fixed left-4 top-3 z-[180] -translate-y-20 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-zinc-950 transition-transform focus:translate-y-0">Skip to content</a>
             {isSidebarOpen && (
                 <button
                     className="fixed inset-0 z-40 bg-zinc-950/30 lg:hidden"
@@ -237,7 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             aria-expanded={isNotificationsOpen}
                         >
                             <Bell className="h-5 w-5" />
-                            {unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}
+                            {unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-zinc-950">{unreadCount > 99 ? "99+" : unreadCount}</span>}
                         </button>
                         {isNotificationsOpen && (
                             <div className="absolute right-0 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-border bg-white shadow-2xl dark:bg-zinc-900">

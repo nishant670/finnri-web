@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { api, apiErrorMessage } from "@/app/lib/api";
@@ -48,9 +48,6 @@ function PayScreen() {
             ? { name: "loading" }
             : { name: "error", message: "This payment link is incomplete. Open it again from the Finnri app." }
     );
-    // Checkout must open from the tap that requested it, not from a later
-    // effect: a browser blocks a popup it cannot attribute to a gesture.
-    const autoOpened = useRef(false);
     // Survives the error phase, which carries a message but no order.
     const [order, setOrder] = useState<PublicOrder | null>(null);
 
@@ -109,12 +106,6 @@ function PayScreen() {
                 }
                 setOrder(data);
                 setPhase({ name: "ready", order: data });
-                // Skip the extra tap on the way in. If the browser blocks it,
-                // the Pay button below is still there.
-                if (!autoOpened.current) {
-                    autoOpened.current = true;
-                    void openCheckout(data);
-                }
             } catch (error) {
                 if (cancelled) return;
                 setPhase({
@@ -124,7 +115,7 @@ function PayScreen() {
             }
         })();
         return () => { cancelled = true; };
-    }, [orderId, openCheckout]);
+    }, [orderId]);
 
     return (
         <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10">
@@ -144,7 +135,7 @@ function PayScreen() {
                             <button
                                 type="button"
                                 onClick={() => void openCheckout(order)}
-                                className="mt-2 flex min-h-13 items-center justify-center rounded-2xl bg-accent px-6 py-4 text-base font-bold text-white"
+                                className="mt-2 flex min-h-13 items-center justify-center rounded-2xl bg-accent px-6 py-4 text-base font-bold text-zinc-950"
                             >
                                 Try again
                             </button>
@@ -178,7 +169,7 @@ function PayScreen() {
                 {(phase.name === "ready" || phase.name === "opening") && (
                     <div className="flex flex-col gap-5">
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">Finnri</p>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">Finnri</p>
                             <h1 className="mt-1 text-xl font-bold font-rounded">{phase.order.plan_name}</h1>
                         </div>
                         <p className="text-4xl font-bold font-rounded tabular-nums">
@@ -188,12 +179,12 @@ function PayScreen() {
                             type="button"
                             onClick={() => void openCheckout(phase.order)}
                             disabled={phase.name === "opening"}
-                            className="flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-accent px-6 py-4 text-base font-bold text-white shadow-lg shadow-accent/20 disabled:opacity-60"
+                            className="flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-accent px-6 py-4 text-base font-bold text-zinc-950 shadow-lg shadow-accent/20 disabled:opacity-60"
                         >
                             {phase.name === "opening" ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                             {phase.name === "opening" ? "Opening…" : "Pay with UPI, card or net banking"}
                         </button>
-                        <p className="flex items-start gap-2 text-xs leading-5 text-zinc-400">
+                        <p className="flex items-start gap-2 text-xs leading-5 text-zinc-500">
                             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
                             Payment is handled by Razorpay. Finnri never sees your card or UPI details.
                         </p>

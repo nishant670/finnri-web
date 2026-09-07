@@ -6,10 +6,17 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Finnri | Financial insights and planning tools",
   description: "Understand your spending, review recurring patterns, and plan with FINNRI's explainable financial dashboard.",
+  manifest: "/manifest.webmanifest",
+  icons: { apple: "/apple-icon.png" },
 };
 
-import { AuthProvider } from "./context/AuthContext";
-import { ThemeProvider } from "./components/ui/ThemeProvider";
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FDF5F7" },
+    { media: "(prefers-color-scheme: dark)", color: "#1A1A1A" },
+  ],
+  colorScheme: "light dark",
+};
 
 const themeScript = `(function(){try{var t=localStorage.getItem('finnri_theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light'}catch(e){}})()`;
 
@@ -21,9 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
-      <body className="antialiased font-sans">
-        <ThemeProvider><AuthProvider>{children}</AuthProvider></ThemeProvider>
-      </body>
+      <body className="antialiased font-sans">{children}</body>
     </html>
   );
 }

@@ -31,7 +31,7 @@ function AdminLoginForm() {
             <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
             <div className="absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-orange-200/30 blur-3xl dark:bg-orange-900/15" />
             <form onSubmit={submit} className="relative w-full max-w-md rounded-panel border border-border bg-card p-7 shadow-2xl sm:p-9">
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-accent text-white">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-accent text-zinc-950">
                     <ShieldCheck className="h-7 w-7" />
                 </div>
                 <p className="mt-7 text-xs font-bold uppercase tracking-[0.2em] text-accent">Restricted access</p>
@@ -77,7 +77,7 @@ function AdminLoginForm() {
                 </label>
                 <button
                     disabled={busy}
-                    className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-white disabled:opacity-60"
+                    className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950 disabled:opacity-60"
                 >
                     {busy && <Loader2 className="h-4 w-4 animate-spin" />}Sign in securely
                 </button>

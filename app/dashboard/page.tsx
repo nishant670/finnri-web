@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,7 +18,6 @@ import {
     TrendingUp,
     WalletCards,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AddTransactionModal from "@/app/components/dashboard/AddTransactionModal";
 import BudgetProgressCard from "@/app/components/dashboard/BudgetProgressCard";
 import DashboardInsightCard from "@/app/components/dashboard/DashboardInsightCard";
@@ -29,6 +29,11 @@ import { transactionHref } from "@/app/lib/transaction-links";
 import { cn } from "@/app/lib/utils";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { useToast } from "@/app/components/ui/Toast";
+
+const DailySpendingChart = dynamic(() => import("@/app/components/charts/DailySpendingChart"), {
+    ssr: false,
+    loading: () => <div className="h-full animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-800" aria-hidden="true" />,
+});
 
 function rangeFor(preset: "month" | "30d" | "90d") {
     const end = new Date();
@@ -45,7 +50,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-accent/10 text-accent"><Sparkles className="h-6 w-6" /></span>
             <h2 className="mt-5 text-xl font-bold font-rounded">Your first insight starts with one transaction</h2>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">Add an expense or income. Finnri will turn it into category, account, merchant, and period-level insight automatically.</p>
-            <button onClick={onAdd} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white shadow-lg shadow-accent/20"><Plus className="h-4 w-4" /> Add a transaction</button>
+            <button onClick={onAdd} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-zinc-950 shadow-lg shadow-accent/20"><Plus className="h-4 w-4" /> Add a transaction</button>
         </div>
     );
 }
@@ -121,7 +126,7 @@ export default function DashboardHome() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <button onClick={() => void exportPeriod()} disabled={!dashboard || isExporting} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-bold text-zinc-600 disabled:opacity-40 dark:bg-zinc-900 dark:text-zinc-300"><Download className="h-4 w-4" />{isExporting ? "Exporting…" : "Export period"}</button>
-                        <button onClick={() => { setEditing(null); setIsModalOpen(true); }} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-white shadow-lg shadow-accent/20 hover:bg-[#ff7953]"><Plus className="h-4 w-4" /> Add transaction</button>
+                        <button onClick={() => { setEditing(null); setIsModalOpen(true); }} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950 shadow-lg shadow-accent/20 hover:bg-[#ff7953]"><Plus className="h-4 w-4" /> Add transaction</button>
                     </div>
                 </header>
 
@@ -189,23 +194,10 @@ export default function DashboardHome() {
                             </div>
                             <div className="mt-7 h-[280px] min-w-0">
                                 {dailyChartData.length ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={dailyChartData} margin={{ left: 4, right: 8, top: 8, bottom: 4 }}>
-                                            <CartesianGrid vertical={false} stroke="var(--chart-grid)" strokeDasharray="3 3" />
-                                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--chart-axis)" }} />
-                                            <YAxis hide />
-                                            <Tooltip cursor={{ fill: "var(--accent-secondary)" }} content={({ active, label }) => {
-                                                if (!active) return null;
-                                                const day = dailyChartData.find((item) => item.label === label);
-                                                if (!day) return null;
-                                                return <div className="rounded-2xl border border-border bg-card p-3 text-xs shadow-xl"><p className="font-bold">{formatDate(day.date)}</p><p className="mt-1 text-zinc-500">{formatMoney(day.amount)} · {day.count} transaction{day.count === 1 ? "" : "s"}</p></div>;
-                                            }} />
-                                            <Bar dataKey="amount" fill="var(--accent)" radius={[8, 8, 0, 0]} barSize={28} className="cursor-pointer" onClick={(item) => {
-                                                const day = item.payload;
-                                                if (day?.date) router.push(transactionHref({ type: "expense", start_date: day.date, end_date: day.date }));
-                                            }} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                    <DailySpendingChart
+                                        data={dailyChartData}
+                                        onSelectDate={(date) => router.push(transactionHref({ type: "expense", start_date: date, end_date: date }))}
+                                    />
                                 ) : <div className="grid h-full place-items-center rounded-2xl bg-zinc-50 text-sm font-semibold text-zinc-400 dark:bg-zinc-800">Daily spending appears after confirmed expenses.</div>}
                             </div>
                             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

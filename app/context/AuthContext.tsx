@@ -83,6 +83,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const logout = () => {
+        // Revocation is best-effort so a network outage never traps a user in
+        // the app. The local credential is cleared immediately either way.
+        if (token) void AuthAPI.logout(token).catch(() => undefined);
         setToken(null);
         setUser(null);
         localStorage.removeItem("finnri_token");
@@ -98,7 +101,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const { token, user } = res.data;
         login(token, user);
-        router.push("/dashboard");
     };
 
     const claimGuest = async (claimToken: string, pin: string) => {

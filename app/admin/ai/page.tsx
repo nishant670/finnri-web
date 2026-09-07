@@ -196,7 +196,7 @@ export default function AIPage() {
                                 ))}
                                 <button
                                     onClick={() => void save(row)}
-                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-white"
+                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-zinc-950"
                                     aria-label={`Save ${row.model}`}
                                 >
                                     <Save className="h-4 w-4" />

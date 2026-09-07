@@ -16,7 +16,16 @@ import {
   ArrowDownRight
 } from "lucide-react";
 import MarketingNav from "@/app/components/marketing/MarketingNav";
-import { SITE_URL } from "@/app/lib/site";
+import { LEGAL_BUSINESS_NAME, PLAY_STORE_URL, SITE_URL } from "@/app/lib/site";
+import { formatMinor } from "@/app/lib/billing-format";
+import { fetchPublishedPrices, intervalDuration } from "@/app/lib/public-plans";
+
+const faqs = [
+  { q: "Do I need to connect my bank?", a: "No. Finnri does not connect to banks or automatically import bank activity. You record transactions yourself by voice, text, or manual entry and maintain your own account labels and balances." },
+  { q: "How does voice input work?", a: "In the mobile app, tap the microphone and speak naturally. Finnri sends the audio for transcription, creates an editable draft, and waits for your confirmation before saving a transaction." },
+  { q: "What happens to voice and text drafts?", a: "Voice audio is held only long enough to transcribe it. Parse attempts, raw provider prompts, and raw provider responses are not persisted. A confirmed transaction may retain its source text as editable provenance." },
+  { q: "Can I export my data?", a: "Yes. CSV export of the current transaction view is available today. PDF export is not available on the web, and CSV is not advertised as a paid-only feature." },
+];
 
 export const metadata: Metadata = {
   title: "Finnri | Confirm-first money tracking for India",
@@ -31,7 +40,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+// The cheapest published plan is read from the API for the same reason
+// `/pricing` is: an owner can change prices from the admin console, and a
+// retyped "from" price is the one a visitor sees first.
+export const revalidate = 3600;
+
+export default async function Home() {
+  const { plans } = await fetchPublishedPrices();
+  const cheapest = plans.reduce<typeof plans[number] | null>(
+    (lowest, plan) => (lowest === null || (plan.price_minor ?? 0) < (lowest.price_minor ?? 0) ? plan : lowest),
+    null,
+  );
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -46,11 +65,32 @@ export default function Home() {
       name: "Use Finnri's free EMI and SIP calculators",
     },
   };
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: LEGAL_BUSINESS_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/finnri-logo.png`,
+    email: "support@finnri.app",
+  };
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: { "@type": "Answer", text: faq.a },
+    })),
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <a href="#main-content" className="sr-only z-[100] rounded-xl bg-white px-4 py-3 font-bold text-zinc-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
       <MarketingNav />
+      <main id="main-content">
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
@@ -61,20 +101,32 @@ export default function Home() {
                 <Brain className="w-4 h-4" />
                 <span>Confirm-first AI Intelligence</span>
               </div>
-              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1] font-rounded">
-                Money, made <span className="text-accent underline decoration-accent/20 underline-offset-8">intelligent.</span>
+              {/* text-6xl, not 7xl: at 72px this headline needs three lines in a
+                  half-width column and strands "clarity." alone on the last one.
+                  text-balance evens the two lines that are left. */}
+              <h1 className="text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.1] text-balance font-rounded">
+                Track your money in India <span className="text-accent underline decoration-accent/20 underline-offset-8">with clarity.</span>
               </h1>
               <p className="text-xl text-text-muted mb-10 leading-relaxed max-w-lg">
                 Record expenses and income by voice, text, or manual entry. Finnri can suggest the details; you review every record before it is saved.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/login" className="flex items-center justify-center gap-2 bg-foreground text-background px-8 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl shadow-foreground/10 group">
-                  <LayoutDashboard className="w-5 h-5" />
+              {/* Three full-width buttons do not fit one row in a half-width
+                  column, and letting them squeeze broke every label across two
+                  lines. They wrap as whole buttons now: the two that carry the
+                  conversion sit together, and Free Tools — which also has the
+                  nav and its own section CTA — takes the second row. */}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-8">
+                <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-zinc-950 px-6 py-4 font-bold text-white shadow-xl shadow-zinc-950/10 transition-all hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
+                  <Smartphone className="h-5 w-5" />
+                  Get the Android app
+                </a>
+                <Link href="/login" className="group flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-border bg-white px-6 py-4 font-bold shadow-md transition-all hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700">
+                  <LayoutDashboard className="w-5 h-5 text-accent" />
                   Open Web Dashboard
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <Link href="/tools" className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-border px-8 py-4 rounded-2xl font-bold hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-md">
+                <Link href="/tools" className="flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-border bg-white px-6 py-4 font-bold shadow-md transition-all hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700">
                   <TrendingUp className="w-5 h-5 text-accent" />
                   Explore Free Tools
                 </Link>
@@ -100,9 +152,10 @@ export default function Home() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/10 blur-[100px] rounded-full" />
               <div className="relative w-full max-w-[450px] aspect-[4/5] animate-float">
                 <Image
-                  src="/hero.png"
-                  alt="Finnri App Interface"
+                  src="/hero.webp"
+                  alt="The Finnri app showing a Confirm Transaction card — Coffee, ₹150, category Food — waiting to be swiped to confirm"
                   fill
+                  sizes="(min-width: 1024px) 450px, 90vw"
                   className="object-contain drop-shadow-2xl"
                   priority
                 />
@@ -232,7 +285,7 @@ export default function Home() {
               <div className="space-y-4 relative z-10">
                 <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 animate-float">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-xs uppercase tracking-widest text-zinc-400">Monthly Budget</span>
+                    <span className="text-xs uppercase tracking-widest text-zinc-300">Monthly Budget</span>
                     <span className="text-accent text-sm font-bold">75% Used</span>
                   </div>
                   <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
@@ -245,7 +298,7 @@ export default function Home() {
                       <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center dark:bg-zinc-700">🛒</div>
                       <div>
                         <p className="text-zinc-900 font-bold dark:text-white">Starbucks</p>
-                        <p className="text-xs text-zinc-500">Coffee • Bangalore</p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300">Coffee • Bangalore</p>
                       </div>
                     </div>
                     <span className="text-zinc-900 font-bold dark:text-white">₹320</span>
@@ -254,7 +307,7 @@ export default function Home() {
               </div>
               <div className="mt-8 relative z-10">
                 <p className="text-2xl font-bold mb-2">Detailed insights at your fingertips.</p>
-                <p className="text-zinc-400">See category and merchant totals calculated from your confirmed records.</p>
+                <p className="text-zinc-300">See category and merchant totals calculated from your confirmed records.</p>
               </div>
               {/* Decorative dots */}
               {[...Array(20)].map((_, i) => (
@@ -280,19 +333,19 @@ export default function Home() {
                 </p>
                 <ul className="space-y-4 mb-10 text-lg font-medium">
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-white"><CheckCircle2 className="w-4 h-4" /></div>
+                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-zinc-950"><CheckCircle2 className="w-4 h-4" /></div>
                     View interactive reports & spending trends
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-white"><CheckCircle2 className="w-4 h-4" /></div>
+                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-zinc-950"><CheckCircle2 className="w-4 h-4" /></div>
                     Search, filter, inspect, and export transaction views
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-white"><CheckCircle2 className="w-4 h-4" /></div>
+                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-zinc-950"><CheckCircle2 className="w-4 h-4" /></div>
                     Use budgets, recurring-payment reviews, and planning tools
                   </li>
                 </ul>
-                <Link href="/tools" className="inline-flex items-center gap-2 bg-accent text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-accent/20 hover:scale-105 transition-transform">
+                <Link href="/tools" className="inline-flex items-center gap-2 bg-accent px-8 py-4 rounded-2xl font-bold text-zinc-950 shadow-lg shadow-accent/20 hover:scale-105 transition-transform">
                   Use Free Tools
                   <ArrowRight className="w-5 h-5" />
                 </Link>
@@ -377,7 +430,7 @@ export default function Home() {
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4 font-rounded">What is available today</h2>
-            <p className="text-text-muted">Start with the features that ship now. No paid plan is currently offered on this website.</p>
+            <p className="text-text-muted">Start free, then choose a fixed-duration pass when you need more AI credits and paid features.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -385,7 +438,7 @@ export default function Home() {
               <div>
                 <h3 className="text-2xl font-bold mb-2">Finnri Free</h3>
                 <p className="text-text-muted mb-6">Core tracking and a limited AI trial.</p>
-                <div className="text-4xl font-bold mb-8 font-rounded">₹0 <span className="text-sm font-normal text-zinc-400">/mo</span></div>
+                <div className="text-4xl font-bold mb-8 font-rounded">₹0 <span className="text-sm font-normal text-zinc-600 dark:text-zinc-300">/mo</span></div>
                 <ul className="space-y-4 mb-8">
                   <li className="flex items-center gap-3 text-sm font-medium"><CheckCircle2 className="w-4 h-4 text-accent" /> Manual transaction and account tracking</li>
                   <li className="flex items-center gap-3 text-sm font-medium"><CheckCircle2 className="w-4 h-4 text-accent" /> Search, filters, and basic dashboard totals</li>
@@ -396,13 +449,13 @@ export default function Home() {
               <Link href="/login" className="w-full py-4 rounded-2xl border-2 border-foreground text-center font-bold hover:bg-foreground hover:text-background transition-all">Get started</Link>
             </div>
             <div className="p-8 rounded-panel border border-border bg-white/60 dark:bg-zinc-800/60 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute top-4 right-4 bg-accent text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Coming Soon</div>
+              <div className="absolute top-4 right-4 bg-accent px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-zinc-950">Coming Soon</div>
               <div>
-                <h3 className="text-2xl font-bold mb-2">Paid plans</h3>
-                <p className="text-text-muted mb-6">Not available for purchase yet.</p>
-                <p className="text-sm leading-6 text-text-muted">Prices and paid features will be published only after checkout, renewal, cancellation, and support flows are ready. Finnri does not currently sell a Pro subscription from this site.</p>
+                <h3 className="text-2xl font-bold mb-2">Paid passes</h3>
+                <p className="text-text-muted mb-6">{cheapest ? `From ${formatMinor(cheapest.price_minor ?? 0, cheapest.currency)} for ${intervalDuration(cheapest.billing_interval)}.` : "Fixed-duration passes, priced in INR."}</p>
+                <p className="text-sm leading-6 text-text-muted">Every purchase has a fixed duration and does not auto-renew. Compare included credits, daily limits, and longer-duration options before paying.</p>
               </div>
-              <div className="mt-8 w-full rounded-2xl bg-zinc-100 py-4 text-center text-sm font-bold text-zinc-500 dark:bg-zinc-900" aria-label="Paid plans coming soon">Coming soon</div>
+              <Link href="/pricing" className="mt-8 w-full rounded-2xl bg-zinc-950 py-4 text-center text-sm font-bold text-white dark:bg-white dark:text-zinc-950">See pricing</Link>
             </div>
           </div>
         </div>
@@ -413,12 +466,7 @@ export default function Home() {
         <div className="container mx-auto px-6 max-w-3xl">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 font-rounded">Frequently Asked Questions</h2>
           <div className="space-y-4">
-            {[
-              { q: "Do I need to connect my bank?", a: "No. Finnri does not connect to banks or automatically import bank activity. You record transactions yourself by voice, text, or manual entry and maintain your own account labels and balances." },
-              { q: "How does voice input work?", a: "In the mobile app, tap the microphone and speak naturally. Finnri sends the audio for transcription, creates an editable draft, and waits for your confirmation before saving a transaction." },
-              { q: "What happens to voice and text drafts?", a: "Voice audio is held only long enough to transcribe it. Parse attempts, raw provider prompts, and raw provider responses are not persisted. A confirmed transaction may retain its source text as editable provenance." },
-              { q: "Can I export my data?", a: "Yes. CSV export of the current transaction view is available today. PDF export is not available on the web, and CSV is not advertised as a paid-only feature." }
-            ].map((faq) => (
+            {faqs.map((faq) => (
               <details key={faq.q} className="group border border-border rounded-2xl bg-white p-6 dark:bg-zinc-800">
                 <summary className="cursor-pointer text-lg font-bold">{faq.q}</summary>
                 <p className="mt-3 text-text-muted leading-relaxed">{faq.a}</p>
@@ -431,17 +479,17 @@ export default function Home() {
       {/* Footer CTA */}
       <section id="get-started" className="py-24 px-6">
         <div className="container mx-auto">
-          <div className="bg-accent rounded-panel p-12 lg:p-24 text-center text-white relative overflow-hidden shadow-2xl shadow-accent/40">
+          <div className="bg-accent rounded-panel p-12 lg:p-24 text-center text-zinc-950 relative overflow-hidden shadow-2xl shadow-accent/40">
             {/* Decorative circles */}
             <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
             <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-black/10 rounded-full blur-3xl" />
 
             <div className="relative z-10">
               <h2 className="text-4xl lg:text-6xl font-bold mb-8 font-rounded leading-tight">Start with Finnri on the web.</h2>
-              <p className="text-white/80 text-xl mb-12 max-w-2xl mx-auto">Create an account or continue as a guest to record transactions and explore the dashboard.</p>
+              <p className="text-zinc-800 text-xl mb-12 max-w-2xl mx-auto">Create an account or continue as a guest to record transactions and explore the dashboard.</p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                <Link href="/login" className="flex items-center gap-3 bg-white text-accent px-10 py-5 rounded-2xl font-bold shadow-xl hover:scale-105 active:scale-95 transition-all w-full sm:w-auto">
+                <Link href="/login" className="flex items-center gap-3 bg-white px-10 py-5 rounded-2xl font-bold text-zinc-950 shadow-xl hover:scale-105 active:scale-95 transition-all w-full sm:w-auto">
                   <LayoutDashboard className="w-6 h-6" />
                   Open Web Dashboard
                 </Link>
@@ -454,6 +502,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer Links */}
       <footer className="py-12 border-t border-border">
@@ -468,6 +517,9 @@ export default function Home() {
             <div className="flex flex-wrap justify-center gap-8 text-sm font-medium text-text-muted">
               <Link href="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-accent transition-colors">Terms of Service</Link>
+              <Link href="/pricing" className="hover:text-accent transition-colors">Pricing</Link>
+              <Link href="/refunds" className="hover:text-accent transition-colors">Refunds</Link>
+              <Link href="/contact" className="hover:text-accent transition-colors">Contact</Link>
               <Link href="/delete-account" className="hover:text-accent transition-colors">Delete Account</Link>
               <a href="mailto:support@finnri.app?subject=Finnri%20Support" className="hover:text-accent transition-colors">Contact Support</a>
             </div>

@@ -16,7 +16,6 @@ import {
     Loader2
 } from "lucide-react";
 import { cn } from "@/app/lib/utils";
-import { motion, useReducedMotion } from "framer-motion";
 import { Account, AccountsAPI, apiErrorMessage, asEntitlementError, EntitlementError, EntriesAPI, EntrySplitInput, SplitAPI, SplitBill, SplitFriend, SplitGroup, Transaction, TransactionInput } from "@/app/lib/api";
 import { PAYMENT_MODES, PaymentMode, paymentModeForAccountType, resolvePaymentMode } from "@/app/lib/accounts";
 import { categoryOptionsFor, loadCategories } from "@/app/lib/categories";
@@ -79,7 +78,6 @@ function entrySplitFromBill(bill: SplitBill | null | undefined): EntrySplitInput
 }
 
 export default function AddTransactionModal({ isOpen, onClose, transaction = null, linkedSplitBill = null, splitDataAvailable = true, onSaved }: AddTransactionModalProps) {
-    const reduceMotion = useReducedMotion();
     const { toast } = useToast();
     const isEditing = Boolean(transaction);
     const [mode, setMode] = useState<"quick" | "manual">("quick");
@@ -414,12 +412,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
 
     return (
         <Dialog open={isOpen} onClose={onClose} labelledBy="transaction-dialog-title" panelClassName="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-hidden sm:max-h-[90dvh]">
-                    <motion.div
-                        initial={reduceMotion ? false : { scale: 0.96, opacity: 0, y: 16 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        transition={reduceMotion ? { duration: 0 } : undefined}
-                        className="max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card sm:max-h-[90dvh]"
-                    >
+                    <div className="dialog-enter max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card sm:max-h-[90dvh]">
                         {/* Header */}
                         <div className="p-8 border-b border-border flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50 sticky top-0 z-10 backdrop-blur-md">
                             <div>
@@ -475,7 +468,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                             onClick={handleExtract}
                                             disabled={extracting || !text}
                                             className={cn(
-                                                "flex items-center justify-center gap-3 bg-accent text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-accent/20 transition-all",
+                                                "flex items-center justify-center gap-3 bg-accent text-zinc-950 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-accent/20 transition-all",
                                                 (extracting || !text) ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"
                                             )}
                                         >
@@ -671,7 +664,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                     onClick={handleSave}
                                     disabled={saving || mode === "quick" || !accountID || pendingReviewFields.length > 0}
                                     className={cn(
-                                        "group flex items-center justify-center gap-2 px-10 py-3 bg-accent text-white rounded-xl font-bold text-sm shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-70",
+                                        "group flex items-center justify-center gap-2 px-10 py-3 bg-accent text-zinc-950 rounded-xl font-bold text-sm shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-70",
                                         success && "bg-green-500 shadow-green-500/20"
                                     )}
                                 >
@@ -690,7 +683,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                 </button>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
         </Dialog>
     );
 }

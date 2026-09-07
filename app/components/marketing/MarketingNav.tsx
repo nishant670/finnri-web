@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { PLAY_STORE_URL } from "@/app/lib/site";
 
 const navigation = [
     { href: "#features", label: "Features" },
@@ -38,7 +39,7 @@ export default function MarketingNav() {
                 <div className="hidden items-center gap-8 lg:flex">
                     {navigation.map((item) => <Link key={item.href} href={item.href} className="text-sm font-medium transition-colors hover:text-accent">{item.label}</Link>)}
                     <Link href="/login" className="text-sm font-semibold text-accent transition-opacity hover:opacity-80">Web Dashboard</Link>
-                    <Link href="/login" className="rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition-all hover:scale-105 active:scale-95">Open Finnri</Link>
+                    <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" className="rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-zinc-950 shadow-lg shadow-accent/30 transition-all hover:scale-105 active:scale-95">Get the Android app</a>
                 </div>
                 <button className="p-2 lg:hidden" onClick={() => setIsMenuOpen((open) => !open)} aria-expanded={isMenuOpen} aria-controls="marketing-mobile-nav" aria-label="Toggle navigation">
                     {isMenuOpen ? <X /> : <Menu />}
@@ -50,7 +51,7 @@ export default function MarketingNav() {
                         {navigation.map((item) => <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="text-lg font-medium">{item.label}</Link>)}
                         <div className="my-2 h-px bg-border" />
                         <Link href="/login" onClick={() => setIsMenuOpen(false)} className="text-lg font-bold text-accent">Web Dashboard Login</Link>
-                        <Link href="/login" onClick={() => setIsMenuOpen(false)} className="rounded-2xl bg-accent px-6 py-4 text-center font-bold text-white shadow-lg">Open Finnri</Link>
+                        <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" onClick={() => setIsMenuOpen(false)} className="rounded-2xl bg-accent px-6 py-4 text-center font-bold text-zinc-950 shadow-lg">Get the Android app</a>
                     </div>
                 </div>
             )}

@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import PublicToolsClient from "./PublicToolsClient";
+import PublicToolsPage from "./PublicToolsPage";
+import { PROJECTION_DISCLAIMER } from "@/app/lib/calculators";
+
+const toolFaqs = [
+  { q: "Is the EMI calculator free?", a: "Yes. The EMI calculator on this page is free and does not require login." },
+  { q: "Is the SIP calculator free?", a: "Yes. You can estimate SIP maturity value, invested amount, returns, and yearly growth without an account." },
+  { q: "Are the calculations financial advice?", a: PROJECTION_DISCLAIMER },
+];
 
 export const metadata: Metadata = {
   title: "Free EMI Calculator and SIP Calculator | Finnri",
@@ -51,6 +58,15 @@ export default function ToolsPage() {
       },
     ],
   };
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: toolFaqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: { "@type": "Answer", text: faq.a },
+    })),
+  };
 
   return (
     <>
@@ -58,7 +74,8 @@ export default function ToolsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(calculatorSchema) }}
       />
-      <PublicToolsClient />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <PublicToolsPage />
     </>
   );
 }

@@ -80,7 +80,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 >
                     <div className="flex items-center justify-between">
                         <Link href="/admin" className="flex items-center gap-3">
-                            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-accent text-lg font-black text-white">F</span>
+                            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-accent text-lg font-black text-zinc-950">F</span>
                             <div>
                                 <p className="font-bold font-rounded">FINNRI Admin</p>
                                 <p className="text-[10px] uppercase tracking-[0.2em] text-text-muted">Internal console</p>

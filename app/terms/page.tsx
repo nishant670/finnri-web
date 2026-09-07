@@ -32,7 +32,7 @@ export default function TermsPage() {
             <section>
                 <h2>4. Accounts, guests, and service limits</h2>
                 <p>You may use supported features through a registered or guest account. Guest access, trial credits, AI usage, exports, and other capabilities may have limits described in the product. Do not create accounts or manipulate requests to bypass those limits.</p>
-                <p className="mt-3">No paid plan is currently sold from the Finnri website. Prices, renewal terms, cancellation methods, and paid entitlements will be presented before any future purchase is accepted.</p>
+                <p className="mt-3">Finnri offers fixed-duration paid passes through its website. Current prices, duration, included credits, and feature access are published on the Pricing page and shown again before payment. These purchases do not renew automatically; buying another pass is an explicit new purchase.</p>
             </section>
 
             <section>
@@ -48,7 +48,7 @@ export default function TermsPage() {
 
             <section>
                 <h2>7. Availability and changes</h2>
-                <p>Finnri is under active development. Features may change, be limited, or become temporarily unavailable for maintenance, security, provider outages, or product updates. We will not describe an unavailable paid feature as purchasable, and we will give appropriate notice before material changes to these terms take effect.</p>
+                <p>Finnri is under active development. Features may change, be limited, or become temporarily unavailable for maintenance, security, provider outages, or product updates. A paid pass provides the features and allowance described at purchase for its stated period, subject to fair-use and security limits. We will give appropriate notice before material changes to these terms take effect.</p>
             </section>
 
             <section>

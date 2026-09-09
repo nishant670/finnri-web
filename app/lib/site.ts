@@ -20,10 +20,20 @@ export const SITE_URL = configuredSiteURL || "http://localhost:3000";
 export const PLAY_STORE_URL = process.env.NEXT_PUBLIC_PLAY_STORE_URL?.trim()
     || "https://play.google.com/store/apps/details?id=com.finnri.app";
 
+// Razorpay expects a public page carrying the merchant's registered identity,
+// and /contact exists to be that page. But the identity must not be guessed
+// ahead of the KYC submission: a /contact stating an address that is not the
+// registered one is a discrepancy a reviewer can act on, which is strictly
+// worse than having no page at all. So /contact ships dark, and the three
+// values only become mandatory when this flag turns it on — the same moment
+// the KYC submission fixes what they are obliged to say.
+export const MERCHANT_IDENTITY_PUBLISHED =
+    process.env.NEXT_PUBLIC_MERCHANT_IDENTITY_PUBLISHED?.trim() === "true";
+
 function requiredPublicBusinessDetail(name: string, configuredValue: string | undefined, fallback: string) {
     const value = configuredValue?.trim();
-    if (process.env.NODE_ENV === "production" && !value) {
-        throw new Error(`${name} must be set for the public contact and merchant-policy pages`);
+    if (process.env.NODE_ENV === "production" && MERCHANT_IDENTITY_PUBLISHED && !value) {
+        throw new Error(`${name} must be set once NEXT_PUBLIC_MERCHANT_IDENTITY_PUBLISHED is on — /contact publishes it verbatim`);
     }
     return value || fallback;
 }

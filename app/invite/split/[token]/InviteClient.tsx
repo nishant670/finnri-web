@@ -32,7 +32,7 @@ export default function InviteClient({ token }: { token: string }) {
     const [phase, setPhase] = useState<Phase>({ name: "loading" });
     const [accepting, setAccepting] = useState(false);
     const [acceptError, setAcceptError] = useState("");
-    const deepLink = `ezmoney://invite/split/${encodeURIComponent(token)}`;
+    const deepLink = `finnri://invite/split/${encodeURIComponent(token)}`;
 
     const load = useCallback(async () => {
         setPhase({ name: "loading" });

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/app/lib/site";
+import { MERCHANT_IDENTITY_PUBLISHED, SITE_URL } from "@/app/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const lastModified = new Date("2026-09-05");
@@ -11,7 +11,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${SITE_URL}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },
         { url: `${SITE_URL}/refunds`, lastModified, changeFrequency: "yearly", priority: 0.4 },
         { url: `${SITE_URL}/shipping`, lastModified, changeFrequency: "yearly", priority: 0.3 },
-        { url: `${SITE_URL}/contact`, lastModified, changeFrequency: "yearly", priority: 0.5 },
         { url: `${SITE_URL}/delete-account`, lastModified, changeFrequency: "yearly", priority: 0.4 },
+        ...(MERCHANT_IDENTITY_PUBLISHED
+            ? [{ url: `${SITE_URL}/contact`, lastModified, changeFrequency: "yearly" as const, priority: 0.5 }]
+            : []),
     ];
 }

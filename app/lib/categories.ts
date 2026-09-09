@@ -5,7 +5,7 @@ export { categoryOptionsFor } from "@/app/lib/category-options";
  * The category vocabulary, read from the API rather than declared here.
  *
  * This file deliberately contains no list. The backend's `canonicalCategories`
- * (`EZ-Money-BE/internal/http/categories.go`) is the single source of truth, and
+ * (`finnri-api/internal/http/categories.go`) is the single source of truth, and
  * it is served by `GET /v1/categories`.
  *
  * The reason is a bug this file exists to make impossible. The picker in

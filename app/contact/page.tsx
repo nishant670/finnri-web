@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import LegalPage from "@/app/components/LegalPage";
-import { BUSINESS_ADDRESS, LEGAL_BUSINESS_NAME, SUPPORT_PHONE } from "@/app/lib/site";
+import { BUSINESS_ADDRESS, LEGAL_BUSINESS_NAME, MERCHANT_IDENTITY_PUBLISHED, SUPPORT_PHONE } from "@/app/lib/site";
 
 export const metadata: Metadata = {
     title: "Contact Finnri",
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
+    // Dark until the registered identity exists. See MERCHANT_IDENTITY_PUBLISHED.
+    if (!MERCHANT_IDENTITY_PUBLISHED) notFound();
     return (
         <LegalPage title="Contact Finnri" effectiveDate="5 September 2026" intro={<p>Contact us about product access, payments, refunds, privacy requests, or account support. Please never email a PIN, OTP, card number, UPI PIN, or bank password.</p>}>
             <section><h2>Business details</h2><p><strong>Business name:</strong> {LEGAL_BUSINESS_NAME}</p><p className="mt-3"><strong>Business address:</strong> {BUSINESS_ADDRESS}</p><p className="mt-3"><strong>Support phone:</strong> <a href={`tel:${SUPPORT_PHONE}`}>{SUPPORT_PHONE}</a></p></section>

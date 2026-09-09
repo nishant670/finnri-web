@@ -3,8 +3,8 @@
  * account type cannot silently fall through to an unrelated mode.
  *
  * PAYMENT_MODES mirrors `canonicalModes` in
- * EZ-Money-BE/internal/http/payment_modes.go and `PAYMENT_MODES` in
- * EZ-Money/lib/payment-modes.ts. The web does not send an inferred mode for
+ * finnri-api/internal/http/payment_modes.go and `PAYMENT_MODES` in
+ * finnri-app/lib/payment-modes.ts. The web does not send an inferred mode for
  * recognised account types; the API derives it from account_id. This map tells
  * the form when derivation is possible and is the compile-time drift guard.
  */

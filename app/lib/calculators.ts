@@ -86,7 +86,7 @@ export function validateSIPInput(input: SIPInput) {
     return errors;
 }
 
-// Keep this in lockstep with EZ-Money-BE/internal/http/emi.go. Both calculators
+// Keep this in lockstep with finnri-api/internal/http/emi.go. Both calculators
 // use paise precision for the instalment and every schedule row, including the
 // final principal adjustment. The shared fixture is pinned on both sides.
 export function calculateEMI(input: EMIInput): EMICalculation {

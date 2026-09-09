@@ -13,7 +13,7 @@ npm run dev
 ```
 
 The frontend reads `NEXT_PUBLIC_API_URL` and defaults to
-`http://localhost:8080`. Start the Go API from `../EZ-Money-BE` and allow the
+`http://localhost:8080`. Start the Go API from `../finnri-api` and allow the
 web origin through the backend CORS configuration.
 
 ## Current API coverage

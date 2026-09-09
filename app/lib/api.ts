@@ -492,7 +492,7 @@ export type SubscriptionInput = Omit<
 >;
 
 // `POST /v1/tools/emi/calculate` is still the mobile app's EMI engine
-// (EZ-Money/lib/emi.ts). The web computes EMI in app/lib/calculators.ts
+// (finnri-app/lib/emi.ts). The web computes EMI in app/lib/calculators.ts
 // instead, so it carries no client for that route; both are pinned to the
 // same fixture so the two platforms cannot drift.
 

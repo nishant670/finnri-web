@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Calculator, ChartLine, Menu, ShieldCheck } from "lucide-react";
 import { PROJECTION_DISCLAIMER } from "@/app/lib/calculators";
+import { MERCHANT_IDENTITY_PUBLISHED } from "@/app/lib/site";
 import PublicToolsClient from "./PublicToolsClient";
 
 const faqs = [
@@ -97,7 +98,7 @@ export default function PublicToolsPage() {
             <a href="#calculators">Calculators</a>
             <Link href="/pricing">Pricing</Link>
             <Link href="/refunds">Refunds</Link>
-            <Link href="/contact">Contact</Link>
+            {MERCHANT_IDENTITY_PUBLISHED && <Link href="/contact">Contact</Link>}
           </div>
           <p className="text-xs text-text-muted">© 2026 Finnri.</p>
         </div>

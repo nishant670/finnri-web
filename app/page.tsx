@@ -16,7 +16,7 @@ import {
   ArrowDownRight
 } from "lucide-react";
 import MarketingNav from "@/app/components/marketing/MarketingNav";
-import { LEGAL_BUSINESS_NAME, PLAY_STORE_URL, SITE_URL } from "@/app/lib/site";
+import { LEGAL_BUSINESS_NAME, MERCHANT_IDENTITY_PUBLISHED, PLAY_STORE_URL, SITE_URL } from "@/app/lib/site";
 import { formatMinor } from "@/app/lib/billing-format";
 import { fetchPublishedPrices, intervalDuration } from "@/app/lib/public-plans";
 
@@ -519,7 +519,7 @@ export default async function Home() {
               <Link href="/terms" className="hover:text-accent transition-colors">Terms of Service</Link>
               <Link href="/pricing" className="hover:text-accent transition-colors">Pricing</Link>
               <Link href="/refunds" className="hover:text-accent transition-colors">Refunds</Link>
-              <Link href="/contact" className="hover:text-accent transition-colors">Contact</Link>
+              {MERCHANT_IDENTITY_PUBLISHED && <Link href="/contact" className="hover:text-accent transition-colors">Contact</Link>}
               <Link href="/delete-account" className="hover:text-accent transition-colors">Delete Account</Link>
               <a href="mailto:support@finnri.app?subject=Finnri%20Support" className="hover:text-accent transition-colors">Contact Support</a>
             </div>

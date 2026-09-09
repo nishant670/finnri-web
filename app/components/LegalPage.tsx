@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { MERCHANT_IDENTITY_PUBLISHED } from "@/app/lib/site";
 
 type LegalPageProps = {
     title: string;
@@ -40,7 +41,7 @@ export default function LegalPage({ title, effectiveDate, intro, children }: Leg
                         <Link href="/pricing" className="hover:text-accent">Pricing</Link>
                         <Link href="/refunds" className="hover:text-accent">Refunds</Link>
                         <Link href="/shipping" className="hover:text-accent">Digital delivery</Link>
-                        <Link href="/contact" className="hover:text-accent">Contact</Link>
+                        {MERCHANT_IDENTITY_PUBLISHED && <Link href="/contact" className="hover:text-accent">Contact</Link>}
                         <Link href="/delete-account" className="hover:text-accent">Delete account</Link>
                         <a href="mailto:support@finnri.app?subject=Finnri%20Support" className="hover:text-accent">Support</a>
                     </nav>

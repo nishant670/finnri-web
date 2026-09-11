@@ -52,6 +52,12 @@ const nextConfig: NextConfig = {
             // The App Router will not route a segment beginning with a dot, and
             // Android insists on this exact path. See app/well-known/assetlinks.
             { source: "/.well-known/assetlinks.json", destination: "/well-known/assetlinks" },
+            // Apple fetches the extensionless path declared by the app's
+            // `applinks:finnri.app` entitlement.
+            {
+                source: "/.well-known/apple-app-site-association",
+                destination: "/well-known/apple-app-site-association",
+            },
         ];
     },
 };

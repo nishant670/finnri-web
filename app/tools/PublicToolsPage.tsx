@@ -50,7 +50,7 @@ export default function PublicToolsPage() {
 
       <section id="how-to-use" className="py-20">
         <div className="container mx-auto px-6">
-          <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-start">
+          <div className="grid gap-8 xl:grid-cols-[0.7fr_1.3fr] xl:items-start">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Simple planning</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight font-rounded">Use the calculators before opening an account</h2>

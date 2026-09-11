@@ -84,13 +84,13 @@ export default function PublicToolsClient() {
   return (
     <>
       <section className="overflow-hidden border-b border-border bg-white dark:bg-zinc-950">
-        <div className="container mx-auto grid min-h-[calc(100vh-5rem)] gap-10 px-6 py-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:py-14">
+        <div className="container mx-auto grid gap-10 px-6 py-10 xl:min-h-[calc(100vh-5rem)] xl:grid-cols-[0.85fr_1.15fr] xl:items-center xl:py-14 2xl:grid-cols-[0.72fr_1.28fr]">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-accent-secondary px-4 py-1.5 text-sm font-bold text-accent">
               <Calculator className="h-4 w-4" />
               Free financial calculators
             </div>
-            <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight font-rounded sm:text-5xl lg:text-6xl">
+            <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight font-rounded sm:text-5xl">
               EMI calculator and SIP calculator
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-text-muted">
@@ -104,7 +104,7 @@ export default function PublicToolsClient() {
                 Use EMI calculator
               </button>
             </div>
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="mt-8 flex flex-col flex-wrap gap-3 sm:flex-row sm:gap-x-6">
               {["Free for everyone", "Built for INR", "Works without login"].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm font-medium text-text-muted">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
@@ -114,7 +114,7 @@ export default function PublicToolsClient() {
             </div>
           </div>
 
-          <section id="calculators" className="rounded-panel border border-border bg-background p-4 shadow-2xl shadow-zinc-950/10 sm:p-5">
+          <section id="calculators" className="@container rounded-panel border border-border bg-background p-4 shadow-2xl shadow-zinc-950/10 sm:p-5">
             <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-1 dark:bg-zinc-900">
               {[
                 { id: "sip" as const, label: "SIP Calculator", icon: ChartLine },
@@ -135,8 +135,8 @@ export default function PublicToolsClient() {
             </div>
 
             {activeCalculator === "sip" ? (
-              <div className="mt-5 grid gap-5 xl:grid-cols-[0.88fr_1.12fr]">
-                <form onSubmit={submitSIP} className="space-y-4 rounded-surface border border-border bg-white p-5 dark:bg-zinc-900">
+              <div className="mt-5 grid gap-5 @3xl:grid-cols-2">
+                <form onSubmit={submitSIP} className="@container space-y-4 rounded-surface border border-border bg-white p-5 dark:bg-zinc-900">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">SIP details</p>
                     <h2 className="mt-1 text-xl font-bold font-rounded">Investment projection</h2>
@@ -149,11 +149,11 @@ export default function PublicToolsClient() {
                     ))}
                   </div>
                   <NumberField label="Monthly investment" value={sipInput.monthlyInvestment} min={1} onChange={(value) => updateSIPInput({ monthlyInvestment: value })} />
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 @sm:grid-cols-2">
                     <NumberField label="Expected return % p.a." value={sipInput.expectedAnnualReturnPercent} min={0} max={100} step={0.01} onChange={(value) => updateSIPInput({ expectedAnnualReturnPercent: value })} />
                     <NumberField label="Tenure in years" value={sipInput.tenureYears} min={0.08} max={60} step={0.01} onChange={(value) => updateSIPInput({ tenureYears: value })} />
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 @sm:grid-cols-2">
                     <NumberField label="Annual step-up %" value={sipInput.annualStepUpPercent} min={0} max={100} step={0.01} onChange={(value) => updateSIPInput({ annualStepUpPercent: value })} />
                     <NumberField label="Current corpus" value={sipInput.currentCorpus} min={0} onChange={(value) => updateSIPInput({ currentCorpus: value })} />
                   </div>
@@ -187,14 +187,14 @@ export default function PublicToolsClient() {
                 </ResultPanel>
               </div>
             ) : (
-              <div className="mt-5 grid gap-5 xl:grid-cols-[0.88fr_1.12fr]">
-                <form onSubmit={submitEMI} className="space-y-4 rounded-surface border border-border bg-white p-5 dark:bg-zinc-900">
+              <div className="mt-5 grid gap-5 @3xl:grid-cols-2">
+                <form onSubmit={submitEMI} className="@container space-y-4 rounded-surface border border-border bg-white p-5 dark:bg-zinc-900">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">EMI details</p>
                     <h2 className="mt-1 text-xl font-bold font-rounded">Loan repayment estimate</h2>
                   </div>
                   <NumberField label="Loan amount" value={principal} min={1} onChange={setPrincipal} />
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 @sm:grid-cols-2">
                     <NumberField label="Annual interest %" value={rate} min={0} max={100} step={0.01} onChange={setRate} />
                     <NumberField label="Tenure in months" value={months} min={1} max={360} step={1} onChange={setMonths} />
                   </div>
@@ -289,11 +289,11 @@ function ResultPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-surface border border-border bg-white p-5 dark:bg-zinc-900 sm:p-6">
+    <div className="@container rounded-surface border border-border bg-white p-5 dark:bg-zinc-900 sm:p-6">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{title}</p>
-      <p className={cn("mt-3 text-4xl font-bold font-rounded sm:text-5xl", empty && "text-zinc-500 dark:text-zinc-400")}>{primary}</p>
+      <p className={cn("mt-3 text-2xl font-bold tabular-nums break-words font-rounded @3xs:text-3xl @xs:text-4xl @xl:text-5xl", empty && "text-zinc-500 dark:text-zinc-400")}>{primary}</p>
       {metrics.length > 0 && (
-        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+        <div className="mt-7 grid gap-3 @xs:grid-cols-2">
           {metrics.map((metric) => (
             <div key={metric.label} className="rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{metric.label}</p>
@@ -310,7 +310,7 @@ function ResultPanel({
 function ScheduleTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
     <div className="mt-4 max-h-64 overflow-auto rounded-xl border border-border">
-      <table className="w-full min-w-[520px] text-left text-xs">
+      <table className="w-full text-left text-xs whitespace-nowrap">
         <thead className="sticky top-0 bg-zinc-50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
           <tr>
             {headers.map((header) => <th key={header} className="p-3">{header}</th>)}

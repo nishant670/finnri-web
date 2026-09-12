@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, Calculator, Smartphone } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Page not found | Finnri",
+    robots: { index: false, follow: false },
+};
 
 export default function NotFound() {
     return (

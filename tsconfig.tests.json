@@ -26,6 +26,10 @@
     "app/lib/plans.ts",
     "app/lib/plans.test.ts",
     "app/lib/billing-format.ts",
-    "app/lib/billing-format.test.ts"
+    "app/lib/billing-format.test.ts",
+    "app/lib/sentry-privacy.ts",
+    "app/lib/sentry-privacy.test.ts",
+    "app/lib/analytics.ts",
+    "app/lib/analytics.test.ts"
   ]
 }

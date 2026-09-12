@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
     return (
         <LegalPage
             title="Privacy Policy"
-            effectiveDate="20 August 2026"
+            effectiveDate="12 September 2026"
             intro={<p>This policy explains what Finnri collects, why it is needed, when it is shared, and the choices available to you. It applies to Finnri&apos;s mobile app, web dashboard, and supporting services.</p>}
         >
             <section>
@@ -28,6 +28,7 @@ export default function PrivacyPolicyPage() {
                 <h2>2. How we use information</h2>
                 <p>We use this information to authenticate you, store and display the records you confirm, calculate totals and deterministic insights, operate budgets and reminders, provide split-ledger features, process exports, answer support requests, prevent abuse, and maintain the security and reliability of Finnri.</p>
                 <p className="mt-3">Finnri does not connect to your bank, request bank passwords, move money, or automatically import bank activity.</p>
+                <p className="mt-3">When enabled, Finnri uses Plausible Analytics for aggregate marketing-page and signup-funnel counts. Finnri sends only fixed event names, allow-listed page paths, and coarse sign-in or capture-method labels—never an account identifier, merchant, amount, note, or financial record. Plausible does not set analytics cookies or build a persistent user profile.</p>
             </section>
 
             <section>

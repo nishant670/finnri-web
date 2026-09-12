@@ -24,6 +24,7 @@ import InlineSplitEditor from "@/app/components/dashboard/InlineSplitEditor";
 import Paywall from "@/app/components/Paywall";
 import Dialog from "@/app/components/ui/Dialog";
 import { useToast } from "@/app/components/ui/Toast";
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from "@/app/lib/analytics";
 
 type DraftField = "type" | "amount" | "title" | "category" | "date" | "account" | "tags" | "notes";
 
@@ -384,6 +385,14 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
             const response = transaction
                 ? await EntriesAPI.update(transaction.id, payload)
                 : await EntriesAPI.create(payload);
+            if (!transaction) {
+                // Plausible funnels use the first occurrence in the session;
+                // sending every successful create keeps this correct across
+                // every composer entry point without storing a user identifier.
+                trackAnalyticsEvent(ANALYTICS_EVENTS.funnelCaptureCreated, {
+                    source: parsedDraft ? "text" : "manual",
+                });
+            }
             await onSaved?.(response.data);
             setSuccess(true);
             toast({ title: transaction ? `${title} updated` : `${title} ${formatMoney(numericAmount)} saved` });

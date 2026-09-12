@@ -23,6 +23,7 @@ import { apiErrorMessage, AuthAPI } from "@/app/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
 import { EMAIL_LOGIN_ENABLED } from "@/app/lib/auth-policy";
 import { consumeAuthReturnTo } from "@/app/lib/auth-return";
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from "@/app/lib/analytics";
 
 type LoginStep = "choice" | "identifier" | "otp" | "pin";
 type AuthMode = "login" | "register" | "reset";
@@ -122,6 +123,7 @@ export default function LoginPage() {
                     device_id: webDeviceID(),
                     biometrics_enabled: false,
                 });
+                trackAnalyticsEvent(ANALYTICS_EVENTS.funnelAuthenticated, { method: "google" });
                 completeLogin(result.data.token, result.data.user);
             } catch (requestError) {
                 setError(apiErrorMessage(requestError, "Google sign-in failed."));
@@ -292,6 +294,7 @@ export default function LoginPage() {
         try {
             completingAuth.current = true;
             await loginAsGuest();
+            trackAnalyticsEvent(ANALYTICS_EVENTS.funnelAuthenticated, { method: "guest" });
             router.replace(consumeAuthReturnTo());
         }
         catch (requestError) { setError(apiErrorMessage(requestError, "We couldn’t open a guest workspace.")); }

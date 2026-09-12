@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { reportBrowserError } from "@/app/lib/crash-reporting";
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-    useEffect(() => { console.error(error); }, [error]);
+    useEffect(() => { reportBrowserError(error); }, [error]);
     return (
         <main className="grid min-h-screen place-items-center bg-background px-6 text-foreground">
             <section className="max-w-lg rounded-panel border border-border bg-white p-8 text-center shadow-xl dark:bg-zinc-900">

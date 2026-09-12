@@ -8,6 +8,28 @@ function apiOrigin() {
     }
 }
 
+function optionalSentryOrigin() {
+    const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim();
+    if (!dsn) return "";
+    try {
+        return new URL(dsn).origin;
+    } catch {
+        throw new Error("NEXT_PUBLIC_SENTRY_DSN must be an absolute URL");
+    }
+}
+
+function optionalAnalyticsOrigins() {
+    const scriptURL = process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL?.trim();
+    if (!scriptURL) return { script: "", connect: "" };
+    try {
+        return { script: new URL(scriptURL).origin, connect: "https://plausible.io" };
+    } catch {
+        throw new Error("NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL must be an absolute URL");
+    }
+}
+
+const analyticsOrigins = optionalAnalyticsOrigins();
+
 const contentSecurityPolicy = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -18,14 +40,14 @@ const contentSecurityPolicy = [
     // bundle from cdn.razorpay.com. Blocking that second script does not raise a
     // visible error on the pay page — it degrades the fraud signal Razorpay scores
     // the transaction with, so the failure arrives later as a decline.
-    "script-src 'self' 'unsafe-inline' https://accounts.google.com https://checkout.razorpay.com https://cdn.razorpay.com",
+    `script-src 'self' 'unsafe-inline' ${analyticsOrigins.script} https://accounts.google.com https://checkout.razorpay.com https://cdn.razorpay.com`,
     "style-src 'self' 'unsafe-inline' https://accounts.google.com https://*.razorpay.com",
     // Razorpay renders bank, card-network and UPI-app artwork from its CDN, and
     // the checkout sheet draws part of itself in this document rather than only
     // inside its iframe.
     "img-src 'self' data: blob: https://*.googleusercontent.com https://*.gstatic.com https://*.razorpay.com",
     "font-src 'self' data: https://*.razorpay.com",
-    `connect-src 'self' ${apiOrigin()} https://accounts.google.com https://*.razorpay.com`,
+    `connect-src 'self' ${apiOrigin()} ${optionalSentryOrigin()} ${analyticsOrigins.connect} https://accounts.google.com https://*.razorpay.com`,
     "frame-src https://accounts.google.com https://*.razorpay.com",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",

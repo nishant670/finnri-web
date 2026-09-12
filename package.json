@@ -11,6 +11,7 @@
     "test:calculators": "tsc -p tsconfig.tests.json && TZ=Asia/Kolkata node --test --test-name-pattern='EMI|SIP' .test-build/app/lib/calculators.test.js"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.74.0",
     "axios": "^1.20.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",

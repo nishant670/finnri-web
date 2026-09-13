@@ -190,6 +190,14 @@ export interface SplitBill {
     updated_at: string;
 }
 
+/**
+ * Whether the other side agrees a recorded payment happened. A settlement
+ * rewrites both ledgers on one person's word, so the friend it names is asked.
+ * Pending still counts in every balance; a denial reverses it. A settlement
+ * against somebody with no Finnri account is born confirmed — nobody to ask.
+ */
+export type SplitSettlementStatus = "pending" | "confirmed" | "denied";
+
 export interface SplitSettlement {
     id: number;
     user_id: number;
@@ -199,6 +207,12 @@ export interface SplitSettlement {
     direction: SettlementDirection;
     date: string;
     notes: string;
+    status?: SplitSettlementStatus;
+    counterparty_user_id?: number | null;
+    responded_at?: string | null;
+    /** Response-only, on a settlement somebody else recorded about the reader. */
+    recorded_by_name?: string;
+    group_name?: string;
     created_at: string;
     updated_at: string;
 }
@@ -754,6 +768,12 @@ export const SplitAPI = {
     deleteBill: (id: number) => api.delete(`/v1/split/bills/${id}`),
     listSettlements: () => api.get<SplitSettlement[]>("/v1/split/settlements"),
     createSettlement: (data: SplitSettlementInput) => api.post<SplitSettlement>("/v1/split/settlements", data),
+    // Settlements somebody else recorded that this user has to answer. Its own
+    // call rather than a filter on the list above: that list is rows the reader
+    // wrote, and every row here was written about them by somebody else.
+    pendingSettlements: () => api.get<{ settlements: SplitSettlement[] }>("/v1/split/settlements/pending"),
+    decideSettlement: (id: number, decision: "confirm" | "deny") =>
+        api.post<SplitSettlement>(`/v1/split/settlements/${id}/${decision}`, {}),
     activity: (page = 1, pageSize = 20) => api.get<SplitActivityResponse>("/v1/split/activity", { params: { page, page_size: pageSize } }),
     balances: () => api.get<SplitBalance[]>("/v1/split/balances"),
 };

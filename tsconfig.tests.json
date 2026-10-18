@@ -15,6 +15,8 @@
     "app/lib/accounts.test.ts",
 	"app/lib/admin-metrics.ts",
 	"app/lib/admin-metrics.test.ts",
+    "app/lib/admin-proxy-headers.ts",
+    "app/lib/admin-proxy-headers.test.ts",
     "app/lib/calculators.ts",
     "app/lib/calculators.test.ts",
     "app/lib/category-options.ts",

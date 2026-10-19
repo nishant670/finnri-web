@@ -27,6 +27,9 @@
   --track: #F1E7E9;
   --bar-dim: #FFC4B2;
   --on-accent: #2D2D2D;
+  /* Section eyebrows: the accent itself on dark, a deeper orange on light,
+     where the accent as text would fail contrast. */
+  --eyebrow: #C2410C;
   /* The two large radii of the product. Named off Tailwind's own scale so they
      add utilities instead of redefining rounded-xl/2xl for every small control. */
   --panel-radius: 2rem;
@@ -76,6 +79,7 @@
   --color-track: var(--track);
   --color-bar-dim: var(--bar-dim);
   --color-on-accent: var(--on-accent);
+  --color-eyebrow: var(--eyebrow);
   --radius-panel: var(--panel-radius);
   --radius-surface: var(--surface-radius);
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -105,6 +109,7 @@
     --track: #2C2C2C;
     --bar-dim: #8A4E3E;
     --on-accent: #2D2D2D;
+    --eyebrow: #FF8865;
 }
 
 body {

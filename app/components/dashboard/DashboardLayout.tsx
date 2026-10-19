@@ -28,6 +28,7 @@ import { AppNotification, NotificationsAPI } from "@/app/lib/api";
 import { formatDate } from "@/app/lib/format";
 import { notificationDestination } from "@/app/lib/notifications";
 import GuestClaimModal from "@/app/components/dashboard/GuestClaimModal";
+import BrandMark from "@/app/components/ui/BrandMark";
 
 /** The sidebar, in the three groups board R9-Drawer draws. */
 const NAV_GROUPS = [
@@ -60,19 +61,6 @@ const NAV_GROUPS = [
 const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
 const isActive = (href: string, pathname: string) => href === "/dashboard" ? pathname === href : pathname.startsWith(href);
-
-/** The app's mark: an accent tile with a rounded "f", then the name. */
-function BrandMark({ compact = false }: { compact?: boolean }) {
-    return (
-        <span className="flex items-center gap-2.5">
-            <span aria-hidden="true" className={cn("grid shrink-0 place-items-center rounded-[9px] bg-accent font-rounded font-black text-on-accent", compact ? "h-8 w-8 text-lg" : "h-10 w-10 rounded-xl text-xl")}>f</span>
-            <span className="flex flex-col">
-                <span className={cn("font-rounded font-black leading-5", compact ? "text-lg" : "text-xl")}>finnri</span>
-                <span className="text-[11px] leading-4 text-muted">Money clarity</span>
-            </span>
-        </span>
-    );
-}
 
 function notificationTime(value: string) {
     const date = new Date(value);

@@ -2,19 +2,21 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  Mic,
-  Brain,
-  ShieldCheck,
-  LayoutDashboard,
-  PieChart,
   ArrowRight,
-  CheckCircle2,
-  Wallet,
-  CreditCard,
-  TrendingUp,
+  Brain,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Landmark,
+  LayoutDashboard,
+  Lock,
+  Mic,
+  PieChart,
+  ShieldCheck,
   Smartphone,
-  ArrowDownRight,
-  Users
+  TrendingUp,
+  Users,
+  Wallet,
 } from "lucide-react";
 import MarketingNav from "@/app/components/marketing/MarketingNav";
 import { LEGAL_BUSINESS_NAME, MERCHANT_IDENTITY_PUBLISHED, PLAY_STORE_LISTED, PLAY_STORE_URL, SITE_URL } from "@/app/lib/site";
@@ -86,504 +88,342 @@ export default async function Home() {
     })),
   };
 
+  const steps = [
+    { title: "Speak or type", desc: "On mobile, speak a transaction; on mobile or web, type a quick note or use the manual form." },
+    { title: "AI extracts details", desc: "AI can suggest the amount, merchant, category, account, and date from what you entered." },
+    { title: "You confirm & save", desc: "Check the draft, correct anything that is wrong, then save the confirmed record to your ledger." },
+  ];
+  const features = [
+    { icon: Mic, title: "Voice-first tracking", desc: "Use mobile voice capture when it is convenient, with a review step before saving." },
+    { icon: PieChart, title: "Smart categories", desc: "AI suggests a category from Finnri's shared list; you can correct it before saving." },
+    { icon: Wallet, title: "All your accounts", desc: "Label cash, bank, wallet, UPI, and card accounts you maintain yourself. Finnri does not connect to banks." },
+    { icon: TrendingUp, title: "Budgets & insights", desc: "Set category budgets and see trends and unusual spending, calculated from the transactions you have confirmed." },
+    { icon: Users, title: "Split with friends", desc: "Share trips, flatmates and dinners in a group, see who owes whom, and settle up. Invite anyone with a link." },
+    { icon: LayoutDashboard, title: "Web dashboard", desc: "Review explainable insights, accounts, transactions, and planning tools on the big screen." },
+  ];
+  const everyday = [
+    "Track UPI spending",
+    "Label credit card expenses",
+    "Set category budgets",
+    "Split rent and trips with friends",
+    "Separate freelance records with tags",
+  ];
+  const security = [
+    { icon: Lock, title: "Your data stays private", desc: "We never sell your financial data to third parties." },
+    { icon: ShieldCheck, title: "Encrypted in transit and at rest", desc: "Production connections and stored records are protected with encryption." },
+    { icon: Landmark, title: "No bank connection", desc: "Finnri does not connect to your bank. You add records by voice, text, or manual entry." },
+  ];
+
+  const primaryButton = "inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-accent px-6 text-[15px] font-bold text-on-accent transition hover:brightness-105";
+  const outlineButton = "inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-6 text-[15px] font-bold transition hover:bg-track";
+  const shell = "mx-auto max-w-6xl px-4 sm:px-6";
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <a href="#main-content" className="sr-only z-[100] rounded-xl bg-white px-4 py-3 font-bold text-zinc-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
+      <a href="#main-content" className="sr-only z-[100] rounded-xl bg-card px-4 py-3 font-bold focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
       <MarketingNav />
       <main id="main-content">
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="max-w-2xl relative z-10">
-              <div className="inline-flex items-center gap-2 bg-accent-secondary text-accent px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
-                <Brain className="w-4 h-4" />
-                <span>AI that asks before it saves</span>
-              </div>
-              {/* text-6xl, not 7xl: at 72px this headline needs three lines in a
-                  half-width column and strands "clarity." alone on the last one.
-                  text-balance evens the two lines that are left. */}
-              <h1 className="text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.1] text-balance font-rounded">
-                Track your money in India <span className="text-accent underline decoration-accent/20 underline-offset-8">with clarity.</span>
-              </h1>
-              <p className="text-xl text-text-muted mb-10 leading-relaxed max-w-lg">
-                Log what you spend by voice, text or tap. Finnri fills in the details, and nothing is saved until you’ve had a look.
-              </p>
+      {/* Hero (boards R9-Site, R9-SiteM) */}
+      <section className="pb-16 pt-24 lg:pb-24 lg:pt-32">
+        <div className={`${shell} grid items-center gap-12 lg:grid-cols-[1.15fr_1fr]`}>
+          <div className="max-w-2xl">
+            <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold">
+              <Brain className="h-4 w-4 text-accent" />
+              AI that asks before it saves
+            </span>
+            {/* text-balance keeps the two lines even rather than stranding
+                "clarity." alone on the last one. */}
+            <h1 className="mb-5 text-balance text-[40px] font-bold leading-[1.1] tracking-tight font-rounded sm:text-5xl lg:text-6xl">
+              Track your money in India <span className="text-eyebrow">with clarity.</span>
+            </h1>
+            <p className="mb-8 max-w-lg text-lg leading-relaxed text-muted">
+              Log what you spend by voice, text or tap. Finnri fills in the details, and nothing is saved until you’ve had a look.
+            </p>
 
-              {/* Three full-width buttons do not fit one row in a half-width
-                  column, and letting them squeeze broke every label across two
-                  lines. They wrap as whole buttons now: the two that carry the
-                  conversion sit together, and Free Tools — which also has the
-                  nav and its own section CTA — takes the second row. */}
-              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-8">
-                {PLAY_STORE_LISTED && (
-                  <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-zinc-950 px-6 py-4 font-bold text-white shadow-xl shadow-zinc-950/10 transition-all hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
-                    <Smartphone className="h-5 w-5" />
-                    Get the Android app
-                  </a>
-                )}
-                {/* With no public store listing, the dashboard is the way in, so
-                    it takes the primary styling the Play button would have had. */}
-                <Link href="/login" className={PLAY_STORE_LISTED
-                  ? "group flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-border bg-white px-6 py-4 font-bold shadow-md transition-all hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700"
-                  : "group flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-zinc-950 px-6 py-4 font-bold text-white shadow-xl shadow-zinc-950/10 transition-all hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"}>
-                  <LayoutDashboard className="w-5 h-5 text-accent" />
-                  Open the web dashboard
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link href="/tools" className="flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-border bg-white px-6 py-4 font-bold shadow-md transition-all hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700">
-                  <TrendingUp className="w-5 h-5 text-accent" />
-                  Try the free tools
-                </Link>
-              </div>
-
-              {!PLAY_STORE_LISTED && (
-                <p className="-mt-2 mb-8 flex items-center gap-2 text-sm text-text-muted">
-                  <Smartphone className="h-4 w-4 shrink-0 text-accent" />
-                  The Android app is in closed testing. The web dashboard is open to everyone today.
-                </p>
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              {PLAY_STORE_LISTED && (
+                <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" className={primaryButton}>
+                  <Smartphone className="h-5 w-5" />
+                  Get the Android app
+                </a>
               )}
-
-              <div className="flex flex-wrap gap-8 items-center border-t border-border pt-8">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-accent" />
-                  <span className="text-sm font-medium">No spreadsheets</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-accent" />
-                  <span className="text-sm font-medium">Designed for India (UPI, cards)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-accent" />
-                  <span className="text-sm font-medium">Confirm-first AI</span>
-                </div>
-              </div>
+              {/* With no public store listing, the dashboard is the way in, so
+                  it takes the primary styling the Play button would have had. */}
+              <Link href="/login" className={`group ${PLAY_STORE_LISTED ? outlineButton : primaryButton}`}>
+                Open the web dashboard
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link href="/tools" className={outlineButton}>
+                Try the free tools
+              </Link>
             </div>
 
-            <div className="relative lg:h-[600px] flex justify-center items-center">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/10 blur-[100px] rounded-full" />
-              {/* The real Android app's Home screen, no device frame: launch is
-                  Android-only, and an iPhone render showed a phone visitors could
-                  not install on. Demo data, not a real user's. */}
-              <div className="relative w-full max-w-[360px] aspect-[4/5] animate-float overflow-hidden rounded-[2rem] border border-border bg-white shadow-2xl dark:bg-zinc-900">
-                <Image
-                  src="/hero-app-home.webp"
-                  alt="Finnri's Home screen: October spending so far, ₹8,140, with Food & Drinks as the biggest category, above the tap-and-speak button for logging an expense by voice"
-                  fill
-                  sizes="(min-width: 1024px) 360px, 90vw"
-                  className="object-cover object-top"
-                  priority
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            {!PLAY_STORE_LISTED && (
+              <p className="mb-6 flex items-center gap-2 text-sm text-muted">
+                <Smartphone className="h-4 w-4 shrink-0" />
+                The Android app is in closed testing. The web dashboard is open to everyone today.
+              </p>
+            )}
 
-      {/* How it Works Section */}
-      <section id="how-it-works" className="py-24 bg-accent-secondary/30">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4 font-rounded">Log a spend in three steps</h2>
-            <p className="text-text-muted">Say it, type it or tap it in — then check it before it’s saved.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Mic className="w-8 h-8" />,
-                title: "Speak or type",
-                desc: "On mobile, speak a transaction; on mobile or web, type a quick note or use the manual form."
-              },
-              {
-                icon: <Brain className="w-8 h-8" />,
-                title: "AI extracts details",
-                desc: "AI can suggest the amount, merchant, category, account, and date from what you entered."
-              },
-              {
-                icon: <CheckCircle2 className="w-8 h-8" />,
-                title: "You confirm & save",
-                desc: "Check the draft, correct anything that is wrong, then save the confirmed record to your ledger."
-              }
-            ].map((step, i) => (
-              <div key={i} className="bg-white dark:bg-zinc-800 p-8 rounded-panel shadow-sm hover:shadow-xl transition-all border border-border group relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-6 text-accent/10 font-bold text-6xl group-hover:text-accent/20 transition-colors">
-                  0{i + 1}
-                </div>
-                <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6">
-                  {step.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3">{step.title}</h3>
-                <p className="text-text-muted leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Key Features Section */}
-      <section id="features" className="py-24">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4 font-rounded">Everything you need, nothing you don’t</h2>
-            <p className="text-text-muted">Simple tools for everyday money, and a clear view of where it goes.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <Mic className="w-6 h-6" />,
-                title: "Voice-first tracking",
-                desc: "Use mobile voice capture when it is convenient, with a review step before saving."
-              },
-              {
-                icon: <PieChart className="w-6 h-6" />,
-                title: "Smart categories",
-                desc: "AI suggests a category from Finnri's shared list; you can correct it before saving."
-              },
-              {
-                icon: <Wallet className="w-6 h-6" />,
-                title: "All your accounts",
-                desc: "Label cash, bank, wallet, UPI, and card accounts you maintain yourself. Finnri does not connect to banks."
-              },
-              {
-                icon: <TrendingUp className="w-6 h-6" />,
-                title: "Budgets & insights",
-                desc: "Set category budgets and see trends and unusual spending, calculated from the transactions you have confirmed."
-              },
-              {
-                icon: <Users className="w-6 h-6" />,
-                title: "Split with friends",
-                desc: "Share trips, flatmates and dinners in a group, see who owes whom, and settle up. Invite anyone with a link."
-              },
-              {
-                icon: <LayoutDashboard className="w-6 h-6" />,
-                title: "Web dashboard",
-                desc: "Review explainable insights, accounts, transactions, and planning tools on the big screen."
-              }
-            ].map((feature, i) => (
-              <div key={i} className="p-8 rounded-panel border border-border hover:border-accent/40 bg-white/50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-800 transition-all">
-                <div className="w-12 h-12 bg-accent/10 text-accent rounded-xl flex items-center justify-center mb-6">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-text-muted leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Use Cases Section */}
-      <section className="py-24 bg-zinc-900 text-white">
-        <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-3xl lg:text-5xl font-bold mb-8 font-rounded leading-tight">Built around everyday records.</h2>
-              <div className="space-y-6">
-                {[
-                  { title: "Track UPI spending", icon: <Smartphone className="text-accent" /> },
-                  { title: "Label credit card expenses", icon: <CreditCard className="text-accent" /> },
-                  { title: "Set category budgets", icon: <Wallet className="text-accent" /> },
-                  { title: "Split rent and trips with friends", icon: <Users className="text-accent" /> },
-                  { title: "Separate freelance records with tags", icon: <TrendingUp className="text-accent" /> }
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl hover:bg-white/10 transition-colors border border-white/10">
-                    <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-xl">
-                      {item.icon}
-                    </div>
-                    <span className="text-lg font-medium">{item.title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative aspect-square bg-gradient-to-br from-accent/20 to-transparent rounded-panel border border-white/10 p-12 flex flex-col justify-between overflow-hidden">
-              <div className="space-y-4 relative z-10">
-                <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 animate-float">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-xs uppercase tracking-widest text-zinc-300">Monthly Budget</span>
-                    <span className="text-accent text-sm font-bold">75% Used</span>
-                  </div>
-                  <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-accent w-[75%]" />
-                  </div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-xl space-y-4 translate-x-12 dark:bg-zinc-800">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center dark:bg-zinc-700">☕</div>
-                      <div>
-                        <p className="text-zinc-900 font-bold dark:text-white">Coffee with Riya</p>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-300">Food & Drinks • UPI</p>
-                      </div>
-                    </div>
-                    <span className="text-zinc-900 font-bold dark:text-white">₹320</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-8 relative z-10">
-                <p className="text-2xl font-bold mb-2">Detailed insights at your fingertips.</p>
-                <p className="text-zinc-300">See what you spend by category and by shop — from the transactions you’ve checked.</p>
-              </div>
-              {/* Decorative dots */}
-              {[...Array(20)].map((_, i) => (
-                <div key={i} className="absolute w-1 h-1 bg-white/20 rounded-full" style={{
-                  top: `${(i * 37 + 11) % 100}%`,
-                  left: `${(i * 61 + 7) % 100}%`
-                }} />
+            <ul className="flex flex-col gap-2 text-sm font-medium sm:flex-row sm:flex-wrap sm:gap-x-6">
+              {["No spreadsheets", "Designed for India (UPI, cards)", "Confirm-first AI"].map((item) => (
+                <li key={item} className="flex items-center gap-2"><Check className="h-4 w-4 text-accent" strokeWidth={2.5} />{item}</li>
               ))}
+            </ul>
+          </div>
+
+          <div className="flex justify-center">
+            {/* The real Android app's Home screen, no device frame: launch is
+                Android-only, and an iPhone render showed a phone visitors could
+                not install on. Demo data, not a real user's. */}
+            <div className="relative aspect-[4/5] w-full max-w-[340px] overflow-hidden rounded-[28px] border border-border bg-card shadow-2xl">
+              <Image
+                src="/hero-app-home.webp"
+                alt="Finnri's Home screen: October spending so far, ₹8,140, with Food & Drinks as the biggest category, above the tap-and-speak button for logging an expense by voice"
+                fill
+                sizes="(min-width: 1024px) 340px, 90vw"
+                className="object-cover object-top"
+                priority
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Web Dashboard Section */}
-      <section className="py-24 bg-accent/5 overflow-hidden">
-        <div className="container mx-auto px-6">
-          <div className="bg-white dark:bg-zinc-800 rounded-panel p-8 lg:p-16 border border-border shadow-2xl relative">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl lg:text-4xl font-bold mb-6 font-rounded">Analyze on the big screen.</h2>
-                <p className="text-text-muted text-lg mb-8 leading-relaxed">
-                  Some things are easier on a big screen. Spot patterns, tidy up records and plan ahead on the web dashboard.
-                </p>
-                <ul className="space-y-4 mb-10 text-lg font-medium">
-                  <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-zinc-950"><CheckCircle2 className="w-4 h-4" /></div>
-                    View interactive reports & spending trends
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-zinc-950"><CheckCircle2 className="w-4 h-4" /></div>
-                    Search, filter, inspect, and export transaction views
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-accent rounded-full flex items-center justify-center text-zinc-950"><CheckCircle2 className="w-4 h-4" /></div>
-                    Manage split groups, budgets, subscriptions, and planning tools
-                  </li>
-                </ul>
-                <Link href="/tools" className="inline-flex items-center gap-2 bg-accent px-8 py-4 rounded-2xl font-bold text-zinc-950 shadow-lg shadow-accent/20 hover:scale-105 transition-transform">
-                  Try the free tools
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-              </div>
-              <div className="relative">
-                <div className="aspect-video bg-zinc-100 dark:bg-zinc-900 rounded-2xl border-4 border-zinc-200 dark:border-zinc-700 shadow-xl overflow-hidden relative">
-                  <div className="absolute top-0 left-0 right-0 h-8 bg-zinc-200 dark:bg-zinc-700 flex items-center px-4 gap-2">
-                    <div className="w-2.5 h-2.5 bg-red-400 rounded-full" />
-                    <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full" />
-                    <div className="w-2.5 h-2.5 bg-green-400 rounded-full" />
-                  </div>
-                  {/* A real /dashboard capture, with demo data. */}
-                  <div className="absolute inset-x-0 top-8 bottom-0">
-                    <Image
-                      src="/dashboard-overview.webp"
-                      alt="The Finnri web dashboard Overview for the last 30 days: ₹28,798 spent, ₹1,07,000 income and ₹78,202 net cash flow, with an unusual-spending insight below"
-                      fill
-                      sizes="(min-width: 1024px) 560px, 90vw"
-                      className="object-cover object-left-top"
-                    />
-                  </div>
-                </div>
-                {/* Floating badge */}
-                <div className="absolute -bottom-6 -right-6 lg:-right-12 bg-white dark:bg-zinc-800 p-6 rounded-2xl shadow-2xl border border-border animate-float">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-accent-secondary flex items-center justify-center rounded-xl text-accent">
-                      <ArrowDownRight className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">CSV Export</p>
-                      <p className="text-xs text-text-muted">Ready for download</p>
-                    </div>
-                  </div>
+      {/* How it works */}
+      <section id="how-it-works" className="scroll-mt-20 py-16 lg:py-20">
+        <div className={shell}>
+          <SectionIntro eyebrow="How it works" title="Log a spend in three steps" body="Say it, type it or tap it in — then check it before it’s saved." />
+          <ol className="grid gap-8 md:grid-cols-3">
+            {steps.map((step, index) => (
+              <li key={step.title}>
+                <span className="mb-4 grid h-10 w-10 place-items-center rounded-full bg-track text-base font-bold">{index + 1}</span>
+                <h3 className="mb-2 text-lg font-bold">{step.title}</h3>
+                <p className="leading-relaxed text-muted">{step.desc}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="scroll-mt-20 py-16 lg:py-20">
+        <div className={shell}>
+          <SectionIntro eyebrow="Features" title="Everything you need, nothing you don’t" body="Simple tools for everyday money, and a clear view of where it goes." />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature) => (
+              <div key={feature.title} className="flex gap-4 rounded-2xl border border-border bg-card p-5">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-selected text-accent"><feature.icon className="h-5 w-5" strokeWidth={1.8} /></span>
+                <div>
+                  <h3 className="mb-1 font-bold">{feature.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted">{feature.desc}</p>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Security Section */}
-      <section id="security" className="py-24">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 border border-border rounded-panel overflow-hidden flex flex-col md:flex-row shadow-sm">
-            <div className="md:w-1/2 p-12 bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center">
-              <div className="relative">
-                <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full" />
-                <ShieldCheck className="w-32 h-32 text-accent relative z-10" />
-              </div>
-            </div>
-            <div className="md:w-1/2 p-12 flex flex-col justify-center">
-              <h2 className="text-3xl font-bold mb-6 font-rounded">Clear data boundaries. <br />Privacy by design.</h2>
-              <ul className="space-y-4 text-text-muted">
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-accent mt-0.5" />
-                  <div>
-                    <span className="font-bold text-foreground">Your data stays private</span>
-                    <p className="text-sm">We never sell your financial data to third parties.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-accent mt-0.5" />
-                  <div>
-                    <span className="font-bold text-foreground">Encrypted in transit and at rest</span>
-                    <p className="text-sm">Production connections and stored records are protected with encryption.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-accent mt-0.5" />
-                  <div>
-                    <span className="font-bold text-foreground">No bank connection</span>
-                    <p className="text-sm">Finnri does not connect to your bank. You add records by voice, text, or manual entry.</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
+      {/* Everyday records */}
+      <section className="py-16 lg:py-20">
+        <div className={`${shell} grid gap-8 lg:grid-cols-2 lg:items-end`}>
+          <div>
+            <p className="mb-2 text-sm font-bold text-eyebrow">Everyday records</p>
+            <h2 className="text-3xl font-bold leading-tight font-rounded lg:text-4xl">Built around everyday records.</h2>
+            <p className="mt-3 max-w-md leading-relaxed text-muted">See what you spend by category and by shop — from the transactions you’ve checked.</p>
+          </div>
+          <ul className="flex flex-wrap gap-2.5">
+            {everyday.map((item) => (
+              <li key={item} className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold"><Check className="h-4 w-4 text-accent" strokeWidth={2.5} />{item}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Web dashboard */}
+      <section className="py-16 lg:py-20">
+        <div className={`${shell} grid items-center gap-10 lg:grid-cols-2`}>
+          <div>
+            <p className="mb-2 text-sm font-bold text-eyebrow">Web dashboard</p>
+            <h2 className="mb-4 text-3xl font-bold leading-tight font-rounded lg:text-4xl">Analyse on the big screen.</h2>
+            <p className="mb-6 text-lg leading-relaxed text-muted">
+              Some things are easier on a big screen. Spot patterns, tidy up records and plan ahead on the web dashboard.
+            </p>
+            <ul className="mb-6 space-y-3 font-medium">
+              {["View interactive reports & spending trends", "Search, filter, inspect, and export transaction views", "Manage split groups, budgets, subscriptions, and planning tools"].map((item) => (
+                <li key={item} className="flex items-start gap-3"><Check className="mt-0.5 h-5 w-5 shrink-0 text-accent" strokeWidth={2.5} />{item}</li>
+              ))}
+            </ul>
+            <Link href="/tools" className="inline-flex items-center gap-1 font-bold hover:underline">Try the free tools <ChevronRight className="h-4 w-4" /></Link>
+          </div>
+          {/* A real /dashboard capture, with demo data. */}
+          <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+            <Image
+              src="/dashboard-overview.webp"
+              alt="The Finnri web dashboard Overview for the last 30 days: ₹28,798 spent, ₹1,07,000 income and ₹78,202 net cash flow, with an unusual-spending insight below"
+              fill
+              sizes="(min-width: 1024px) 560px, 90vw"
+              className="object-cover object-left-top"
+            />
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-accent-secondary/10">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4 font-rounded">Simple, fixed-price passes</h2>
-            <p className="text-text-muted">Start free. When you want more AI capture and the paid features, buy a pass for as long as you need it. It never renews on its own.</p>
-          </div>
+      {/* Security */}
+      <section id="security" className="scroll-mt-20 py-16 lg:py-20">
+        <div className={shell}>
+          <SectionIntro eyebrow="Security" title="Clear data boundaries. Privacy by design." />
+          <ul className="grid gap-6 md:grid-cols-3">
+            {security.map((item) => (
+              <li key={item.title} className="flex gap-4">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-selected text-accent"><item.icon className="h-5 w-5" strokeWidth={1.8} /></span>
+                <div>
+                  <h3 className="mb-1 font-bold">{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted">{item.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-          <div className="grid lg:grid-cols-[2fr_3fr] gap-8 max-w-5xl mx-auto">
-            <div className="p-8 rounded-panel border border-border bg-white dark:bg-zinc-800 flex flex-col justify-between">
+      {/* Pricing */}
+      <section id="pricing" className="scroll-mt-20 py-16 lg:py-20">
+        <div className={shell}>
+          <SectionIntro eyebrow="Pricing" title="Simple, fixed-price passes" body="Start free. When you want more AI capture and the paid features, buy a pass for as long as you need it. It never renews on its own." />
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6">
               <div>
-                <h3 className="text-2xl font-bold mb-2">Finnri Free</h3>
-                <p className="text-text-muted mb-6">Everything you need to track money yourself.</p>
-                <div className="text-4xl font-bold mb-8 font-rounded">₹0 <span className="text-sm font-normal text-zinc-600 dark:text-zinc-300">no card needed</span></div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-start gap-3 text-sm font-medium"><CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" /> Unlimited manual transactions and accounts</li>
-                  <li className="flex items-start gap-3 text-sm font-medium"><CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" /> Search, filters, and dashboard totals</li>
-                  <li className="flex items-start gap-3 text-sm font-medium"><CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" /> Split groups with friends</li>
-                  <li className="flex items-start gap-3 text-sm font-medium"><CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" /> CSV export of transaction views</li>
-                  {/* LoggedInFreeTrialCredits and TrialDuration in the API's
-                      internal/billing/credits.go. */}
-                  <li className="flex items-start gap-3 text-sm font-medium"><CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" /> 1,000 AI credits for your first 30 days</li>
+                <h3 className="text-xl font-bold">Finnri Free</h3>
+                <p className="mt-1 text-muted">Everything you need to track money yourself.</p>
+                <p className="mb-5 mt-4 flex items-baseline gap-2"><span className="text-4xl font-bold font-rounded">₹0</span><span className="text-sm text-muted">no card needed</span></p>
+                <ul className="mb-6 space-y-2.5">
+                  {[
+                    "Unlimited manual transactions and accounts",
+                    "Search, filters, and dashboard totals",
+                    "Split groups with friends",
+                    "CSV export of transaction views",
+                    // LoggedInFreeTrialCredits and TrialDuration in the API's
+                    // internal/billing/credits.go.
+                    "1,000 AI credits for your first 30 days",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-sm font-medium"><Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" strokeWidth={2.5} />{item}</li>
+                  ))}
                 </ul>
               </div>
-              <Link href="/login" className="w-full py-4 rounded-2xl border-2 border-foreground text-center font-bold hover:bg-foreground hover:text-background transition-all">Get started free</Link>
+              <Link href="/login" className={outlineButton}>Get started free</Link>
             </div>
 
-            <div className="p-8 rounded-panel border-2 border-accent/60 bg-white dark:bg-zinc-800 flex flex-col justify-between shadow-xl shadow-accent/10">
+            <div className="flex flex-col justify-between rounded-2xl border border-accent/50 bg-card p-6">
               <div>
-                <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-                  <h3 className="text-2xl font-bold">Paid passes</h3>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h3 className="text-xl font-bold">Paid passes</h3>
                   {launchOffer && (
-                    <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-950">{launchOffer.label}</span>
+                    <span className="rounded-full bg-selected px-3 py-1 text-xs font-bold">{launchOffer.label}</span>
                   )}
                 </div>
-                <p className="text-text-muted mb-6">More AI credits, plus budgets, insights, weekly reviews and subscription reminders.</p>
-                <ul className="divide-y divide-border rounded-2xl border border-border">
+                <p className="mt-1 text-muted">More AI credits, plus budgets, insights, weekly reviews and subscription reminders.</p>
+                <ul className="mt-4 divide-y divide-border">
                   {plans.map((plan) => {
                     const charged = plan.offer?.price_minor ?? plan.price_minor ?? 0;
                     const crossedOut = plan.offer ? plan.offer.original_price_minor : (discountPercent(plan) != null ? plan.list_price_minor : null);
                     return (
-                      <li key={plan.code} className="flex items-center justify-between gap-4 px-5 py-4">
+                      <li key={plan.code} className="flex items-center justify-between gap-4 py-3">
                         <div className="min-w-0">
                           <p className="font-bold">{plan.name}</p>
-                          <p className="text-xs text-text-muted">{intervalDuration(plan.billing_interval)} · {plan.included_credits.toLocaleString("en-IN")} AI credits</p>
+                          <p className="text-sm text-muted">{intervalDuration(plan.billing_interval)} · {plan.included_credits.toLocaleString("en-IN")} AI credits</p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="text-xl font-bold font-rounded">{formatMinor(charged, plan.currency)}</p>
+                          <p className="text-xl font-bold tabular-nums">{formatMinor(charged, plan.currency)}</p>
                           {crossedOut != null && (
-                            <p className="text-xs text-text-muted"><s>{formatMinor(crossedOut, plan.currency)}</s></p>
+                            <p className="text-sm text-muted"><s>{formatMinor(crossedOut, plan.currency)}</s></p>
                           )}
                         </div>
                       </li>
                     );
                   })}
                 </ul>
-                <p className="mt-4 text-xs leading-5 text-text-muted">
-                  {launchOffer ? "Launch price is for your first pass, while the offer lasts. " : ""}
-                  One-time payment in INR via Razorpay. No auto-renewal. The exact amount is shown again before you pay.
-                </p>
               </div>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <Link href="/dashboard/billing" className="rounded-2xl bg-zinc-950 py-4 text-center text-sm font-bold text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">Choose a pass</Link>
-                <Link href="/pricing" className="rounded-2xl border border-border py-4 text-center text-sm font-bold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-700">Pricing details</Link>
+              <div className="mt-5">
+                <Link href="/dashboard/billing" className={`${primaryButton} w-full`}>Choose a pass</Link>
+                <p className="mt-3 text-xs leading-5 text-muted">
+                  {launchOffer ? "Launch price is for your first pass, while the offer lasts. " : ""}
+                  One-time payment in INR via Razorpay. No auto-renewal. The exact amount is shown again before you pay.{" "}
+                  <Link href="/pricing" className="font-bold text-foreground underline">Pricing details</Link>
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-24">
-        <div className="container mx-auto px-6 max-w-3xl">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 font-rounded">Questions, answered</h2>
-          <div className="space-y-4">
+      {/* FAQ */}
+      <section className="py-16 lg:py-20">
+        <div className={shell}>
+          <SectionIntro eyebrow="Questions" title="Questions, answered" />
+          <div className="max-w-3xl divide-y divide-border border-y border-border">
             {faqs.map((faq) => (
-              <details key={faq.q} className="group border border-border rounded-2xl bg-white p-6 dark:bg-zinc-800">
-                <summary className="cursor-pointer text-lg font-bold">{faq.q}</summary>
-                <p className="mt-3 text-text-muted leading-relaxed">{faq.a}</p>
+              <details key={faq.q} className="group">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 font-bold">
+                  {faq.q}
+                  <ChevronDown className="h-5 w-5 shrink-0 text-muted transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="pb-4 leading-relaxed text-muted">{faq.a}</p>
               </details>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer CTA */}
-      <section id="get-started" className="py-24 px-6">
-        <div className="container mx-auto">
-          <div className="bg-accent rounded-panel p-12 lg:p-24 text-center text-zinc-950 relative overflow-hidden shadow-2xl shadow-accent/40">
-            {/* Decorative circles */}
-            <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-black/10 rounded-full blur-3xl" />
-
-            <div className="relative z-10">
-              <h2 className="text-4xl lg:text-6xl font-bold mb-8 font-rounded leading-tight">Start with Finnri on the web.</h2>
-              <p className="text-zinc-800 text-xl mb-12 max-w-2xl mx-auto">Sign in, or try it as a guest — no sign-up needed.</p>
-
-              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                <Link href="/login" className="flex items-center gap-3 bg-white px-10 py-5 rounded-2xl font-bold text-zinc-950 shadow-xl hover:scale-105 active:scale-95 transition-all w-full sm:w-auto">
-                  <LayoutDashboard className="w-6 h-6" />
-                  Open the web dashboard
-                </Link>
-                <Link href="/tools" className="flex items-center gap-3 bg-zinc-900 text-white px-10 py-5 rounded-2xl font-bold shadow-xl hover:scale-105 active:scale-95 transition-all w-full sm:w-auto">
-                  <TrendingUp className="w-6 h-6" />
-                  Try the free tools
-                </Link>
-              </div>
+      {/* Closing call to action */}
+      <section id="get-started" className="py-16 lg:py-20">
+        <div className={shell}>
+          <div className="rounded-2xl border border-border bg-card px-6 py-12 text-center lg:py-16">
+            <h2 className="mb-3 text-3xl font-bold font-rounded lg:text-4xl">Start with Finnri on the web.</h2>
+            <p className="mx-auto mb-8 max-w-xl text-muted">Sign in, or try it as a guest — no sign-up needed.</p>
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/login" className={`group ${primaryButton}`}>
+                Open the web dashboard
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link href="/tools" className={outlineButton}>Try the free tools</Link>
             </div>
           </div>
         </div>
       </section>
       </main>
 
-      {/* Footer Links */}
-      <footer className="py-12 border-t border-border">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="relative flex h-10 w-24 items-center justify-center overflow-hidden rounded-xl bg-zinc-950 shadow-lg shadow-zinc-950/15">
-                <Image src="/finnri-logo.png" alt="Finnri" fill sizes="96px" className="scale-[2.35] object-contain" />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-8 text-sm font-medium text-text-muted">
-              <Link href="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-accent transition-colors">Terms of Service</Link>
-              <Link href="/pricing" className="hover:text-accent transition-colors">Pricing</Link>
-              <Link href="/refunds" className="hover:text-accent transition-colors">Refunds</Link>
-              <Link href="/shipping" className="hover:text-accent transition-colors">Digital delivery</Link>
-              {MERCHANT_IDENTITY_PUBLISHED && <Link href="/contact" className="hover:text-accent transition-colors">Contact</Link>}
-              <Link href="/delete-account" className="hover:text-accent transition-colors">Delete Account</Link>
-              <a href="mailto:support@finnri.app?subject=Finnri%20Support" className="hover:text-accent transition-colors">Contact Support</a>
-            </div>
-
-            <p className="text-xs text-text-muted">© 2026 Finnri. Built for day-to-day money tracking in India.</p>
-          </div>
+      <footer className="border-t border-border py-8">
+        <div className={`${shell} flex flex-col gap-5 md:flex-row md:items-center md:justify-between`}>
+          <p className="text-sm text-muted">© 2026 Finnri · Built for day-to-day money tracking in India.</p>
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-muted">
+            <Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
+            <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
+            <Link href="/refunds" className="hover:text-foreground">Refunds</Link>
+            <Link href="/shipping" className="hover:text-foreground">Digital delivery</Link>
+            {MERCHANT_IDENTITY_PUBLISHED && <Link href="/contact" className="hover:text-foreground">Contact</Link>}
+            <Link href="/delete-account" className="hover:text-foreground">Delete Account</Link>
+            <a href="mailto:support@finnri.app?subject=Finnri%20Support" className="hover:text-foreground">Contact Support</a>
+          </nav>
         </div>
       </footer>
+    </div>
+  );
+}
+
+/** A section's eyebrow, heading and lead line, left-aligned as the boards draw them. */
+function SectionIntro({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
+  return (
+    <div className="mb-10 max-w-2xl">
+      <p className="mb-2 text-sm font-bold text-eyebrow">{eyebrow}</p>
+      <h2 className="text-3xl font-bold leading-tight font-rounded lg:text-4xl">{title}</h2>
+      {body ? <p className="mt-3 leading-relaxed text-muted">{body}</p> : null}
     </div>
   );
 }

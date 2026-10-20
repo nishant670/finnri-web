@@ -1,6 +1,6 @@
 "use client";
 
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import React, { FormEvent, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -52,6 +52,16 @@ function notificationTime(value: string) {
     return formatDate(date);
 }
 
+const subscribeToNothing = () => () => undefined;
+
+// False while React hydrates this component, true on every later render.
+// AuthProvider sits above the route's Suspense boundary, so it can restore the
+// saved session before this boundary hydrates; without this guard the
+// hydration render sees the session and mismatches the server's loading shell.
+function useHydrated() {
+    return useSyncExternalStore(subscribeToNothing, () => true, () => false);
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -67,6 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const searchParams = useSearchParams();
     const transactionQuery = pathname.startsWith("/dashboard/transactions") ? searchParams.get("q") || "" : "";
     const { user, token, isLoading, logout, beginGuestClaim } = useAuth();
+    const isHydrated = useHydrated();
 
     useEffect(() => {
         setGuestPromptDismissed(sessionStorage.getItem("finnri_guest_prompt_dismissed") === "1");
@@ -139,7 +150,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (destination) router.push(destination);
     };
 
-    if (isLoading || !token) {
+    if (!isHydrated || isLoading || !token) {
         return <div className="min-h-screen grid place-items-center bg-zinc-50 text-sm font-semibold text-zinc-500">Opening your dashboard…</div>;
     }
 

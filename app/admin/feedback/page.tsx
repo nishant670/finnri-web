@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { MessageSquareText, Save, Search } from "lucide-react";
+import { FileText, MessageSquareText, Save, Search } from "lucide-react";
 import StatTile from "@/app/components/admin/StatTile";
 import RoleGate from "@/app/components/admin/RoleGate";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { useToast } from "@/app/components/ui/Toast";
 import { AdminAPI, AdminPage, withQuery } from "@/app/lib/admin-api";
+import { feedbackAttachmentLinks } from "@/app/lib/feedback-attachments";
 import { formatDate } from "@/app/lib/format";
 
 type Feedback = {
@@ -18,6 +19,8 @@ type Feedback = {
     impact: string;
     status: string;
     admin_notes: string;
+    /** Upload URLs; opened through the admin route, never directly. */
+    attachments?: string[] | null;
     created_at: string;
 };
 type Item = { feedback: Feedback; user: { id: number; username: string; email?: string } };
@@ -130,6 +133,32 @@ export default function FeedbackPage() {
                             </span>
                         </div>
                         <p className="mt-5 text-sm leading-6 text-text-muted">{item.feedback.message}</p>
+                        {item.feedback.attachments?.length ? (
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                {feedbackAttachmentLinks(item.feedback.id, item.feedback.attachments).map((attachment) => (
+                                    <a
+                                        key={attachment.href}
+                                        href={attachment.href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        aria-label={`Open ${attachment.label.toLowerCase()}`}
+                                        className="block h-24 w-24 overflow-hidden rounded-xl border border-border bg-background"
+                                    >
+                                        {attachment.isPdf ? (
+                                            <span className="grid h-full w-full place-items-center gap-1 text-[10px] font-bold text-text-muted">
+                                                <FileText className="h-6 w-6 text-accent" />
+                                                PDF
+                                            </span>
+                                        ) : (
+                                            // The admin proxy authenticates with a cookie, which next/image's
+                                            // optimiser would not send — so a plain img, loaded lazily.
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={attachment.href} alt={attachment.label} loading="lazy" className="h-full w-full object-cover" />
+                                        )}
+                                    </a>
+                                ))}
+                            </div>
+                        ) : null}
                         <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs text-text-muted">
                             <span>
                                 {item.user.username} · {item.user.email}

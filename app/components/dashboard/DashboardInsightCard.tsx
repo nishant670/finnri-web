@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Lightbulb, TriangleAlert } from "lucide-react";
+import { ChevronRight, Lightbulb, Siren } from "lucide-react";
 import { DashboardInsight } from "@/app/lib/api";
 import { formatDate, formatMoney } from "@/app/lib/format";
 import { transactionHref } from "@/app/lib/transaction-links";
@@ -17,9 +17,9 @@ function insightHref(insight: DashboardInsight, period: { start_date: string; en
     });
 }
 
+/** The facts beside the amount, which sits on the title line instead. */
 function supportingFacts(insight: DashboardInsight) {
     const facts: string[] = [];
-    if (insight.amount !== undefined) facts.push(formatMoney(insight.amount));
     if (insight.transaction_count !== undefined) facts.push(`${insight.transaction_count} transaction${insight.transaction_count === 1 ? "" : "s"}`);
     if (insight.change_percentage !== undefined) facts.push(`${insight.change_percentage >= 0 ? "+" : ""}${Math.round(insight.change_percentage)}% change`);
     if (insight.percentage !== undefined) facts.push(`${Math.round(insight.percentage)}% ${insight.budget_id ? "used" : "share"}`);
@@ -41,32 +41,34 @@ export default function DashboardInsightCard({
 }) {
     const warning = insight.severity === "warning";
     const facts = supportingFacts(insight);
-    const Icon = warning ? TriangleAlert : Lightbulb;
+    const Icon = warning ? Siren : Lightbulb;
 
     return (
-        <article className={cn(
-            "rounded-panel border bg-white p-6 dark:bg-zinc-900",
-            warning ? "border-amber-200 dark:border-amber-900/50" : "border-border",
-            featured && "bg-gradient-to-r from-accent/10 via-white to-white dark:via-zinc-900 dark:to-zinc-900 sm:p-8",
-        )}>
-            <div className="flex items-start gap-4">
-                <span className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-2xl", warning ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30" : "bg-accent/10 text-accent")}><Icon className="h-5 w-5" /></span>
+        <article className={cn("rounded-2xl border border-border bg-card p-4 sm:p-5", featured && "sm:p-5")}>
+            <div className="flex items-start gap-3">
+                <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-[10px]", warning ? "bg-warning-surface text-warning" : "bg-selected text-accent")}><Icon className="h-5 w-5" strokeWidth={1.8} /></span>
                 <div className="min-w-0 flex-1">
-                    <h3 className={cn("font-bold font-rounded", featured ? "text-xl" : "text-base")}>{insight.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-300">{insight.body}</p>
+                    <div className="flex items-baseline justify-between gap-3">
+                        <h3 className={cn("font-bold", featured ? "text-lg" : "text-base")}>{insight.title}</h3>
+                        {insight.amount !== undefined && <p className="shrink-0 text-base font-bold tabular-nums">{formatMoney(insight.amount)}</p>}
+                    </div>
+                    <p className="mt-1 text-sm leading-5 text-muted">{insight.body}</p>
                 </div>
             </div>
 
-            {facts.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{facts.map((fact) => <span key={fact} className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{fact}</span>)}</div>}
+            {facts.length > 0 && <div className="mt-3 flex flex-wrap gap-2 pl-[52px]">{facts.map((fact) => <span key={fact} className="rounded-full bg-track px-2.5 py-1 text-xs font-semibold text-muted">{fact}</span>)}</div>}
 
-            {insight.explanation && (
-                <details className="mt-5 rounded-2xl bg-zinc-50 px-4 py-3 text-sm dark:bg-zinc-800/60">
-                    <summary className="cursor-pointer font-bold text-zinc-600 dark:text-zinc-300">How this was calculated</summary>
-                    <p className="mt-2 leading-6 text-zinc-500 dark:text-zinc-400">{insight.explanation}</p>
-                </details>
+            {(insight.action_label || insight.explanation) && (
+                <div className="mt-3 grid gap-x-6 gap-y-2 pl-[52px] sm:grid-cols-2">
+                    {insight.action_label && <Link href={insightHref(insight, period)} className="inline-flex min-h-10 items-center gap-1 text-sm font-bold hover:underline">{insight.action_label}<ChevronRight className="h-4 w-4" /></Link>}
+                    {insight.explanation && (
+                        <details className="text-sm">
+                            <summary className="flex min-h-10 cursor-pointer list-none items-center font-bold text-muted hover:text-foreground">How this was calculated</summary>
+                            <p className="mt-1 leading-5 text-muted">{insight.explanation}</p>
+                        </details>
+                    )}
+                </div>
             )}
-
-            {insight.action_label && <Link href={insightHref(insight, period)} className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white dark:bg-white dark:text-zinc-900">{insight.action_label}<ArrowUpRight className="h-4 w-4" /></Link>}
         </article>
     );
 }

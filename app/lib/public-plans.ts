@@ -1,4 +1,4 @@
-import type { BillingInterval } from "@/app/lib/billing-format";
+import type { BillingInterval, PlanOffer } from "@/app/lib/billing-format";
 
 /**
  * The published price list, read from the API rather than retyped.
@@ -31,16 +31,7 @@ export interface PublicPlan {
     offer?: PlanOffer;
 }
 
-export interface PlanOffer {
-    code: string;
-    label: string;
-    percent_off: number;
-    price_minor: number;
-    original_price_minor: number;
-    ends_at: string;
-    /** Sent only when few places remain. */
-    spots_left?: number;
-}
+export type { PlanOffer };
 
 /** How long a pass lasts, in the plain terms the page is written in. */
 const INTERVAL_DAYS: Record<string, string> = {

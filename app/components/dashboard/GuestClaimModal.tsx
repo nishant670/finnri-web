@@ -47,7 +47,7 @@ export default function GuestClaimModal() {
         try {
             const identified = await AuthAPI.identify(normalizedIdentifier);
             if (identified.data.exists) {
-                setError(`That ${identifierType} already has a FINNRI account. Use a different ${identifierType} to save this workspace.`);
+                setError(`That ${identifierType} already has a Finnri account. Use a different ${identifierType} to save this workspace.`);
                 return;
             }
             const response = await AuthAPI.sendOTP(normalizedIdentifier);
@@ -106,7 +106,7 @@ export default function GuestClaimModal() {
                     {error && <p role="alert" className="mb-5 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
 
                     {step === "identifier" && <form onSubmit={sendCode} className="space-y-5">
-                        <p className="text-sm leading-6 text-zinc-500">Verify an email or phone without leaving the dashboard. FINNRI upgrades this guest in place, so its transactions, accounts, and splits keep the same owner.</p>
+                        <p className="text-sm leading-6 text-zinc-500">Verify an email or phone and everything you’ve added here — transactions, accounts and splits — moves into your account.</p>
                         <div className="grid grid-cols-2 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
                             <button type="button" onClick={() => { setIdentifierType("email"); setIdentifier(""); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-lg text-xs font-bold ${identifierType === "email" ? "bg-white text-accent shadow-sm dark:bg-zinc-700" : "text-zinc-400"}`}><Mail className="h-4 w-4" />Email</button>
                             <button type="button" onClick={() => { setIdentifierType("phone"); setIdentifier(""); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-lg text-xs font-bold ${identifierType === "phone" ? "bg-white text-accent shadow-sm dark:bg-zinc-700" : "text-zinc-400"}`}><Phone className="h-4 w-4" />Phone</button>

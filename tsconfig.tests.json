@@ -15,6 +15,8 @@
     "app/lib/accounts.test.ts",
 	"app/lib/admin-metrics.ts",
 	"app/lib/admin-metrics.test.ts",
+    "app/lib/admin-proxy-headers.ts",
+    "app/lib/admin-proxy-headers.test.ts",
     "app/lib/calculators.ts",
     "app/lib/calculators.test.ts",
     "app/lib/category-options.ts",
@@ -33,6 +35,8 @@
     "app/lib/analytics.test.ts",
     "app/lib/split-invite.ts",
     "app/lib/split-invite.test.ts",
+    "app/lib/form-summaries.ts",
+    "app/lib/form-summaries.test.ts",
     "app/lib/feedback-attachments.ts",
     "app/lib/feedback-attachments.test.ts"
   ]

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, CreditCard, Loader2, ShieldAlert, Sparkles } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, Rocket, ShieldAlert, Sparkles } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiErrorMessage } from "@/app/lib/api";
 import { formatDate } from "@/app/lib/format";
@@ -13,7 +13,15 @@ import {
     fetchBillingStatus,
     openCheckout,
 } from "@/app/lib/billing";
-import { discountPercent, formatMinor, intervalLabel } from "@/app/lib/billing-format";
+import {
+    discountPercent,
+    formatMinor,
+    intervalLabel,
+    launchOfferNotice,
+    offerForViewer,
+    type LaunchOfferNotice,
+    type PlanOffer,
+} from "@/app/lib/billing-format";
 
 /**
  * How long to keep asking the backend whether the payment landed.
@@ -120,6 +128,7 @@ export default function BillingScreen() {
     const busy = purchase.phase === "opening" || purchase.phase === "confirming";
     const purchasable = plans.filter((plan) => plan.billing_interval !== "lifetime_quote");
     const checkoutAvailable = purchasable.some((plan) => plan.checkout_enabled);
+    const offerNotice = launchOfferNotice(purchasable, status);
 
     return (
         <div className="mx-auto max-w-4xl space-y-8 pb-20">
@@ -184,12 +193,15 @@ export default function BillingScreen() {
                 </p>
             )}
 
+            {!loading && !loadError && offerNotice && <LaunchOfferBanner notice={offerNotice} />}
+
             {!loading && !loadError && (
                 <div className="grid gap-4 sm:grid-cols-2">
                     {purchasable.map((plan) => (
                         <PlanCard
                             key={plan.code}
                             plan={plan}
+                            offer={offerForViewer(plan, status)}
                             busy={busy}
                             pendingCode={"planCode" in purchase ? purchase.planCode : undefined}
                             disabled={busy || Boolean(user?.is_guest)}
@@ -237,26 +249,62 @@ function CurrentPlanCard({ status }: { status: BillingStatus }) {
     );
 }
 
+/**
+ * Mirrors the app's Plans banner. Someone who has already bought at the launch
+ * price is told why their prices are the regular ones rather than left to
+ * wonder; spots left are named only when the server says few remain.
+ */
+function LaunchOfferBanner({ notice }: { notice: LaunchOfferNotice }) {
+    return (
+        <section className="flex items-start gap-4 rounded-panel border border-accent/30 bg-accent/5 p-5">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
+                <Rocket className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+                <h2 className="font-bold">Launch offer · {notice.percentOff}% off every plan</h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    {notice.used
+                        ? "You have already used the launch price — thanks for being early."
+                        : notice.spotsLeft != null
+                          ? `For a limited time · only ${notice.spotsLeft} launch spot${notice.spotsLeft === 1 ? "" : "s"} left`
+                          : "For a limited time, once per account"}
+                </p>
+            </div>
+        </section>
+    );
+}
+
 function PlanCard({
     plan,
+    offer,
     busy,
     pendingCode,
     disabled,
     onBuy,
 }: {
     plan: BillingPlan;
+    /** The launch offer this viewer would be charged, or null for the regular price. */
+    offer: PlanOffer | null;
     busy: boolean;
     pendingCode?: string;
     disabled: boolean;
     onBuy: () => void;
 }) {
-    const saving = discountPercent(plan);
+    // While the launch offer is this viewer's, it replaces the list-price saving:
+    // checkout charges the offer price, so that is the price to show.
+    const saving = offer ? null : discountPercent(plan);
+    const price = offer ? offer.price_minor : plan.price_minor;
     const isThisPlanBusy = busy && pendingCode === plan.code;
 
     return (
         <section className="flex flex-col rounded-panel border border-border bg-white p-6 shadow-sm dark:bg-zinc-900">
             <div className="flex items-start justify-between gap-3">
                 <h3 className="text-lg font-bold font-rounded">{plan.name}</h3>
+                {offer && (
+                    <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-accent">
+                        {offer.percent_off}% off
+                    </span>
+                )}
                 {saving != null && (
                     <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
                         Save {saving}%
@@ -266,10 +314,15 @@ function PlanCard({
 
             <p className="mt-3 flex items-baseline gap-2">
                 <span className="text-3xl font-bold font-rounded">
-                    {plan.price_minor != null ? formatMinor(plan.price_minor, plan.currency) : "—"}
+                    {price != null ? formatMinor(price, plan.currency) : "—"}
                 </span>
                 <span className="text-sm font-medium text-zinc-500">/ {intervalLabel(plan.billing_interval)}</span>
             </p>
+            {offer && (
+                <p className="mt-1 text-xs font-medium text-zinc-400">
+                    <s>{formatMinor(offer.original_price_minor, plan.currency)}</s> · launch price for your first pass
+                </p>
+            )}
             {saving != null && plan.list_price_minor != null && (
                 <p className="mt-1 text-xs font-medium text-zinc-400">
                     <s>{formatMinor(plan.list_price_minor, plan.currency)}</s> at full price

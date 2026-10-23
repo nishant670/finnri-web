@@ -43,6 +43,7 @@ import { formatDate, formatMoney } from "@/app/lib/format";
 import { cn } from "@/app/lib/utils";
 import { SUBSCRIPTION_DUE_STATES } from "@/app/lib/subscriptions";
 import Dialog from "@/app/components/ui/Dialog";
+import FormDisclosure from "@/app/components/ui/FormDisclosure";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { useToast } from "@/app/components/ui/Toast";
 import SubscriptionForm, { inputForSubscription } from "@/app/components/dashboard/SubscriptionForm";
@@ -72,8 +73,9 @@ function subscriptionInput(subscription: Subscription, patch: Partial<Subscripti
 }
 
 function BudgetForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-    const [form, setForm] = useState<BudgetInput>({ name: "Monthly spending", period: "monthly", category: "", limit_amount: 25000, currency: "INR", alert_threshold_percent: 80, active: true });
+    const [form, setForm] = useState<BudgetInput>({ name: "", period: "monthly", category: "", limit_amount: 0, currency: "INR", alert_threshold_percent: 80, active: true });
     const [saving, setSaving] = useState(false); const [error, setError] = useState("");
+    const [showOptions, setShowOptions] = useState(false);
     // A budget matches entries by exact category name, so a free-text field here
     // produced guardrails that could never fire: typing "food" keyed the budget
     // to a string no entry carries, because the API stores "Food & Drinks".
@@ -86,8 +88,29 @@ function BudgetForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
             .catch((requestError) => { if (active) setCategoriesError(apiErrorMessage(requestError, "We couldn’t load the category list.")); });
         return () => { active = false; };
     }, []);
-    const submit = async (event: FormEvent) => { event.preventDefault(); setSaving(true); setError(""); try { await BudgetsAPI.create(form); onSaved(); } catch (requestError) { setError(apiErrorMessage(requestError, "We couldn’t create this budget.")); } finally { setSaving(false); } };
-    return <ModalShell title="Create a monthly budget" description="Set a total or category-specific INR limit. Alerts are generated when confirmed spending crosses the threshold." onClose={onClose}><form onSubmit={submit} className="space-y-5 p-6"><label className="block space-y-2"><span className="text-xs font-bold text-zinc-500">Budget name</span><input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="w-full rounded-xl border border-border bg-zinc-50 px-4 py-3 text-sm outline-none dark:bg-zinc-800" /></label><div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2"><span className="text-xs font-bold text-zinc-500">Monthly limit</span><input required type="number" min="1" step="0.01" value={form.limit_amount} onChange={(event) => setForm({ ...form, limit_amount: Number(event.target.value) })} className="w-full rounded-xl border border-border bg-zinc-50 px-4 py-3 text-sm outline-none dark:bg-zinc-800" /></label><label className="space-y-2"><span className="text-xs font-bold text-zinc-500">Alert at</span><div className="relative"><input required type="number" min="1" max="100" value={form.alert_threshold_percent} onChange={(event) => setForm({ ...form, alert_threshold_percent: Number(event.target.value) })} className="w-full rounded-xl border border-border bg-zinc-50 px-4 py-3 pr-10 text-sm outline-none dark:bg-zinc-800" /><span className="absolute right-4 top-3 text-sm text-zinc-400">%</span></div></label></div><label className="block space-y-2"><span className="text-xs font-bold text-zinc-500">Category</span><select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} disabled={Boolean(categoriesError)} className="w-full rounded-xl border border-border bg-zinc-50 px-4 py-3 text-sm outline-none disabled:opacity-60 dark:bg-zinc-800"><option value="">All expenses</option>{categoryOptionsFor(categories, form.category).map((option) => <option key={option} value={option}>{option}</option>)}</select>{categoriesError ? <p className="text-xs text-red-500">{categoriesError} This budget will cover all expenses.</p> : <p className="text-xs text-zinc-400">Leave as “All expenses” for a total monthly limit.</p>}</label>{error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30">{error}</p>}<div className="flex justify-end gap-3 pt-2"><button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-zinc-500">Cancel</button><button disabled={saving} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-zinc-950 disabled:opacity-60">{saving && <Loader2 className="h-4 w-4 animate-spin" />} Create budget</button></div></form></ModalShell>;
+    // Named after what it caps unless the user names it, so a name is never a
+    // question asked up front.
+    const derivedName = form.category ? `${form.category} budget` : "Monthly spending";
+    const submit = async (event: FormEvent) => {
+        event.preventDefault();
+        if (!(form.limit_amount > 0)) { setError("Enter a monthly limit above zero."); return; }
+        if (!(form.alert_threshold_percent >= 1 && form.alert_threshold_percent <= 100)) { setShowOptions(true); setError("Alert level should be between 1% and 100%."); return; }
+        setSaving(true); setError("");
+        try { await BudgetsAPI.create({ ...form, name: form.name.trim() || derivedName }); onSaved(); }
+        catch (requestError) { setError(apiErrorMessage(requestError, "We couldn’t create this budget. Check your connection and try again.")); }
+        finally { setSaving(false); }
+    };
+    const fieldClass = "w-full rounded-xl border border-border bg-zinc-50 px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800";
+    return <ModalShell title="New monthly budget" description="Finnri warns you before you go over." onClose={onClose}><form onSubmit={submit} className="space-y-5 p-6">
+        <label className="block space-y-2"><span className="text-xs font-bold text-zinc-500">What do you want to cap?</span><select autoFocus value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} disabled={Boolean(categoriesError)} className={`${fieldClass} disabled:opacity-60`}><option value="">All spending</option>{categoryOptionsFor(categories, form.category).map((option) => <option key={option} value={option}>{option}</option>)}</select>{categoriesError && <p className="text-xs text-red-500">{categoriesError} This budget will cover all spending.</p>}</label>
+        <label className="block space-y-2"><span className="text-xs font-bold text-zinc-500">Monthly limit</span><span className="relative block"><span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-zinc-400">₹</span><input required type="number" inputMode="decimal" min="1" step="0.01" value={form.limit_amount || ""} onChange={(event) => setForm({ ...form, limit_amount: Number(event.target.value) })} placeholder="10,000" className={`${fieldClass} pl-8`} /></span></label>
+        <FormDisclosure label="More options" summary={`Called “${form.name.trim() || derivedName}” · Alert at ${form.alert_threshold_percent || 0}%`} open={showOptions} onToggle={() => setShowOptions((open) => !open)}>
+            <label className="block space-y-2"><span className="text-xs font-bold text-zinc-500">Name</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder={derivedName} className={fieldClass} /></label>
+            <label className="block space-y-2"><span className="text-xs font-bold text-zinc-500">Alert me at</span><span className="relative block"><input required type="number" min="1" max="100" value={form.alert_threshold_percent} onChange={(event) => setForm({ ...form, alert_threshold_percent: Number(event.target.value) })} className={`${fieldClass} pr-24`} /><span className="pointer-events-none absolute right-4 top-3 text-sm text-zinc-400">% of the limit</span></span></label>
+        </FormDisclosure>
+        {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30">{error}</p>}
+        <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-zinc-500">Cancel</button><button disabled={saving} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-zinc-950 disabled:opacity-60">{saving && <Loader2 className="h-4 w-4 animate-spin" />} Create budget</button></div>
+    </form></ModalShell>;
 }
 
 function FeatureError({ error, featureLabel, fallback }: { error: unknown; featureLabel: string; fallback: string }) {
@@ -223,9 +246,9 @@ export default function ToolsScreen() {
         <section id="budgets" className="rounded-panel border border-border bg-zinc-50 p-6 dark:bg-zinc-950 sm:p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <div className="flex items-center gap-2 text-accent"><BellRing className="h-4 w-4" /><p className="text-xs font-bold uppercase tracking-[0.18em]">Monthly guardrails</p></div>
+                    <div className="flex items-center gap-2 text-accent"><BellRing className="h-4 w-4" /><p className="text-xs font-bold uppercase tracking-[0.18em]">Monthly limits</p></div>
                     <h2 className="mt-2 text-2xl font-bold font-rounded">Budgets</h2>
-                    <p className="mt-1 text-sm text-zinc-500">Confirmed spending against this month’s active limits.</p>
+                    <p className="mt-1 text-sm text-zinc-500">How this month’s spending compares with your limits.</p>
                 </div>
                 <button disabled={Boolean(budgetError)} onClick={() => setShowBudgetForm(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 text-sm font-bold text-white disabled:opacity-40 dark:bg-white dark:text-zinc-900"><Plus className="h-4 w-4" /> New budget</button>
             </div>
@@ -255,7 +278,7 @@ export default function ToolsScreen() {
                 <div>
                     <div className="flex items-center gap-2 text-indigo-600"><CalendarClock className="h-4 w-4" /><p className="text-xs font-bold uppercase tracking-[0.18em]">Recurring payments</p></div>
                     <h2 className="mt-2 text-2xl font-bold font-rounded">Subscriptions</h2>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-500">Edit schedules and reminder windows here. Mark paid only advances a schedule; enable automatic transactions in Edit and link an account when you want Finnri to record each due payment.</p>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-500">Everything that repeats, with a reminder before each one. Turn on Autopay in a payment and Finnri logs it for you on the day.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <button disabled={Boolean(subscriptionError) || workingId === "subscription-reminders"} onClick={() => void syncReminders()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-bold disabled:opacity-40"><BellRing className="h-4 w-4" /> Sync reminders</button>
@@ -272,7 +295,7 @@ export default function ToolsScreen() {
                 </div>
             )}
         </section>
-        <aside className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-200"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" /><p>SIP and EMI results are estimates. Budget and subscription tools organize your own records; they do not connect to lenders, banks, fund houses, or merchants.</p></aside>
+        <aside className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-200"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" /><p>Calculator results are estimates. Finnri never connects to your bank, lender or fund house — budgets and reminders work from what you log.</p></aside>
     </div>{showBudgetForm && <BudgetForm onClose={() => setShowBudgetForm(false)} onSaved={() => { setShowBudgetForm(false); toast({ title: "Budget created" }); void loadPlanning(); }} />}{showSubscriptionForm && <SubscriptionForm accounts={accounts} subscription={editingSubscription || undefined} onClose={() => { setShowSubscriptionForm(false); setEditingSubscription(null); }} onSaved={() => { const wasEditing = Boolean(editingSubscription); setShowSubscriptionForm(false); setEditingSubscription(null); toast({ title: wasEditing ? "Recurring payment updated" : "Recurring payment added" }); void loadPlanning(); }} />}
     <ConfirmDialog open={confirmTarget?.kind === "budget"} title={`Delete ${confirmTarget?.item.name || "budget"}?`} description="This permanently removes the guardrail. Existing transactions are not affected." confirmLabel="Delete budget" busy={Boolean(workingId)} onClose={() => setConfirmTarget(null)} onConfirm={() => { if (confirmTarget?.kind === "budget") void deleteBudget(confirmTarget.item, true); }} />
     <ConfirmDialog open={confirmTarget?.kind === "subscription"} title={`Stop tracking ${confirmTarget?.item.name || "subscription"}?`} description="This permanently removes the schedule and its reminders. Existing transactions are not affected." confirmLabel="Stop tracking" busy={Boolean(workingId)} onClose={() => setConfirmTarget(null)} onConfirm={() => { if (confirmTarget?.kind === "subscription") void deleteSubscription(confirmTarget.item, true); }} />

@@ -40,7 +40,10 @@ const contentSecurityPolicy = [
     // bundle from cdn.razorpay.com. Blocking that second script does not raise a
     // visible error on the pay page — it degrades the fraud signal Razorpay scores
     // the transaction with, so the failure arrives later as a decline.
-    `script-src 'self' 'unsafe-inline' ${analyticsOrigins.script} https://accounts.google.com https://checkout.razorpay.com https://cdn.razorpay.com`,
+    // `next dev` evaluates its modules and React Refresh runtime as strings, so
+    // without 'unsafe-eval' the dev server renders a page whose script never
+    // runs. Development only — a production build needs no eval.
+    `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"} ${analyticsOrigins.script} https://accounts.google.com https://checkout.razorpay.com https://cdn.razorpay.com`,
     "style-src 'self' 'unsafe-inline' https://accounts.google.com https://*.razorpay.com",
     // Razorpay renders bank, card-network and UPI-app artwork from its CDN, and
     // the checkout sheet draws part of itself in this document rather than only
@@ -63,11 +66,18 @@ const securityHeaders = [
     { key: "Permissions-Policy", value: "camera=(), geolocation=(), microphone=(), payment=(self \"https://checkout.razorpay.com\")" },
 ];
 
+// Every Vercel deployment that is not production — staging.finnri.app and each
+// per-branch preview — is a full copy of the site, and search engines must not
+// list it beside the real one. A header rather than a robots.txt rule: a
+// crawler has to be allowed to fetch a page to learn it may not index it.
+const searchHeaders =
+    process.env.VERCEL_ENV === "preview" ? [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] : [];
+
 const nextConfig: NextConfig = {
     poweredByHeader: false,
     productionBrowserSourceMaps: false,
     async headers() {
-        return [{ source: "/:path*", headers: securityHeaders }];
+        return [{ source: "/:path*", headers: [...securityHeaders, ...searchHeaders] }];
     },
     async rewrites() {
         return [

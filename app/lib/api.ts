@@ -651,7 +651,9 @@ export function apiErrorMessage(error: unknown, fallback: string) {
     if (error instanceof SessionExpiredError) return "";
     if (error instanceof EntitlementError) {
         if (error.status === 429) return error.resetAt ? "Your allowance will be available again at the time shown." : "Your daily allowance will be available again soon.";
-        return error.requiredPlan ? `${error.featureLabel || "This feature"} is included with ${error.requiredPlan}.` : `${error.featureLabel || "This feature"} is not included in this workspace.`;
+        // Worded so any feature name reads right: "Budgets is included with
+        // paid" read the raw plan code back and got the verb wrong for a plural.
+        return error.requiredPlan ? `A paid Finnri plan unlocks ${error.featureLabel || "this feature"}.` : `This workspace doesn’t include ${error.featureLabel || "this feature"} yet.`;
     }
     if (!axios.isAxiosError(error)) return fallback;
     if (!error.response) {

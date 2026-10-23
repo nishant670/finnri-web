@@ -1,8 +1,8 @@
 import { api } from "@/app/lib/api";
-import type { BillingInterval } from "@/app/lib/billing-format";
+import type { BillingInterval, LaunchOfferStatus, PlanOffer } from "@/app/lib/billing-format";
 
-export { discountPercent, formatMinor, intervalLabel } from "@/app/lib/billing-format";
-export type { BillingInterval } from "@/app/lib/billing-format";
+export { discountPercent, formatMinor, intervalLabel, launchOfferNotice, offerForViewer } from "@/app/lib/billing-format";
+export type { BillingInterval, LaunchOfferStatus, PlanOffer } from "@/app/lib/billing-format";
 
 export interface BillingPlan {
     code: string;
@@ -23,6 +23,8 @@ export interface BillingPlan {
      */
     checkout_enabled: boolean;
     feature_gates: string[];
+    /** Present while the launch offer runs. Who gets it is billing status's call. */
+    offer?: PlanOffer | null;
 }
 
 export interface CreditSummary {
@@ -45,6 +47,8 @@ export interface BillingStatus {
         paid_months_completed: number;
         required_paid_months: number;
     };
+    /** Present while the launch offer runs; `eligible` is false once this user has used it. */
+    launch_offer?: LaunchOfferStatus | null;
 }
 
 export interface CheckoutOrder {

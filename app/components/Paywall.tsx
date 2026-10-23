@@ -35,7 +35,7 @@ export default function Paywall({ error, featureLabel, compact = false }: Paywal
             <p className="mt-1 text-sm leading-6 opacity-75">
                 {allowancePaused
                     ? resetTime ? `AI is back at ${resetTime}. You can keep entering transactions manually until then.` : "Your daily allowance will reset soon. You can keep working manually until then."
-                    : error.requiredPlan ? `${feature} is included with ${planDisplayName(error.requiredPlan)}.` : `${feature} needs an upgraded Finnri account.`}
+                    : error.requiredPlan ? `Part of ${planDisplayName(error.requiredPlan)}.` : "Available on an upgraded Finnri account."}
             </p>
             {!allowancePaused && error.requiredCredits != null && (
                 <p className="mt-2 text-xs font-semibold opacity-70">
@@ -45,7 +45,7 @@ export default function Paywall({ error, featureLabel, compact = false }: Paywal
             )}
             {!allowancePaused && user?.is_guest && (
                 <button type="button" onClick={beginGuestClaim} className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-bold text-zinc-950">
-                    Save workspace to continue
+                    Sign in to continue
                 </button>
             )}
             {!allowancePaused && !user?.is_guest && !compact && (

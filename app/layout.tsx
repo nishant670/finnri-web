@@ -6,7 +6,7 @@ import AnalyticsRouteTracker from "./components/analytics/AnalyticsRouteTracker"
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Finnri | Financial insights and planning tools",
-  description: "Understand your spending, review recurring patterns, and plan with FINNRI's explainable financial dashboard.",
+  description: "Understand your spending, review recurring patterns, and plan with Finnri’s dashboard.",
   manifest: "/manifest.webmanifest",
   icons: { apple: "/apple-icon.png" },
 };

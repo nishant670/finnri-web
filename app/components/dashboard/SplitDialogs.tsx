@@ -32,6 +32,18 @@ function DialogShell({ title, description, onClose, children }: { title: string;
     </Dialog>;
 }
 
+/**
+ * A note is offered, not laid out: an empty box labelled "optional" still reads
+ * as one more thing to fill in. A note that already has text shows as a field.
+ */
+function OptionalNote({ value, onChange, className }: { value: string; onChange: (value: string) => void; className?: string }) {
+    const [open, setOpen] = useState(false);
+    if (!open && !value) {
+        return <div className={className}><button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-zinc-300 px-3.5 text-xs font-bold text-zinc-600 hover:border-accent hover:text-accent dark:border-zinc-600 dark:text-zinc-300"><Plus className="h-3.5 w-3.5 text-accent" aria-hidden /> Add a note</button></div>;
+    }
+    return <label className={`disclosure-enter space-y-2 ${className || ""}`}><span className="text-xs font-bold text-zinc-500">Note</span><textarea autoFocus={open && !value} value={value} onChange={(event) => onChange(event.target.value)} rows={3} className={fieldClass} /></label>;
+}
+
 function DialogActions({ saving, label, onClose }: { saving: boolean; label: string; onClose: () => void }) {
     return <div className="sticky bottom-0 flex justify-end gap-3 border-t border-border bg-white/95 p-5 backdrop-blur dark:bg-zinc-900/95">
         <button type="button" onClick={onClose} className="rounded-xl px-5 py-2.5 text-sm font-bold text-zinc-500">Cancel</button>
@@ -47,14 +59,17 @@ export function FriendDialog({ friend, onClose, onSaved }: { friend?: SplitFrien
     const submit = async (event: FormEvent) => {
         event.preventDefault(); setSaving(true); setError("");
         try { if (friend) await SplitAPI.updateFriend(friend.id, form); else await SplitAPI.createFriend(form); toast({ title: friend ? `${form.name} updated` : `${form.name} added` }); onSaved(); }
-        catch (requestError) { setError(apiErrorMessage(requestError, "We couldn’t save this friend.")); }
+        catch (requestError) { setError(apiErrorMessage(requestError, "We couldn’t save this friend. Check your connection and try again.")); }
         finally { setSaving(false); }
     };
-    return <DialogShell title={friend ? "Edit friend" : "Add a friend"} description="Friends stay private to your FINNRI split ledger." onClose={onClose}>
+    const [showContact, setShowContact] = useState(Boolean(friend?.email || friend?.phone));
+    return <DialogShell title={friend ? "Edit friend" : "Add a friend"} description="Only you can see the friends in your split ledger." onClose={onClose}>
         <form onSubmit={submit}><div className="grid gap-5 p-6 sm:grid-cols-2">
-            <label className="space-y-2 sm:col-span-2"><span className="text-xs font-bold text-zinc-500">Name</span><input required maxLength={120} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Ria" className={fieldClass} /></label>
-            <label className="space-y-2"><span className="text-xs font-bold text-zinc-500">Email <span className="font-normal text-zinc-400">optional</span></span><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className={fieldClass} /></label>
-            <label className="space-y-2"><span className="text-xs font-bold text-zinc-500">Phone <span className="font-normal text-zinc-400">optional</span></span><input type="tel" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className={fieldClass} /></label>
+            <label className="space-y-2 sm:col-span-2"><span className="text-xs font-bold text-zinc-500">Name</span><input required autoFocus={!friend} maxLength={120} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Ria" className={fieldClass} /></label>
+            {showContact ? <>
+                <label className="disclosure-enter space-y-2"><span className="text-xs font-bold text-zinc-500">Email <span className="font-normal text-zinc-400">optional</span></span><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className={fieldClass} /></label>
+                <label className="disclosure-enter space-y-2"><span className="text-xs font-bold text-zinc-500">Phone <span className="font-normal text-zinc-400">optional</span></span><input type="tel" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className={fieldClass} /></label>
+            </> : <div className="sm:col-span-2"><button type="button" onClick={() => setShowContact(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-zinc-300 px-3.5 text-xs font-bold text-zinc-600 hover:border-accent hover:text-accent dark:border-zinc-600 dark:text-zinc-300"><Plus className="h-3.5 w-3.5 text-accent" aria-hidden /> Add email or phone</button></div>}
             {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30 sm:col-span-2">{error}</p>}
         </div><DialogActions saving={saving} label={friend ? "Save changes" : "Add friend"} onClose={onClose} /></form>
     </DialogShell>;
@@ -127,9 +142,9 @@ export function BillDialog({ bill, friends, groups, onClose, onSaved }: { bill?:
                     <select value={participant.direction} onChange={(event) => updateParticipant(index, { direction: event.target.value as SplitDirection })} aria-label={`Share direction ${index + 1}`} className={fieldClass}><option value="friend_owes_user">Owes me</option><option value="user_owes_friend">I owe them</option></select>
                     <button type="button" disabled={form.participants.length === 1} onClick={() => setForm({ ...form, participants: form.participants.filter((_, itemIndex) => itemIndex !== index) })} className="grid h-11 w-11 place-items-center rounded-xl text-zinc-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30" aria-label={`Remove participant ${index + 1}`}><Trash2 className="h-4 w-4" /></button>
                 </div>)}</div>
-                <button type="button" onClick={() => setForm({ ...form, participants: [...form.participants, emptyParticipant()] })} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-xs font-bold text-zinc-500"><Plus className="h-4 w-4" /> Add friend share</button>
+                <button type="button" onClick={() => setForm({ ...form, participants: [...form.participants, emptyParticipant()] })} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-xs font-bold text-zinc-500"><Plus className="h-4 w-4" /> Add a friend</button>
             </div>
-            <label className="space-y-2"><span className="text-xs font-bold text-zinc-500">Notes <span className="font-normal text-zinc-400">optional</span></span><textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} rows={3} className={fieldClass} /></label>
+            <OptionalNote value={form.notes || ""} onChange={(notes) => setForm({ ...form, notes })} />
             {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30">{error}</p>}
         </div><DialogActions saving={saving} label={bill ? "Save changes" : "Save split bill"} onClose={onClose} /></form>
     </DialogShell>;
@@ -151,8 +166,8 @@ export function SettlementDialog({ friends, suggestedFriend, onClose, onSaved }:
             <label className="space-y-2 sm:col-span-2"><span className="text-xs font-bold text-zinc-500">Friend</span><select required value={form.friend_id || ""} onChange={(event) => setForm({ ...form, friend_id: Number(event.target.value) })} className={fieldClass}><option value="">Choose friend</option>{friends.map((friend) => <option key={friend.id} value={friend.id}>{friend.name}</option>)}</select></label>
             <label className="space-y-2"><span className="text-xs font-bold text-zinc-500">Amount</span><input required min="0.01" step="0.01" type="number" value={form.amount || ""} onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })} className={fieldClass} /></label>
             <label className="space-y-2"><span className="text-xs font-bold text-zinc-500">Date</span><input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} className={fieldClass} /></label>
-            <label className="space-y-2 sm:col-span-2"><span className="text-xs font-bold text-zinc-500">What happened?</span><select value={form.direction} onChange={(event) => setForm({ ...form, direction: event.target.value as SettlementDirection })} className={fieldClass}><option value="friend_paid_user">Friend paid me</option><option value="user_paid_friend">I paid friend</option></select></label>
-            <label className="space-y-2 sm:col-span-2"><span className="text-xs font-bold text-zinc-500">Notes <span className="font-normal text-zinc-400">optional</span></span><textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} rows={3} className={fieldClass} /></label>
+            <label className="space-y-2 sm:col-span-2"><span className="text-xs font-bold text-zinc-500">What happened?</span><select value={form.direction} onChange={(event) => setForm({ ...form, direction: event.target.value as SettlementDirection })} className={fieldClass}><option value="friend_paid_user">They paid me</option><option value="user_paid_friend">I paid them</option></select></label>
+            <OptionalNote className="sm:col-span-2" value={form.notes || ""} onChange={(notes) => setForm({ ...form, notes })} />
             {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30 sm:col-span-2">{error}</p>}
         </div><DialogActions saving={saving} label="Record settlement" onClose={onClose} /></form>
     </DialogShell>;

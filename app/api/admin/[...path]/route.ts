@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_CACHE_CONTROL, adminProxyResponseHeaders } from "@/app/lib/admin-proxy-headers";
 
 const ADMIN_COOKIE = "finnri_admin_session";
 const ADMIN_MAX_AGE = 8 * 60 * 60;
@@ -32,15 +33,13 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
 
     try {
         const upstream = await fetch(backendURL(request, path), init);
-        const responseType = upstream.headers.get("content-type") || "application/json";
-        const disposition = upstream.headers.get("content-disposition");
         const bytes = await upstream.arrayBuffer();
 
         if (isLogin && upstream.ok) {
             const payload = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
             const token = typeof payload.token === "string" ? payload.token : "";
             delete payload.token;
-            const response = NextResponse.json(payload, { status: upstream.status });
+            const response = NextResponse.json(payload, { status: upstream.status, headers: { "Cache-Control": ADMIN_CACHE_CONTROL } });
             if (token)
                 response.cookies.set(ADMIN_COOKIE, token, {
                     httpOnly: true,
@@ -52,8 +51,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
             return response;
         }
 
-        const response = new NextResponse(bytes, { status: upstream.status, headers: { "Content-Type": responseType } });
-        if (disposition) response.headers.set("Content-Disposition", disposition);
+        const response = new NextResponse(bytes, { status: upstream.status, headers: adminProxyResponseHeaders(upstream.headers) });
         if (isLogout || upstream.status === 401)
             response.cookies.set(ADMIN_COOKIE, "", {
                 httpOnly: true,

@@ -8,12 +8,14 @@ import {
     Check,
     Brain,
     Search,
-    Zap,
+    Sparkles,
     Tag,
     Calendar,
     Wallet,
     ArrowRight,
-    Loader2
+    Loader2,
+    StickyNote,
+    Users,
 } from "lucide-react";
 import { cn } from "@/app/lib/utils";
 import { Account, AccountsAPI, apiErrorMessage, asEntitlementError, EntitlementError, EntriesAPI, EntrySplitInput, SplitAPI, SplitBill, SplitFriend, SplitGroup, Transaction, TransactionInput } from "@/app/lib/api";
@@ -21,6 +23,7 @@ import { PAYMENT_MODES, PaymentMode, paymentModeForAccountType, resolvePaymentMo
 import { categoryOptionsFor, loadCategories } from "@/app/lib/categories";
 import { formatMoney, toApiTime, toLocalISO } from "@/app/lib/format";
 import InlineSplitEditor from "@/app/components/dashboard/InlineSplitEditor";
+import AddDetailChips, { type AddDetailOption } from "@/app/components/ui/AddDetailChips";
 import Paywall from "@/app/components/Paywall";
 import Dialog from "@/app/components/ui/Dialog";
 import { useToast } from "@/app/components/ui/Toast";
@@ -51,6 +54,14 @@ function draftFieldFor(rawField: string): DraftField | null {
     if (field === "note" || field === "notes") return "notes";
     return null;
 }
+
+type EntryDetail = "notes" | "tags" | "split";
+
+const ENTRY_DETAILS: AddDetailOption<EntryDetail>[] = [
+    { key: "notes", label: "Note", icon: StickyNote },
+    { key: "tags", label: "Tags", icon: Tag },
+    { key: "split", label: "Split with friends", icon: Users },
+];
 
 function uniqueDraftFields(rawFields: string[]) {
     return Array.from(new Set(rawFields.map(draftFieldFor).filter((field): field is DraftField => Boolean(field))));
@@ -117,6 +128,9 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
     const [newTag, setNewTag] = useState("");
     const [showTagInput, setShowTagInput] = useState(false);
     const [error, setError] = useState("");
+    // Optional details asked for with a chip since the dialog opened. One that
+    // already holds something shows without being asked for.
+    const [revealedDetails, setRevealedDetails] = useState<EntryDetail[]>([]);
     const [accessError, setAccessError] = useState<EntitlementError | null>(null);
     const [accessFeatureLabel, setAccessFeatureLabel] = useState("This feature");
 
@@ -163,6 +177,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
         setClarifications([]);
         setShowTagInput(false);
         setNewTag("");
+        setRevealedDetails([]);
 
         if (transaction) {
             setMode("manual");
@@ -227,6 +242,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
         setPendingReviewFields([]);
         setMissingFields([]);
         setClarifications([]);
+        setRevealedDetails([]);
     };
 
     const updateSourceText = (value: string) => {
@@ -266,6 +282,24 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
         if (status === "manual") return null;
         if (status === "review") return <button type="button" onClick={(event) => { event.preventDefault(); markFieldReviewed(field); }} title={`Confirm the AI's ${DRAFT_FIELD_LABELS[field]} value`} className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] tracking-normal text-amber-700 hover:bg-amber-200 dark:bg-amber-950/50 dark:text-amber-300">Check this · confirm</button>;
         return <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[9px] tracking-normal text-accent">AI filled</span>;
+    };
+
+    const canSplit = type === "expense" && (!isEditing || splitDataAvailable);
+    const isDetailShown = (detail: EntryDetail) => {
+        if (revealedDetails.includes(detail)) return true;
+        if (detail === "notes") return notes.trim().length > 0;
+        if (detail === "tags") return tags.length > 0;
+        return Boolean(entrySplit);
+    };
+    const availableDetails = ENTRY_DETAILS.filter((option) => !isDetailShown(option.key) && (option.key !== "split" || canSplit));
+    const addDetail = (detail: EntryDetail) => {
+        setRevealedDetails((current) => (current.includes(detail) ? current : [...current, detail]));
+        // The chip turns the split on in the same click that shows it; a card
+        // whose checkbox then had to be found would be two clicks for one wish.
+        if (detail === "split" && !entrySplit) {
+            setEntrySplit({ participants: [{ friend_id: undefined, share_amount: 0, direction: "friend_owes_user" }] });
+        }
+        if (detail === "tags") setShowTagInput(true);
     };
 
     const handleExtract = async () => {
@@ -333,27 +367,36 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
 
     const handleSave = async () => {
         if (pendingReviewFields.length > 0) {
-            setError(`Review ${pendingReviewFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")} before saving.`);
+            setError(`Check the ${pendingReviewFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")} first.`);
             return;
         }
-        if (!amount || !title || !accountID) {
-            setError("Amount, merchant, and account are required.");
+        if (!amount || !(parseFloat(amount) > 0)) {
+            setError("Enter an amount above zero.");
+            return;
+        }
+        if (!accountID) {
+            setError(type === "income" ? "Choose the account it was received in." : "Choose the account it was paid from.");
             return;
         }
         if (!category) {
-            setError(categoriesError || "Pick a category before saving.");
+            setError(categoriesError || "Pick a category.");
             return;
         }
         if (requiresExplicitPaymentMode && !explicitPaymentMode) {
-            setError("Choose a payment mode for this account before saving.");
+            setError("Choose how this account paid.");
             return;
         }
         const numericAmount = parseFloat(amount);
+        // A blank title saves as the category, the same fallback the app uses,
+        // so "what was it for?" is honestly optional rather than a required
+        // field dressed as a question.
+        const typedTitle = title.trim();
+        const savedTitle = typedTitle || category;
         if (entrySplit) {
             const invalidParticipant = entrySplit.participants.some((participant) => !participant.friend_id || participant.share_amount <= 0);
             const totalShares = entrySplit.participants.reduce((sum, participant) => sum + Number(participant.share_amount || 0), 0);
-            if (invalidParticipant) { setError("Choose a friend and positive share for every split participant."); return; }
-            if (totalShares > numericAmount) { setError("Friend shares cannot exceed the transaction amount."); return; }
+            if (invalidParticipant) { setError("Everyone in the split needs a friend and an amount."); return; }
+            if (totalShares > numericAmount) { setError("The shares add up to more than the total."); return; }
         }
         setSaving(true);
         setError("");
@@ -368,8 +411,8 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                 // The form edits whichever name the drawer displays. Preserve a
                 // distinct stored title when the transaction already has a
                 // merchant; otherwise this field is the title itself.
-                title: transaction?.merchant ? transaction.title : title,
-                merchant: transaction ? (transaction.merchant ? title : transaction.merchant) : title,
+                title: transaction?.merchant ? transaction.title : savedTitle,
+                merchant: transaction ? (transaction.merchant ? typedTitle : transaction.merchant) : typedTitle,
                 category,
                 date: date.split("T")[0],
                 time: date.split("T")[1] || "00:00:00",
@@ -395,7 +438,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
             }
             await onSaved?.(response.data);
             setSuccess(true);
-            toast({ title: transaction ? `${title} updated` : `${title} ${formatMoney(numericAmount)} saved` });
+            toast({ title: transaction ? `${savedTitle} updated` : `${savedTitle} ${formatMoney(numericAmount)} saved` });
             setTimeout(() => {
                 onClose();
                 resetForm();
@@ -403,7 +446,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
         } catch (requestError) {
             const entitlement = asEntitlementError(requestError);
             if (entitlement) setAccessError(entitlement);
-            else setError(apiErrorMessage(requestError, transaction ? "We couldn’t update this transaction." : "We couldn’t save this transaction."));
+            else setError(apiErrorMessage(requestError, transaction ? "We couldn’t update this transaction. Check your connection and try again." : "We couldn’t save this transaction. Check your connection and try again."));
         } finally {
             setSaving(false);
         }
@@ -423,18 +466,18 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
         <Dialog open={isOpen} onClose={onClose} labelledBy="transaction-dialog-title" panelClassName="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-hidden sm:max-h-[90dvh]">
                     <div className="dialog-enter max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card sm:max-h-[90dvh]">
                         {/* Header */}
-                        <div className="p-8 border-b border-border flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50 sticky top-0 z-10 backdrop-blur-md">
+                        <div className="px-6 py-5 sm:px-8 border-b border-border flex items-center justify-between bg-zinc-50/90 dark:bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-md">
                             <div>
-                                <h3 id="transaction-dialog-title" className="text-2xl font-bold font-rounded">{isEditing ? "Edit Transaction" : "Add Transaction"}</h3>
-                                <p className="text-sm text-zinc-500 font-medium">{isEditing ? "Correct the confirmed record and keep every surface in sync." : "Capture your expenses & income instantly."}</p>
+                                <h3 id="transaction-dialog-title" className="text-xl font-bold font-rounded">{isEditing ? "Edit transaction" : "Add a transaction"}</h3>
+                                <p className="mt-0.5 text-sm text-zinc-500">{isEditing ? "Changes show up everywhere this transaction appears." : "Only the amount and account are needed. The rest is optional."}</p>
                             </div>
-                            <button onClick={onClose} aria-label="Close transaction dialog" className="p-3 bg-white dark:bg-zinc-700 rounded-2xl hover:text-accent transition-colors shadow-sm">
-                                <X className="w-6 h-6" />
+                            <button onClick={onClose} aria-label="Close transaction dialog" className="p-2.5 bg-white dark:bg-zinc-700 rounded-xl hover:text-accent transition-colors shadow-sm">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         {/* Mode Switcher */}
-                        {!isEditing && <div className="px-8 pt-8">
+                        {!isEditing && <div className="px-6 pt-6 sm:px-8">
                             <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl">
                                 <button
                                     onClick={() => setMode("quick")}
@@ -443,7 +486,7 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                         mode === "quick" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-400 hover:text-zinc-600"
                                     )}
                                 >
-                                    <Brain className="w-4 h-4" /> Quick Add
+                                    <Sparkles className="w-4 h-4" /> Describe it
                                 </button>
                                 <button
                                     onClick={() => setMode("manual")}
@@ -452,23 +495,24 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                         mode === "manual" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-400 hover:text-zinc-600"
                                     )}
                                 >
-                                    <Plus className="w-4 h-4" /> Manual Entry
+                                    <Plus className="w-4 h-4" /> Fill it in
                                 </button>
                             </div>
                         </div>}
 
-                        <div className="min-h-[400px] p-8 pb-36">
+                        <div className="min-h-[360px] p-6 pb-32 sm:p-8 sm:pb-36">
                             {mode === "quick" ? (
                                 <div className="space-y-8 animate-in fade-in duration-500">
                                     <div className="relative">
                                         <textarea
                                             value={text}
                                             onChange={(e) => updateSourceText(e.target.value)}
-                                            placeholder="Paste transaction text here... e.g. 'Paid 250 lunch UPI'"
-                                            className="w-full h-48 bg-zinc-50 dark:bg-zinc-800 border-none rounded-panel p-8 text-xl font-medium outline-none focus:ring-4 focus:ring-accent/10 transition-all resize-none placeholder:text-zinc-300"
+                                            aria-label="Describe the transaction"
+                                            placeholder="Say it the way you’d text it — “Lunch 250 on UPI”, or paste a bank SMS"
+                                            className="w-full h-44 bg-zinc-50 dark:bg-zinc-800 border-none rounded-panel px-6 pb-6 pt-12 text-lg font-medium outline-none focus:ring-4 focus:ring-accent/10 transition-all resize-none placeholder:text-zinc-400"
                                         />
-                                        <div className="absolute top-6 left-8 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-0.5 rounded-full pointer-events-none">
-                                            <Zap className="w-3 h-3" /> AI Engine Ready
+                                        <div className="absolute top-5 left-6 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-0.5 rounded-full pointer-events-none">
+                                            <Sparkles className="w-3 h-3" /> Finnri AI
                                         </div>
                                     </div>
 
@@ -484,18 +528,18 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                             {extracting ? (
                                                 <div className="flex items-center gap-3">
                                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                                    Extracting...
+                                                    Reading…
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <Brain className="w-6 h-6" />
-                                                    Extract with AI
+                                                    <Brain className="w-5 h-5" />
+                                                    Fill it in for me
                                                 </>
                                             )}
                                         </button>
                                         <div className="flex items-center gap-4 px-6 bg-zinc-50 dark:bg-zinc-800 rounded-2xl text-zinc-400">
                                             <Info className="w-5 h-5 shrink-0" />
-                                            <p className="text-xs font-medium leading-snug">Simply paste messages or type notes. Our AI will fill the form.</p>
+                                            <p className="text-xs font-medium leading-snug">You’ll see every field before anything is saved.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -510,53 +554,65 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                                 </div>
                                                 <button onClick={() => setMode("quick")} className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-accent hover:bg-accent/10">Edit text</button>
                                             </div>
-                                            {parsedDraft && pendingReviewFields.length > 0 && <p className="mt-3 text-xs font-bold text-amber-700 dark:text-amber-300">Check {pendingReviewFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")} before save is enabled.</p>}
-                                            {parseFailed && <p className="mt-3 text-xs text-zinc-500">The form remains manual; edit or copy the text above, or return to Quick Add and try again.</p>}
+                                            {parsedDraft && pendingReviewFields.length > 0 && <p className="mt-3 text-xs font-bold text-amber-700 dark:text-amber-300">Check the {pendingReviewFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")} — then you can save.</p>}
+                                            {parseFailed && <p className="mt-3 text-xs text-zinc-500">Fill in the form yourself, or edit the text and try again.</p>}
                                             {clarifications.map((clarification) => <p key={clarification} className="mt-2 flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200"><Info className="mt-0.5 h-4 w-4 shrink-0" />{clarification}</p>)}
                                         </section>
                                     )}
                                     {parsedDraft && missingFields.length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"><p className="font-bold">Still needed</p><p className="mt-1">Fill or confirm: {missingFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")}.</p></div>}
-                                    <div className="grid grid-cols-2 gap-6">
+                                    {/* The number comes first and widest. It is the one thing every
+                                        entry needs, and the type beside it is a single tap. */}
+                                    <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Type<FieldStatus field="type" /></label>
-                                            <div className={fieldClass("type", "flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl")}>
+                                            <label htmlFor="entry-amount" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Amount<FieldStatus field="amount" /></label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-zinc-400">₹</span>
+                                                <input
+                                                    id="entry-amount"
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    placeholder="0"
+                                                    value={amount}
+                                                    autoFocus={!isEditing}
+                                                    onChange={(e) => { setAmount(e.target.value); markFieldChanged("amount"); }}
+                                                    className={fieldClass("amount", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl pl-10 pr-4 py-3.5 text-3xl font-bold font-rounded outline-none focus:ring-2 focus:ring-accent/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Type<FieldStatus field="type" /></span>
+                                            <div role="radiogroup" aria-label="Transaction type" className={fieldClass("type", "flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl")}>
                                                 <button
+                                                    type="button"
+                                                    role="radio"
+                                                    aria-checked={type === "expense"}
                                                     onClick={() => { setType("expense"); setCategory(expenseDefault); markFieldChanged("type"); }}
-                                                    className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all", type === "expense" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-400")}
+                                                    className={cn("min-h-11 flex-1 px-5 text-xs font-bold rounded-lg transition-all", type === "expense" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-500")}
                                                 >
                                                     Expense
                                                 </button>
                                                 <button
+                                                    type="button"
+                                                    role="radio"
+                                                    aria-checked={type === "income"}
                                                     onClick={() => { setType("income"); setCategory(incomeDefault); setEntrySplit(null); markFieldChanged("type"); }}
-                                                    className={cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all", type === "income" ? "bg-white dark:bg-zinc-700 text-green-500 shadow-sm" : "text-zinc-400")}
+                                                    className={cn("min-h-11 flex-1 px-5 text-xs font-bold rounded-lg transition-all", type === "income" ? "bg-white dark:bg-zinc-700 text-green-600 shadow-sm" : "text-zinc-500")}
                                                 >
                                                     Income
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Amount<FieldStatus field="amount" /></label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-zinc-400">₹</span>
-                                                <input
-                                                    type="number"
-                                                    placeholder="0.00"
-                                                    value={amount}
-                                                    onChange={(e) => { setAmount(e.target.value); markFieldChanged("amount"); }}
-                                                    className={fieldClass("amount", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl pl-8 pr-4 py-3 text-lg font-bold outline-none focus:ring-2 focus:ring-accent/20")}
-                                                />
-                                            </div>
-                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Merchant / Title<FieldStatus field="title" /></label>
+                                            <label htmlFor="entry-title" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">What was it for? <span className="font-medium normal-case tracking-normal">optional</span><FieldStatus field="title" /></label>
                                             <div className="relative">
                                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                                                 <input
+                                                    id="entry-title"
                                                     type="text"
-                                                    placeholder="e.g. Starbucks"
+                                                    placeholder={category ? `Saved as “${category}” if blank` : "e.g. Lunch at Third Wave"}
                                                     value={title}
                                                     onChange={(e) => { setTitle(e.target.value); markFieldChanged("title"); }}
                                                     className={fieldClass("title", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20")}
@@ -564,8 +620,9 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Category<FieldStatus field="category" /></label>
+                                            <label htmlFor="entry-category" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Category<FieldStatus field="category" /></label>
                                             <select
+                                                id="entry-category"
                                                 value={category}
                                                 onChange={(e) => { setCategory(e.target.value); markFieldChanged("category"); }}
                                                 disabled={categoryOptions.length === 0}
@@ -578,12 +635,13 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Date & Time<FieldStatus field="date" /></label>
+                                            <label htmlFor="entry-date" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Date & time<FieldStatus field="date" /></label>
                                             <div className="relative">
                                                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                                                 <input
+                                                    id="entry-date"
                                                     type="datetime-local"
                                                     value={date}
                                                     onChange={(e) => { setDate(e.target.value); markFieldChanged("date"); }}
@@ -592,16 +650,17 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Account<FieldStatus field="account" /></label>
+                                            <label htmlFor="entry-account" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{type === "income" ? "Received in" : "Paid from"}<FieldStatus field="account" /></label>
                                             <div className="relative">
                                                 <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                                                 <select
+                                                    id="entry-account"
                                                     value={accountID}
                                                     onChange={(e) => { setAccountID(Number(e.target.value)); markFieldChanged("account"); }}
                                                     className={fieldClass("account", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20")}
                                                 >
-                                                    <option value="" disabled>Select an account</option>
-                                                    {accounts.map((item) => <option key={item.id} value={item.id}>{item.name}{item.is_default ? " (Default)" : ""}</option>)}
+                                                    <option value="" disabled>Choose an account</option>
+                                                    {accounts.map((item) => <option key={item.id} value={item.id}>{item.name}{item.is_default ? " (default)" : ""}</option>)}
                                                 </select>
                                             </div>
                                         </div>
@@ -622,42 +681,47 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                         </div>
                                     )}
 
-                                    {type === "expense" && (!isEditing || splitDataAvailable) && <InlineSplitEditor amount={Number(amount || 0)} friends={splitFriends} groups={splitGroups} value={entrySplit} onChange={setEntrySplit} />}
-                                    {isEditing && !splitDataAvailable && <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">The linked split could not be loaded, so this save will leave it unchanged. Open the split ledger to edit it separately.</p>}
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Tags<FieldStatus field="tags" /></label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {tags.map((tag, i) => (
-                                                <button type="button" aria-label={`Remove tag ${tag}`} key={i} onClick={() => { setTags(tags.filter(t => t !== tag)); markFieldChanged("tags"); }} className="flex items-center gap-1.5 px-3 py-1 bg-accent/10 text-accent text-xs font-bold rounded-lg group cursor-pointer hover:bg-red-500/10 hover:text-red-500 transition-colors">
-                                                    <Tag className="w-3 h-3" /> {tag} <X className="w-2.5 h-2.5 ml-1" />
-                                                </button>
-                                            ))}
-                                            {showTagInput ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        autoFocus
-                                                        type="text"
-                                                        value={newTag}
-                                                        onChange={(e) => setNewTag(e.target.value)}
-                                                        onBlur={handleAddTag}
-                                                        onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-                                                        placeholder="New tag..."
-                                                        className="w-24 px-2 py-1 bg-white border border-accent rounded-lg text-xs outline-none"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <button onClick={() => setShowTagInput(true)} className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 text-xs font-bold rounded-lg border border-dashed border-zinc-300 hover:border-accent transition-colors">
-                                                    <Plus className="w-3 h-3" /> Add tag
-                                                </button>
-                                            )}
+                                    {/* Optional details. Each is a field once it has been asked for
+                                        or already holds something; the rest wait as chips below. */}
+                                    {isDetailShown("notes") && <div className="disclosure-enter">
+                                        <div className="space-y-2">
+                                            <label htmlFor="entry-notes" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Note<FieldStatus field="notes" /></label>
+                                            <textarea id="entry-notes" autoFocus={revealedDetails.includes("notes") && !notes} value={notes} onChange={(event) => { setNotes(event.target.value); markFieldChanged("notes"); }} rows={3} placeholder="Add context you’ll want later" className={fieldClass("notes", "w-full resize-none rounded-xl border-none bg-zinc-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20 dark:bg-zinc-800")} />
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Notes <span className="font-medium normal-case tracking-normal">optional</span><FieldStatus field="notes" /></label>
-                                        <textarea value={notes} onChange={(event) => { setNotes(event.target.value); markFieldChanged("notes"); }} rows={3} placeholder="Add context you’ll want later" className={fieldClass("notes", "w-full resize-none rounded-xl border-none bg-zinc-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20 dark:bg-zinc-800")} />
-                                    </div>
+                                    </div>}
+                                    {isDetailShown("tags") && <div className="disclosure-enter">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Tags<FieldStatus field="tags" /></label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {tags.map((tag, i) => (
+                                                    <button type="button" aria-label={`Remove tag ${tag}`} key={i} onClick={() => { setTags(tags.filter(t => t !== tag)); markFieldChanged("tags"); }} className="flex items-center gap-1.5 px-3 py-1 bg-accent/10 text-accent text-xs font-bold rounded-lg group cursor-pointer hover:bg-red-500/10 hover:text-red-500 transition-colors">
+                                                        <Tag className="w-3 h-3" /> {tag} <X className="w-2.5 h-2.5 ml-1" />
+                                                    </button>
+                                                ))}
+                                                {showTagInput ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            value={newTag}
+                                                            onChange={(e) => setNewTag(e.target.value)}
+                                                            onBlur={handleAddTag}
+                                                            onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                                                            placeholder="New tag…"
+                                                            className="w-24 px-2 py-1 bg-white dark:bg-zinc-900 border border-accent rounded-lg text-xs outline-none"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={() => setShowTagInput(true)} className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 text-xs font-bold rounded-lg border border-dashed border-zinc-300 hover:border-accent transition-colors">
+                                                        <Plus className="w-3 h-3" /> Add tag
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>}
+                                    {canSplit && isDetailShown("split") && <div className="disclosure-enter"><InlineSplitEditor amount={Number(amount || 0)} friends={splitFriends} groups={splitGroups} value={entrySplit} onChange={setEntrySplit} /></div>}
+                                    {isEditing && !splitDataAvailable && <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">The linked split could not be loaded, so this save will leave it unchanged. Open the split ledger to edit it separately.</p>}
+                                    <AddDetailChips options={availableDetails} onAdd={addDetail} />
                                 </div>
                             )}
                         </div>
@@ -681,11 +745,11 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : success ? (
                                         <>
-                                            <Check className="w-5 h-5" /> {isEditing ? "Updated!" : "Saved!"}
+                                            <Check className="w-5 h-5" /> {isEditing ? "Updated" : "Saved"}
                                         </>
                                     ) : (
                                         <>
-                                            {isEditing ? "Save Changes" : "Save Transaction"}
+                                            {isEditing ? "Save changes" : "Save transaction"}
                                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                         </>
                                     )}

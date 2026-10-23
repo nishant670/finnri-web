@@ -15,6 +15,21 @@
   --chart-positive: #15803D;
   --glass-background: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.3);
+  /* Redesign roles (board R9-*), shared with the app's palette rules: muted
+     copy is ink at 75%, a selected item is a tint of the accent with bold ink,
+     money in and out has its own two tones, bars sit on a quiet track. */
+  --muted: rgba(45, 45, 45, 0.75);
+  --selected-fill: #FFEAE3;
+  --negative: #E11D48;
+  --positive: #15803D;
+  --warning: #B45309;
+  --warning-surface: #FEF3C7;
+  --track: #F1E7E9;
+  --bar-dim: #FFC4B2;
+  --on-accent: #2D2D2D;
+  /* Section eyebrows: the accent itself on dark, a deeper orange on light,
+     where the accent as text would fail contrast. */
+  --eyebrow: #C2410C;
   /* The two large radii of the product. Named off Tailwind's own scale so they
      add utilities instead of redefining rounded-xl/2xl for every small control. */
   --panel-radius: 2rem;
@@ -55,6 +70,16 @@
   --color-card: var(--card);
   --color-border: var(--border);
   --color-text-muted: var(--text-muted);
+  --color-muted: var(--muted);
+  --color-selected: var(--selected-fill);
+  --color-negative: var(--negative);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-track: var(--track);
+  --color-bar-dim: var(--bar-dim);
+  --color-on-accent: var(--on-accent);
+  --color-eyebrow: var(--eyebrow);
   --radius-panel: var(--panel-radius);
   --radius-surface: var(--surface-radius);
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -75,6 +100,16 @@
     --chart-positive: #4ADE80;
     --glass-background: rgba(26, 26, 26, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
+    --muted: rgba(250, 250, 250, 0.75);
+    --selected-fill: #3A2A25;
+    --negative: #FB7185;
+    --positive: #4ADE80;
+    --warning: #FCD34D;
+    --warning-surface: #3A3220;
+    --track: #2C2C2C;
+    --bar-dim: #8A4E3E;
+    --on-accent: #2D2D2D;
+    --eyebrow: #FF8865;
 }
 
 body {

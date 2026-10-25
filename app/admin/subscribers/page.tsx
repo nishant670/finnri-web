@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { AlertTriangle, Download } from "lucide-react";
+import { Download, Info } from "lucide-react";
 import StatTile from "@/app/components/admin/StatTile";
 import DataTable from "@/app/components/admin/DataTable";
 import TrendChart from "@/app/components/admin/TrendChart";
@@ -28,11 +28,31 @@ type Revenue = {
     renewals_due_7_days: number;
     renewals_due_30_days: number;
     cancel_at_period_end: number;
+    gifted_active?: number;
+    cash?: Cash;
     by_plan: Record<string, { subscribers: number; modelled_mrr_minor: number }>;
     trend: Record<string, unknown>[];
 };
+type Cash = {
+    collected_minor: number;
+    refunded_minor: number;
+    net_minor: number;
+    payments: number;
+    paying_users: number;
+    discount_minor: number;
+    lifetime_collected_minor: number;
+    lifetime_refunded_minor: number;
+    lifetime_net_minor: number;
+};
 type SubRow = {
-    subscription: { id: number; status: string; current_period_end: string; cancel_at_period_end: boolean; plan: { name: string } };
+    subscription: {
+        id: number;
+        status: string;
+        provider: string;
+        current_period_end: string;
+        cancel_at_period_end: boolean;
+        plan: { name: string };
+    };
     user: { username: string; email: string };
 };
 type Quote = {
@@ -80,7 +100,7 @@ export default function SubscribersPage() {
         <div className="space-y-7">
             <header className="flex items-end justify-between gap-4">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Entitlements & forecast</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Revenue & entitlements</p>
                     <h1 className="mt-2 text-3xl font-bold font-rounded">Subscribers</h1>
                 </div>
                 <a
@@ -91,30 +111,75 @@ export default function SubscribersPage() {
                     Export
                 </a>
             </header>
-            <div className="flex items-start gap-3 rounded-panel border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div className="flex items-start gap-3 rounded-panel border border-border bg-card p-5 text-sm leading-6 text-text-muted">
+                <Info className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
                 <p>
-                    <strong>Modelled from plan prices — no payment provider connected.</strong> These figures forecast entitlement value;
-                    they are not cash collected.
+                    <strong className="text-text">Cash</strong> is what Razorpay captured in the last 30 days, less anything since refunded
+                    on those payments. <strong className="text-text">Modelled</strong> figures price every active paid pass at its
+                    plan&apos;s list price, so they are a forecast, not cash. Gifted passes count in neither.
                 </p>
             </div>
             {error && <div className="rounded-xl bg-red-50 p-4 text-red-700">{error}</div>}
             {revenue && (
                 <>
-                    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <StatTile label="Active subscribers" value={revenue.active_subscribers} />
-                        <StatTile label="Modelled MRR" value={formatMinorMoney(revenue.modelled_mrr_minor)} />
-                        <StatTile label="Modelled ARR" value={formatMinorMoney(revenue.modelled_arr_minor)} />
-                        <StatTile label="ARPU" value={formatMinorMoney(revenue.modelled_arpu_minor)} />
-                        <StatTile label="Paid conversion" value={percent(revenue.paid_conversion_percent)} />
-                        <StatTile
-                            label="Renewals · 7 days"
-                            value={revenue.renewals_due_7_days}
-                            hint={`${revenue.renewals_due_30_days} due within 30 days`}
-                        />
-                        <StatTile label="Cancel at period end" value={revenue.cancel_at_period_end} />
-                        <StatTile label="Inferred churn" value={revenue.inferred_churned_in_window} hint="No status-history stream yet" />
-                    </section>
+                    {revenue.cash && (
+                        <section className="space-y-4">
+                            <h2 className="text-lg font-bold font-rounded">Cash collected · last 30 days</h2>
+                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                <StatTile
+                                    label="Net collected"
+                                    value={formatMinorMoney(revenue.cash.net_minor)}
+                                    hint={`${formatMinorMoney(revenue.cash.collected_minor)} taken, ${formatMinorMoney(revenue.cash.refunded_minor)} refunded`}
+                                />
+                                <StatTile
+                                    label="Payments"
+                                    value={revenue.cash.payments}
+                                    hint={`From ${revenue.cash.paying_users} ${revenue.cash.paying_users === 1 ? "person" : "people"}`}
+                                />
+                                <StatTile
+                                    label="Launch discount given"
+                                    value={formatMinorMoney(revenue.cash.discount_minor)}
+                                    hint="List price minus what was paid"
+                                />
+                                <StatTile
+                                    label="Net collected · all time"
+                                    value={formatMinorMoney(revenue.cash.lifetime_net_minor)}
+                                    hint={`${formatMinorMoney(revenue.cash.lifetime_collected_minor)} taken, ${formatMinorMoney(revenue.cash.lifetime_refunded_minor)} refunded`}
+                                />
+                            </div>
+                            <article className="rounded-panel border border-border bg-card p-6">
+                                <h3 className="text-lg font-bold font-rounded">Cash by day</h3>
+                                <p className="mt-1 text-xs text-text-muted">Net of refunds, on the day each payment was captured (UTC).</p>
+                                <TrendChart
+                                    data={revenue.trend || []}
+                                    dataKey="cash_net_minor"
+                                    label="Net collected"
+                                    formatter={formatMinorMoney}
+                                />
+                            </article>
+                        </section>
+                    )}
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-bold font-rounded">Modelled from plan prices</h2>
+                        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            <StatTile
+                                label="Active subscribers"
+                                value={revenue.active_subscribers}
+                                hint={revenue.gifted_active ? `Plus ${revenue.gifted_active} on a gifted pass` : undefined}
+                            />
+                            <StatTile label="Modelled MRR" value={formatMinorMoney(revenue.modelled_mrr_minor)} />
+                            <StatTile label="Modelled ARR" value={formatMinorMoney(revenue.modelled_arr_minor)} />
+                            <StatTile label="ARPU" value={formatMinorMoney(revenue.modelled_arpu_minor)} />
+                            <StatTile label="Paid conversion" value={percent(revenue.paid_conversion_percent)} />
+                            <StatTile
+                                label="Renewals · 7 days"
+                                value={revenue.renewals_due_7_days}
+                                hint={`${revenue.renewals_due_30_days} due within 30 days`}
+                            />
+                            <StatTile label="Cancel at period end" value={revenue.cancel_at_period_end} />
+                            <StatTile label="Inferred churn" value={revenue.inferred_churned_in_window} hint="No status-history stream yet" />
+                        </section>
+                    </div>
                     <section className="grid gap-5 xl:grid-cols-2">
                         <article className="rounded-panel border border-border bg-card p-6">
                             <h2 className="text-lg font-bold font-rounded">Modelled MRR trend</h2>
@@ -148,7 +213,12 @@ export default function SubscribersPage() {
                                         </span>
                                     ),
                                 },
-                                { key: "plan", label: "Plan", render: (row) => row.subscription.plan?.name || "—" },
+                                {
+                                    key: "plan",
+                                    label: "Plan",
+                                    render: (row) =>
+                                        `${row.subscription.plan?.name || "—"}${row.subscription.provider === "gift" ? " · Gift" : ""}`,
+                                },
                                 { key: "status", label: "Status", render: (row) => row.subscription.status },
                                 { key: "renewal", label: "Period end", render: (row) => formatDate(row.subscription.current_period_end) },
                                 {

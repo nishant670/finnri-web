@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Coins, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Coins, Gift, ShieldAlert, Undo2 } from "lucide-react";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { useToast } from "@/app/components/ui/Toast";
 import DataTable from "@/app/components/admin/DataTable";
 import RoleGate from "@/app/components/admin/RoleGate";
-import { AdminAPI } from "@/app/lib/admin-api";
-import { formatDate, formatUSDMicros } from "@/app/lib/format";
+import { AdminAPI, AdminAPIError } from "@/app/lib/admin-api";
+import { formatDate, formatDateRange, formatUSDMicros } from "@/app/lib/format";
 
 type Detail = {
     user: Record<string, unknown>;
@@ -18,6 +18,7 @@ type Detail = {
     counts: Record<string, number>;
     feature_adoption: Record<string, boolean>;
     subscription?: Record<string, unknown>;
+    subscriptions?: Pass[];
     credits: { total_credits_remaining: number };
     recent_feedback: Record<string, unknown>[];
     active_abuse_blocks: Record<string, unknown>[];
@@ -38,6 +39,24 @@ type Credits = {
     grants: { id: number; source: string; credits_granted: number; credits_remaining: number; expires_at?: string }[];
     ledger: { id: number; direction: string; credits: number; reason_code: string; created_at: string }[];
 };
+type Plan = { code: string; name: string; billing_interval: string };
+type Pass = {
+    id: number;
+    status: string;
+    provider: string;
+    current_period_start: string;
+    current_period_end: string;
+    plan?: { name: string };
+};
+// Plans with a fixed period, and what one period is called. Lifetime is sold
+// by quote, so it can't be gifted.
+const periodUnits: Record<string, [string, string]> = {
+    weekly: ["week", "weeks"],
+    monthly: ["month", "months"],
+    quarterly: ["quarter", "quarters"],
+    yearly: ["year", "years"],
+};
+const maxGiftPeriods = 12;
 const tabs = ["overview", "ai usage", "credits", "subscription", "feedback", "moderation"] as const;
 const tabLabels: Record<string, string> = {
     overview: "Overview",
@@ -59,21 +78,32 @@ export default function AdminUserDetail() {
     const [error, setError] = useState("");
     const [grant, setGrant] = useState(500);
     const [reason, setReason] = useState("support_adjustment");
+    const [creditExpiry, setCreditExpiry] = useState("");
     const [confirm, setConfirm] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [plans, setPlans] = useState<Plan[]>([]);
+    const [giftPlan, setGiftPlan] = useState("");
+    const [giftPeriods, setGiftPeriods] = useState(1);
+    const [giftNote, setGiftNote] = useState("");
+    const [giftKey, setGiftKey] = useState("");
+    const [revoking, setRevoking] = useState<Pass | null>(null);
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [d, a, u, c] = await Promise.all([
+            const [d, a, u, c, p] = await Promise.all([
                 AdminAPI.get<Detail>(`users/${id}`),
                 AdminAPI.get<Activity>(`users/${id}/activity`),
                 AdminAPI.get<AI>(`users/${id}/ai-usage?page_size=50`),
                 AdminAPI.get<Credits>(`users/${id}/credits`),
+                AdminAPI.get<{ plans: Plan[] }>("plans"),
             ]);
             setDetail(d);
             setActivity(a.activity);
             setAI(u.events);
             setCredits(c);
+            const giftable = p.plans.filter((plan) => plan.billing_interval in periodUnits);
+            setPlans(giftable);
+            setGiftPlan((current) => current || giftable[0]?.code || "");
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : "Unable to load user");
         } finally {
@@ -84,15 +114,65 @@ export default function AdminUserDetail() {
         void load();
     }, [load]);
     const user = useMemo(() => detail?.user || {}, [detail]);
+    const selectedPlan = plans.find((plan) => plan.code === giftPlan);
+    const giftLength = selectedPlan ? describePeriods(selectedPlan, giftPeriods) : "";
+    const giftReady = Boolean(selectedPlan) && giftNote.trim() !== "" && giftPeriods >= 1 && giftPeriods <= maxGiftPeriods;
     async function grantCredits() {
         setBusy(true);
         try {
-            await AdminAPI.post(`users/${id}/credits/adjustments`, { credits: grant, reason_code: reason });
+            // The date picker gives a day; the credits last to the end of it, India time.
+            const expiresAt = creditExpiry ? new Date(`${creditExpiry}T23:59:59+05:30`).toISOString() : undefined;
+            await AdminAPI.post(`users/${id}/credits/adjustments`, { credits: grant, reason_code: reason, expires_at: expiresAt });
             setConfirm(false);
-            toast({ title: "Credits granted", description: `${grant} credits added to user #${id}.` });
+            toast({
+                title: "Credits granted",
+                description: `${grant} credits added to user #${id}${creditExpiry ? `, expiring ${formatDate(expiresAt)}` : ""}.`,
+            });
             await load();
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : "Grant failed");
+        } finally {
+            setBusy(false);
+        }
+    }
+    function openGift() {
+        // One key per confirmation, so a double-click or retry gifts once.
+        setGiftKey(crypto.randomUUID());
+    }
+    async function giftPass() {
+        if (!selectedPlan) return;
+        setBusy(true);
+        try {
+            await AdminAPI.post(
+                `users/${id}/passes`,
+                { plan_code: selectedPlan.code, periods: giftPeriods, note: giftNote.trim() },
+                { "Idempotency-Key": giftKey },
+            );
+            setGiftKey("");
+            setGiftNote("");
+            setGiftPeriods(1);
+            toast({ title: "Pass gifted", description: `${selectedPlan.name} (${giftLength}) given to user #${id}.` });
+            await load();
+        } catch (reason) {
+            setError(describeError(reason, "Gift failed"));
+        } finally {
+            setBusy(false);
+        }
+    }
+    async function revokeGift() {
+        if (!revoking) return;
+        setBusy(true);
+        try {
+            const result = await AdminAPI.post<{ credits_revoked: number }>(`users/${id}/passes/${revoking.id}/revoke`, {});
+            toast({
+                title: "Gift revoked",
+                description: `${revoking.plan?.name || "Pass"} revoked; ${result.credits_revoked} unspent credits taken back.`,
+            });
+            setRevoking(null);
+            await load();
+        } catch (reason) {
+            setRevoking(null);
+            setError(describeError(reason, "Revoke failed"));
         } finally {
             setBusy(false);
         }
@@ -185,7 +265,7 @@ export default function AdminUserDetail() {
                 <div className="space-y-5">
                     <RoleGate minimum="support">
                         <Panel title="Grant credits">
-                            <div className="flex flex-col gap-3 sm:flex-row">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                                 <input
                                     type="number"
                                     min={1}
@@ -198,6 +278,17 @@ export default function AdminUserDetail() {
                                     onChange={(event) => setReason(event.target.value)}
                                     className="min-h-11 flex-1 rounded-xl border border-border bg-background px-4"
                                 />
+                                <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-bold text-text-muted">
+                                    Expires
+                                    <input
+                                        type="date"
+                                        value={creditExpiry}
+                                        min={new Date().toISOString().slice(0, 10)}
+                                        onChange={(event) => setCreditExpiry(event.target.value)}
+                                        aria-label="Credit expiry date (leave empty for never)"
+                                        className="bg-transparent text-sm font-normal text-text"
+                                    />
+                                </label>
                                 <button
                                     onClick={() => setConfirm(true)}
                                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950"
@@ -222,11 +313,101 @@ export default function AdminUserDetail() {
                 </div>
             )}
             {tab === "subscription" && (
-                <Panel title="Subscription">
-                    <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-zinc-950 p-4 text-xs text-zinc-100">
-                        {JSON.stringify(detail.subscription || { status: "free" }, null, 2)}
-                    </pre>
-                </Panel>
+                <div className="space-y-5">
+                    <RoleGate minimum="support">
+                        <Panel title="Gift a pass">
+                            <p className="-mt-2 mb-4 text-sm leading-6 text-text-muted">
+                                Free, no payment taken. It unlocks every paid feature and carries the plan&apos;s credits, starts when
+                                any pass they already have ends, and is left out of revenue.
+                            </p>
+                            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap">
+                                <select
+                                    value={giftPlan}
+                                    onChange={(event) => setGiftPlan(event.target.value)}
+                                    aria-label="Plan to gift"
+                                    className="min-h-11 rounded-xl border border-border bg-background px-4"
+                                >
+                                    {plans.map((plan) => (
+                                        <option key={plan.code} value={plan.code}>
+                                            {plan.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-bold text-text-muted">
+                                    ×
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={maxGiftPeriods}
+                                        value={giftPeriods}
+                                        onChange={(event) => setGiftPeriods(Number(event.target.value))}
+                                        aria-label="Number of periods"
+                                        className="w-14 bg-transparent text-sm font-normal text-text"
+                                    />
+                                    <span className="whitespace-nowrap font-normal">{giftLength}</span>
+                                </label>
+                                <input
+                                    value={giftNote}
+                                    onChange={(event) => setGiftNote(event.target.value)}
+                                    maxLength={200}
+                                    placeholder="Who is it for? e.g. Priya, family"
+                                    aria-label="Note for the audit log"
+                                    className="min-h-11 flex-1 rounded-xl border border-border bg-background px-4"
+                                />
+                                <button
+                                    onClick={openGift}
+                                    disabled={!giftReady}
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950 disabled:opacity-50"
+                                >
+                                    <Gift className="h-4 w-4" />
+                                    Gift
+                                </button>
+                            </div>
+                        </Panel>
+                    </RoleGate>
+                    <Panel title="Passes">
+                        <DataTable
+                            rows={detail.subscriptions || []}
+                            empty="No passes. This user is on the free plan."
+                            columns={[
+                                { key: "plan", label: "Plan", render: (row) => row.plan?.name || "—" },
+                                {
+                                    key: "type",
+                                    label: "Type",
+                                    render: (row) =>
+                                        row.provider === "gift" ? (
+                                            <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent">Gift</span>
+                                        ) : (
+                                            "Paid"
+                                        ),
+                                },
+                                { key: "state", label: "Status", render: (row) => passState(row) },
+                                {
+                                    key: "period",
+                                    label: "Period",
+                                    render: (row) => formatDateRange(row.current_period_start, row.current_period_end),
+                                },
+                                {
+                                    key: "actions",
+                                    label: "",
+                                    className: "text-right",
+                                    render: (row) =>
+                                        row.provider === "gift" && ["Active", "Queued"].includes(passState(row)) ? (
+                                            <RoleGate minimum="support">
+                                                <button
+                                                    onClick={() => setRevoking(row)}
+                                                    className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                >
+                                                    <Undo2 className="h-3.5 w-3.5" />
+                                                    Revoke
+                                                </button>
+                                            </RoleGate>
+                                        ) : null,
+                                },
+                            ]}
+                        />
+                    </Panel>
+                </div>
             )}
             {tab === "feedback" && (
                 <Panel title="Recent feedback">
@@ -265,8 +446,51 @@ export default function AdminUserDetail() {
                 onClose={() => setConfirm(false)}
                 onConfirm={grantCredits}
             />
+            <ConfirmDialog
+                open={giftKey !== ""}
+                title="Gift a free pass?"
+                description={`Give user #${id} ${selectedPlan?.name || ""} for ${giftLength}, free, for “${giftNote.trim()}”. It starts when any pass they already have ends and is written to the audit log.`}
+                confirmLabel="Gift pass"
+                destructive={false}
+                busy={busy}
+                onClose={() => setGiftKey("")}
+                onConfirm={giftPass}
+            />
+            <ConfirmDialog
+                open={revoking !== null}
+                title="Revoke this gift?"
+                description={
+                    revoking
+                        ? `${revoking.plan?.name || "This pass"} (${formatDateRange(revoking.current_period_start, revoking.current_period_end)}) ${
+                              passState(revoking) === "Queued" ? "will be cancelled before it starts" : "ends now"
+                          }, and its unspent credits are taken back. Credits already used stay used.`
+                        : ""
+                }
+                confirmLabel="Revoke gift"
+                busy={busy}
+                onClose={() => setRevoking(null)}
+                onConfirm={revokeGift}
+            />
         </div>
     );
+}
+function describePeriods(plan: Plan, periods: number) {
+    const [one, many] = periodUnits[plan.billing_interval] || ["period", "periods"];
+    return `${periods} ${periods === 1 ? one : many}`;
+}
+function passState(pass: Pass) {
+    if (pass.provider === "gift" && pass.status === "cancelled") return "Revoked";
+    const now = Date.now();
+    if (pass.status !== "active" || new Date(pass.current_period_end).getTime() <= now) return "Ended";
+    if (new Date(pass.current_period_start).getTime() > now) return "Queued";
+    return "Active";
+}
+function describeError(reason: unknown, fallback: string) {
+    if (reason instanceof AdminAPIError && reason.payload && typeof reason.payload === "object") {
+        const fields = (reason.payload as { fields?: Record<string, string> }).fields;
+        if (fields) return Object.entries(fields).map(([field, problem]) => `${field.replaceAll("_", " ")} ${problem}`).join("; ");
+    }
+    return reason instanceof Error ? reason.message : fallback;
 }
 function Mini({ label, value }: { label: string; value: string | number }) {
     return (

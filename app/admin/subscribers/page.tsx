@@ -28,11 +28,19 @@ type Revenue = {
     renewals_due_7_days: number;
     renewals_due_30_days: number;
     cancel_at_period_end: number;
+    gifted_active?: number;
     by_plan: Record<string, { subscribers: number; modelled_mrr_minor: number }>;
     trend: Record<string, unknown>[];
 };
 type SubRow = {
-    subscription: { id: number; status: string; current_period_end: string; cancel_at_period_end: boolean; plan: { name: string } };
+    subscription: {
+        id: number;
+        status: string;
+        provider: string;
+        current_period_end: string;
+        cancel_at_period_end: boolean;
+        plan: { name: string };
+    };
     user: { username: string; email: string };
 };
 type Quote = {
@@ -102,7 +110,11 @@ export default function SubscribersPage() {
             {revenue && (
                 <>
                     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <StatTile label="Active subscribers" value={revenue.active_subscribers} />
+                        <StatTile
+                            label="Active subscribers"
+                            value={revenue.active_subscribers}
+                            hint={revenue.gifted_active ? `Plus ${revenue.gifted_active} on a gifted pass` : undefined}
+                        />
                         <StatTile label="Modelled MRR" value={formatMinorMoney(revenue.modelled_mrr_minor)} />
                         <StatTile label="Modelled ARR" value={formatMinorMoney(revenue.modelled_arr_minor)} />
                         <StatTile label="ARPU" value={formatMinorMoney(revenue.modelled_arpu_minor)} />
@@ -148,7 +160,12 @@ export default function SubscribersPage() {
                                         </span>
                                     ),
                                 },
-                                { key: "plan", label: "Plan", render: (row) => row.subscription.plan?.name || "—" },
+                                {
+                                    key: "plan",
+                                    label: "Plan",
+                                    render: (row) =>
+                                        `${row.subscription.plan?.name || "—"}${row.subscription.provider === "gift" ? " · Gift" : ""}`,
+                                },
                                 { key: "status", label: "Status", render: (row) => row.subscription.status },
                                 { key: "renewal", label: "Period end", render: (row) => formatDate(row.subscription.current_period_end) },
                                 {

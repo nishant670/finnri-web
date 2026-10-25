@@ -33,7 +33,8 @@ export const AdminAPI = {
     logout: () => adminFetch<{ logged_out: boolean }>("logout", { method: "POST" }),
     me: () => adminFetch<AdminMe>("me"),
     get: <T>(path: string) => adminFetch<T>(path),
-    post: <T>(path: string, body: unknown) => adminFetch<T>(path, { method: "POST", body: JSON.stringify(body) }),
+    post: <T>(path: string, body: unknown, headers?: Record<string, string>) =>
+        adminFetch<T>(path, { method: "POST", body: JSON.stringify(body), headers }),
     patch: <T>(path: string, body: unknown) => adminFetch<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
     put: <T>(path: string, body: unknown) => adminFetch<T>(path, { method: "PUT", body: JSON.stringify(body) }),
 };

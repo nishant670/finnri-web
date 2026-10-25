@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Coins, Gift, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Coins, Gift, ShieldAlert, Undo2 } from "lucide-react";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { useToast } from "@/app/components/ui/Toast";
@@ -86,6 +86,7 @@ export default function AdminUserDetail() {
     const [giftPeriods, setGiftPeriods] = useState(1);
     const [giftNote, setGiftNote] = useState("");
     const [giftKey, setGiftKey] = useState("");
+    const [revoking, setRevoking] = useState<Pass | null>(null);
     const load = useCallback(async () => {
         setLoading(true);
         try {
@@ -154,6 +155,24 @@ export default function AdminUserDetail() {
             await load();
         } catch (reason) {
             setError(describeError(reason, "Gift failed"));
+        } finally {
+            setBusy(false);
+        }
+    }
+    async function revokeGift() {
+        if (!revoking) return;
+        setBusy(true);
+        try {
+            const result = await AdminAPI.post<{ credits_revoked: number }>(`users/${id}/passes/${revoking.id}/revoke`, {});
+            toast({
+                title: "Gift revoked",
+                description: `${revoking.plan?.name || "Pass"} revoked; ${result.credits_revoked} unspent credits taken back.`,
+            });
+            setRevoking(null);
+            await load();
+        } catch (reason) {
+            setRevoking(null);
+            setError(describeError(reason, "Revoke failed"));
         } finally {
             setBusy(false);
         }
@@ -368,6 +387,23 @@ export default function AdminUserDetail() {
                                     label: "Period",
                                     render: (row) => formatDateRange(row.current_period_start, row.current_period_end),
                                 },
+                                {
+                                    key: "actions",
+                                    label: "",
+                                    className: "text-right",
+                                    render: (row) =>
+                                        row.provider === "gift" && ["Active", "Queued"].includes(passState(row)) ? (
+                                            <RoleGate minimum="support">
+                                                <button
+                                                    onClick={() => setRevoking(row)}
+                                                    className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                >
+                                                    <Undo2 className="h-3.5 w-3.5" />
+                                                    Revoke
+                                                </button>
+                                            </RoleGate>
+                                        ) : null,
+                                },
                             ]}
                         />
                     </Panel>
@@ -420,6 +456,21 @@ export default function AdminUserDetail() {
                 onClose={() => setGiftKey("")}
                 onConfirm={giftPass}
             />
+            <ConfirmDialog
+                open={revoking !== null}
+                title="Revoke this gift?"
+                description={
+                    revoking
+                        ? `${revoking.plan?.name || "This pass"} (${formatDateRange(revoking.current_period_start, revoking.current_period_end)}) ${
+                              passState(revoking) === "Queued" ? "will be cancelled before it starts" : "ends now"
+                          }, and its unspent credits are taken back. Credits already used stay used.`
+                        : ""
+                }
+                confirmLabel="Revoke gift"
+                busy={busy}
+                onClose={() => setRevoking(null)}
+                onConfirm={revokeGift}
+            />
         </div>
     );
 }
@@ -428,6 +479,7 @@ function describePeriods(plan: Plan, periods: number) {
     return `${periods} ${periods === 1 ? one : many}`;
 }
 function passState(pass: Pass) {
+    if (pass.provider === "gift" && pass.status === "cancelled") return "Revoked";
     const now = Date.now();
     if (pass.status !== "active" || new Date(pass.current_period_end).getTime() <= now) return "Ended";
     if (new Date(pass.current_period_start).getTime() > now) return "Queued";

@@ -31,7 +31,13 @@ export default function TrendChartClient({
                     </defs>
                     <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="4 5" vertical={false} />
                     <XAxis dataKey={xKey} tick={{ fill: "var(--chart-axis)", fontSize: 11 }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fill: "var(--chart-axis)", fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <YAxis
+                        tick={{ fill: "var(--chart-axis)", fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={formatter ? (value) => formatter(Number(value)) : undefined}
+                        width={formatter ? 72 : 60}
+                    />
                     <Tooltip
                         formatter={(value) => (formatter ? formatter(Number(value)) : Number(value).toLocaleString("en-IN"))}
                         contentStyle={{ background: "var(--chart-tooltip)", borderColor: "var(--border)", borderRadius: 16 }}

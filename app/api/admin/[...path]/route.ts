@@ -21,6 +21,8 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     const headers = new Headers();
     const contentType = request.headers.get("content-type");
     if (contentType) headers.set("Content-Type", contentType);
+    const idempotencyKey = request.headers.get("idempotency-key");
+    if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
     if (isLogin || isLogout) {
         if (adminToken) headers.set("Authorization", `Bearer ${adminToken}`);
     } else {

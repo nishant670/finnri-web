@@ -209,15 +209,6 @@ body {
 }
 .drift { animation: drift 6s ease-in-out infinite; animation-delay: var(--delay, 0ms); }
 
-@keyframes marquee { to { transform: translateX(-50%); } }
-.marquee-track { animation: marquee var(--duration, 40s) linear infinite; }
-.marquee-track[data-reverse] { animation-direction: reverse; }
-.marquee:hover .marquee-track { animation-play-state: paused; }
-.marquee {
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-}
-
 @keyframes mic-ring {
   from { transform: scale(1); opacity: 0.55; }
   to { transform: scale(1.9); opacity: 0; }
@@ -266,5 +257,5 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise-in, .drift, .marquee-track, .mic-ring, .wave-bar, .scan-line, .caret, .row-in { animation: none !important; }
+  .rise-in, .drift, .mic-ring, .wave-bar, .scan-line, .caret, .row-in { animation: none !important; }
 }

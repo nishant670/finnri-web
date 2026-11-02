@@ -439,8 +439,8 @@ export default function HeroDemo() {
                                                     value={amountText}
                                                     onChange={(event) => { setAmountText(event.target.value.replace(/[^\d.,]/g, "")); setAmountError(false); }}
                                                     placeholder="0"
-                                                    className="w-[150px] bg-transparent outline-none placeholder:opacity-40"
-                                                    style={{ color: "var(--p-text)" }}
+                                                    className="w-[150px] rounded-md bg-transparent placeholder:opacity-40 focus:bg-[color-mix(in_srgb,var(--p-accent)_10%,transparent)]"
+                                                    style={{ color: "var(--p-text)", outline: "none" }}
                                                 />
                                             </label>
                                         ) : (
@@ -499,7 +499,8 @@ export default function HeroDemo() {
                                     </button>
                                 ))}
                             </div>
-                            <div className="flex items-center gap-1.5 rounded-full border p-1 pl-3 shadow-lg" style={{ background: "var(--p-card)", borderColor: "var(--p-accent)" }}>
+                            {/* The pill carries the focus glow; the site-wide focus outline would draw a box inside it. */}
+                            <div className="flex items-center gap-1.5 rounded-full border p-1 pl-3 shadow-lg transition-shadow focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--p-accent)_22%,transparent)]" style={{ background: "var(--p-card)", borderColor: "var(--p-accent)" }}>
                                 <input
                                     ref={inputRef}
                                     value={typed}
@@ -508,8 +509,8 @@ export default function HeroDemo() {
                                     placeholder="Type it like a message…"
                                     aria-label="Describe a transaction"
                                     maxLength={80}
-                                    className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:opacity-60 sm:text-[12px]"
-                                    style={{ color: "var(--p-text)" }}
+                                    className="min-w-0 flex-1 bg-transparent text-[16px] placeholder:opacity-60 sm:text-[12px]"
+                                    style={{ color: "var(--p-text)", outline: "none" }}
                                 />
                                 <button type="submit" aria-label="Make a draft" className="grid h-8 w-8 shrink-0 place-items-center rounded-full" style={{ background: "var(--p-accent)", color: "var(--p-on-accent)" }}>
                                     <ArrowUp className="h-4 w-4" strokeWidth={2.6} />

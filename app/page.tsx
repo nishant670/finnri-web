@@ -25,6 +25,7 @@ import {
 import MarketingNav from "@/app/components/marketing/MarketingNav";
 import HeroDemo from "@/app/components/marketing/HeroDemo";
 import PhoneFrame from "@/app/components/marketing/PhoneFrame";
+import PhraseShowcase from "@/app/components/marketing/PhraseShowcase";
 import PlayBadge from "@/app/components/marketing/PlayBadge";
 import ScrollReveal from "@/app/components/marketing/ScrollReveal";
 import BrandMark from "@/app/components/ui/BrandMark";
@@ -33,7 +34,7 @@ import { LEGAL_BUSINESS_NAME, MERCHANT_IDENTITY_PUBLISHED, PLAY_STORE_LISTED, PL
 import { discountPercent, formatMinor } from "@/app/lib/billing-format";
 import { fetchPublishedPrices, intervalDuration } from "@/app/lib/public-plans";
 import { calculateEMI, calculateSIP, SIP_PRESETS } from "@/app/lib/calculators";
-import { parseDemoSentence } from "@/app/lib/demo-parse";
+import { cn } from "@/app/lib/utils";
 
 const faqs = [
   { q: "Do I need to connect my bank?", a: "No. Finnri never connects to your bank. You add transactions yourself — by voice, text or tap — so you decide exactly what’s tracked." },
@@ -62,21 +63,6 @@ export const metadata: Metadata = {
 // owner can change prices from the admin console, and a retyped price is the
 // one a visitor sees first.
 export const revalidate = 3600;
-
-// Sentences for the scrolling band, each shown with what the demo parser makes
-// of it — the same parser the hero phone uses, so the two never disagree.
-const PHRASES = [
-  "Spent 250 on lunch via UPI",
-  "Metro recharge 500",
-  "Got 2000 from freelance",
-  "Netflix 499 on card",
-  "Chai 20 cash",
-  "Groceries 640 at DMart",
-  "Rent 22,000",
-  "Uber 180 to office",
-  "Movie tickets 600 on card",
-  "Petrol 1.5k",
-].map((sentence) => ({ sentence, draft: parseDemoSentence(sentence) }));
 
 const rupees = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
 
@@ -175,7 +161,8 @@ export default async function Home() {
               {PLAY_STORE_LISTED ? (
                 <>
                   <PlayBadge className="self-start" />
-                  <Link href="/login" className={`group ${outlineButton} self-start`}>
+                  {/* Same height and corners as the Play badge beside it. */}
+                  <Link href="/login" className={cn("group self-start", outlineButton, "h-[60px] px-6")}>
                     Open the web dashboard
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
@@ -212,25 +199,7 @@ export default async function Home() {
       </section>
 
       {/* Say it like you'd text it */}
-      <section aria-labelledby="phrases-heading" className="border-y border-border bg-card/40 py-10">
-        <h2 id="phrases-heading" className="mb-6 text-center text-sm font-semibold text-muted">Say it like you’d text it. Finnri does the filing.</h2>
-        <div className="marquee space-y-3 overflow-hidden" aria-hidden="true">
-          {[PHRASES.slice(0, 5), PHRASES.slice(5)].map((row, rowIndex) => (
-            <div key={rowIndex} className="marquee-track flex w-max gap-3" data-reverse={rowIndex === 1 ? "" : undefined} style={{ "--duration": rowIndex === 0 ? "48s" : "56s" } as CSSProperties}>
-              {[...row, ...row, ...row, ...row].map(({ sentence, draft }, index) => (
-                <span key={index} className="flex items-center gap-3 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-4 text-sm shadow-sm">
-                  <span className="rounded-full bg-track px-3 py-1 font-medium">“{sentence}”</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted" />
-                  <CategoryTile category={draft.category === "Income" ? "Freelance" : draft.category} size={24} />
-                  <span className="font-semibold tabular-nums">{draft.amount != null ? rupees(draft.amount) : ""}</span>
-                  <span className="text-muted">{draft.category}{draft.paidVia ? ` · ${draft.paidVia}` : ""}</span>
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-        <p className="sr-only">Examples: {PHRASES.map((phrase) => phrase.sentence).join("; ")}.</p>
-      </section>
+      <PhraseShowcase />
 
       {/* How it works */}
       <section id="how-it-works" className="scroll-mt-20 py-20 lg:py-28">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { SITE_URL } from "./lib/site";
 import AnalyticsRouteTracker from "./components/analytics/AnalyticsRouteTracker";
@@ -19,6 +20,13 @@ export const viewport = {
   colorScheme: "light dark",
 };
 
+// Self-hosted at build time by next/font, so the CSP's `font-src 'self'` covers
+// them. Only the marketing pages opt in (`.font-display`, `.font-body`); the
+// dashboard keeps the system stack until it gets its own pass. `.font-display`
+// falls back to Inter for any glyph Bricolage lacks, such as ₹.
+const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display-face", display: "swap" });
+const body = Inter({ subsets: ["latin"], variable: "--font-body-face", display: "swap" });
+
 const themeScript = `(function(){try{var t=localStorage.getItem('finnri_theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light'}catch(e){}})()`;
 const plausibleScriptURL = process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL?.trim() ?? "";
 const plausibleInitScript = `window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)};window.plausible.init=window.plausible.init||function(options){window.plausible.o=options||{}};window.plausible.init({autoCapturePageviews:false})`;
@@ -29,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en" className={`scroll-smooth ${display.variable} ${body.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {plausibleScriptURL && <script async src={plausibleScriptURL} />}

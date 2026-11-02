@@ -1,5 +1,6 @@
 "use client";
 
+import BrandMark from "@/app/components/ui/BrandMark";
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from "lucide-react";
@@ -29,26 +30,25 @@ function AdminLoginForm() {
     }
     return (
         <main className="relative grid min-h-screen place-items-center overflow-hidden bg-background p-5">
-            <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
-            <div className="absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-orange-200/30 blur-3xl dark:bg-orange-900/15" />
-            <form onSubmit={submit} className="relative w-full max-w-md rounded-panel border border-border bg-card p-7 shadow-2xl sm:p-9">
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-accent text-zinc-950">
-                    <ShieldCheck className="h-7 w-7" />
+            <div aria-hidden="true" className="absolute -top-40 right-[-10%] h-[480px] w-[480px] rounded-full blur-[120px]" style={{ background: "var(--glow)" }} />
+            <form onSubmit={submit} className="relative w-full max-w-md rounded-2xl border border-border bg-card p-7 shadow-2xl sm:p-9">
+                <div className="flex items-center gap-2">
+                    <BrandMark compact tagline={false} />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-selected px-2 py-0.5 text-[11px] font-bold text-eyebrow"><ShieldCheck className="h-3.5 w-3.5" /> Admin</span>
                 </div>
-                <p className="mt-7 text-xs font-bold uppercase tracking-[0.2em] text-accent">Restricted access</p>
-                <h1 className="mt-2 text-3xl font-bold font-rounded">FINNRI Admin</h1>
-                <p className="mt-2 text-sm leading-6 text-text-muted">
+                                <h1 className="font-display mt-6 text-[28px] font-bold leading-tight">Admin sign in</h1>
+                <p className="mt-2 text-sm leading-6 text-muted">
                     Sign in with the email and PIN of an enabled admin account. Sessions expire after eight hours.
                 </p>
                 {error && (
                     <div
                         role="alert"
-                        className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300"
+                        className="mt-5 rounded-xl border border-negative/30 bg-negative/10 p-3 text-sm text-negative"
                     >
                         {error}
                     </div>
                 )}
-                <label className="mt-7 block text-xs font-bold uppercase tracking-wider text-text-muted">
+                <label className="mt-6 block text-sm font-semibold text-muted">
                     Email
                     <input
                         autoFocus
@@ -56,14 +56,14 @@ function AdminLoginForm() {
                         type="email"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
-                        className="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-accent"
+                        className="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-accent/60 focus:ring-4 focus:ring-accent/10"
                         placeholder="admin@finnri.com"
                     />
                 </label>
-                <label className="mt-4 block text-xs font-bold uppercase tracking-wider text-text-muted">
+                <label className="mt-4 block text-sm font-semibold text-muted">
                     4-digit PIN
                     <div className="relative mt-2">
-                        <KeyRound className="absolute left-4 top-3.5 h-5 w-5 text-text-muted" />
+                        <KeyRound className="absolute left-4 top-3.5 h-5 w-5 text-muted" />
                         <input
                             required
                             type={showPin ? "text" : "password"}
@@ -73,7 +73,7 @@ function AdminLoginForm() {
                             maxLength={4}
                             value={pin}
                             onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
-                            className="min-h-12 w-full rounded-xl border border-border bg-background pl-12 pr-12 text-lg tracking-[0.4em] outline-none focus:border-accent"
+                            className="min-h-12 w-full rounded-xl border border-border bg-background pl-12 pr-12 text-lg tracking-[0.4em] outline-none focus:border-accent/60 focus:ring-4 focus:ring-accent/10"
                             placeholder="••••"
                         />
                         <button
@@ -81,7 +81,7 @@ function AdminLoginForm() {
                             onClick={() => setShowPin((shown) => !shown)}
                             aria-label={showPin ? "Hide PIN" : "Show PIN"}
                             aria-pressed={showPin}
-                            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent"
+                            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent"
                         >
                             {showPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
@@ -89,7 +89,7 @@ function AdminLoginForm() {
                 </label>
                 <button
                     disabled={busy}
-                    className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950 disabled:opacity-60"
+                    className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-bold text-on-accent disabled:opacity-60"
                 >
                     {busy && <Loader2 className="h-4 w-4 animate-spin" />}Sign in securely
                 </button>
@@ -102,8 +102,8 @@ export default function AdminLoginPage() {
     return (
         <Suspense
             fallback={
-                <main className="grid min-h-screen place-items-center bg-background">
-                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent/20 border-t-accent" />
+                <main className="grid min-h-screen place-items-center bg-background text-sm font-semibold text-muted">
+                    <div role="status">Loading…</div>
                 </main>
             }
         >

@@ -93,9 +93,8 @@ export default function AIPage() {
         <div className="space-y-7">
             <header className="flex items-end justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Cost controls</p>
-                    <h1 className="mt-2 text-3xl font-bold font-rounded">AI & credits</h1>
-                    <p className="mt-2 text-sm text-text-muted">Provider cost, credit consumption, cap pressure, and pricing inputs.</p>
+                    <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">AI & credits</h1>
+                    <p className="mt-2 text-sm text-muted">Provider cost, credit consumption, cap pressure, and pricing inputs.</p>
                 </div>
                 <a
                     href="/api/admin/export/ai-usage.csv"
@@ -105,10 +104,10 @@ export default function AIPage() {
                     Export
                 </a>
             </header>
-            {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+            {error && <div className="rounded-xl bg-negative/10 p-4 text-sm text-negative">{error}</div>}
             {metrics && summary && (
                 <>
-                    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                         <StatTile label="AI events" value={metrics.total_events.toLocaleString("en-IN")} />
                         <StatTile label="Credits charged" value={metrics.total_credits_charged.toLocaleString("en-IN")} />
                         <StatTile label="Success rate" value={percent(metrics.parse_success_rate * 100)} />
@@ -123,18 +122,18 @@ export default function AIPage() {
                         />
                     </section>
                     <section className="grid gap-5 xl:grid-cols-2">
-                        <article className="rounded-panel border border-border bg-card p-6">
-                            <h2 className="text-lg font-bold font-rounded">Credits over time</h2>
+                        <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                            <h2 className="text-[17px] font-bold">Credits over time</h2>
                             <TrendChart data={series} dataKey="credits" label="Daily AI credits" />
                         </article>
-                        <article className="rounded-panel border border-border bg-card p-6">
-                            <h2 className="text-lg font-bold font-rounded">Cost over time</h2>
+                        <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                            <h2 className="text-[17px] font-bold">Cost over time</h2>
                             <TrendChart data={series} dataKey="cost_usd_micros" label="Daily AI cost" formatter={formatUSDMicros} />
                         </article>
                     </section>
                     <section className="grid gap-5 xl:grid-cols-2">
-                        <div>
-                            <h2 className="mb-4 text-lg font-bold font-rounded">By model</h2>
+                        <div className="min-w-0">
+                            <h2 className="mb-4 text-[17px] font-bold">By model</h2>
                             <DataTable
                                 rows={metrics.by_model || []}
                                 columns={[
@@ -145,8 +144,8 @@ export default function AIPage() {
                                 ]}
                             />
                         </div>
-                        <div>
-                            <h2 className="mb-4 text-lg font-bold font-rounded">Cap hits</h2>
+                        <div className="min-w-0">
+                            <h2 className="mb-4 text-[17px] font-bold">Cap hits</h2>
                             <DataTable
                                 rows={limits}
                                 columns={[
@@ -162,9 +161,9 @@ export default function AIPage() {
                 </>
             )}
             <RoleGate minimum="owner">
-                <section className="rounded-panel border border-border bg-card p-6">
-                    <h2 className="text-lg font-bold font-rounded">Model pricing editor</h2>
-                    <p className="mt-1 text-xs text-text-muted">USD micros. Changes affect cost attribution and are audited.</p>
+                <section className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                    <h2 className="text-[17px] font-bold">Model pricing editor</h2>
+                    <p className="mt-1 text-xs text-muted">USD micros. Changes affect cost attribution and are audited.</p>
                     <div className="mt-5 space-y-3">
                         {pricing.map((row) => (
                             <div
@@ -175,10 +174,10 @@ export default function AIPage() {
                                     <p className="font-bold">
                                         {row.provider} · {row.model}
                                     </p>
-                                    <p className="text-xs text-text-muted">{row.operation}</p>
+                                    <p className="text-xs text-muted">{row.operation}</p>
                                 </div>
                                 {(["input_token_usd_micros", "output_token_usd_micros", "credit_usd_micros"] as const).map((field) => (
-                                    <label key={field} className="text-[10px] font-bold uppercase text-text-muted">
+                                    <label key={field} className="text-[13px] font-semibold text-muted">
                                         {field.replaceAll("_", " ")}
                                         <input
                                             type="number"
@@ -196,7 +195,7 @@ export default function AIPage() {
                                 ))}
                                 <button
                                     onClick={() => void save(row)}
-                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-zinc-950"
+                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-on-accent"
                                     aria-label={`Save ${row.model}`}
                                 >
                                     <Save className="h-4 w-4" />

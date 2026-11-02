@@ -17,7 +17,7 @@ const money = (value: number) => formatMoney(Math.round(value));
  * Calculate button to forget. Inputs only ever hold valid numbers (CalcField
  * refuses the rest), so the result is always current.
  */
-export default function SipCalculator() {
+export default function SipCalculator({ inDashboard = false }: { inDashboard?: boolean } = {}) {
   const [input, setInput] = useState<SIPInput>(SIP_PRESETS[0]);
   const [showTable, setShowTable] = useState(false);
   const inputsRef = useRef<HTMLDivElement>(null);
@@ -93,10 +93,12 @@ export default function SipCalculator() {
           </div>
         )}
 
-        <div className="mt-7 flex flex-col gap-3 rounded-2xl bg-selected/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm leading-relaxed"><span className="font-bold">Started the SIP?</span> Finnri shows it before it’s due each month, and you mark it paid in a tap.</p>
-          <Link href="/" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-eyebrow hover:underline">See Finnri <ArrowRight className="h-4 w-4" /></Link>
-        </div>
+        {!inDashboard && (
+          <div className="mt-7 flex flex-col gap-3 rounded-2xl bg-selected/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-relaxed"><span className="font-bold">Started the SIP?</span> Finnri shows it before it’s due each month, and you mark it paid in a tap.</p>
+            <Link href="/" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-eyebrow hover:underline">See Finnri <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+        )}
         <p className="mt-5 text-xs leading-relaxed text-muted">{PROJECTION_DISCLAIMER} Returns compound monthly and each instalment is counted at the end of its month.</p>
       </div>
 

@@ -4,9 +4,8 @@ import React, { FormEvent, useCallback, useEffect, useRef, useState, useSyncExte
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-    BarChart3,
     Bell,
-    Calculator,
+    CalendarClock,
     CheckCheck,
     ChartNoAxesColumnIncreasing,
     CreditCard,
@@ -30,16 +29,15 @@ import { notificationDestination } from "@/app/lib/notifications";
 import GuestClaimModal from "@/app/components/dashboard/GuestClaimModal";
 import BrandMark from "@/app/components/ui/BrandMark";
 
-/** The sidebar, in the three groups board R9-Drawer draws. */
+/** The sidebar, in the three groups board R9-Drawer draws. Insights now live on Overview and Reports. */
 const NAV_GROUPS = [
     {
         label: "Workspace",
         items: [
             { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
             { name: "Transactions", href: "/dashboard/transactions", icon: TableProperties },
-            { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
             { name: "Reports", href: "/dashboard/reports", icon: ChartNoAxesColumnIncreasing },
-            { name: "Planning & tools", href: "/dashboard/tools", icon: Calculator },
+            { name: "Budgets & bills", href: "/dashboard/tools", icon: CalendarClock },
         ],
     },
     {
@@ -195,7 +193,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
 
     return (
-        <div className="min-h-screen bg-background text-foreground lg:flex">
+        <div className="font-body min-h-screen bg-background text-foreground lg:flex">
             <a href="#dashboard-content" className="fixed left-4 top-3 z-[180] -translate-y-20 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-on-accent transition-transform focus:translate-y-0">Skip to content</a>
             {isSidebarOpen && (
                 <button
@@ -210,7 +208,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}>
                 <div className="flex h-14 items-center justify-between px-2">
                     <Link href="/dashboard" aria-label="Finnri overview" onClick={() => setIsSidebarOpen(false)}>
-                        <BrandMark compact />
+                        <BrandMark compact tagline={false} />
                     </Link>
                     <button className="grid h-11 w-11 place-items-center rounded-xl text-foreground lg:hidden" onClick={() => setIsSidebarOpen(false)} aria-label="Close navigation">
                         <X className="h-6 w-6" />
@@ -269,7 +267,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <button ref={menuButtonRef} className="grid h-11 w-11 place-items-center rounded-xl lg:hidden" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation" aria-expanded={isSidebarOpen} aria-controls="dashboard-sidebar">
                             <Menu className="h-6 w-6" />
                         </button>
-                        <p className="min-w-0 flex-1 truncate text-xl font-bold lg:hidden">{pageTitle}</p>
+                        <p className="font-display min-w-0 flex-1 truncate text-xl font-bold lg:hidden">{pageTitle}</p>
                         {searchForm("hidden max-w-[460px] flex-1 lg:block")}
                         <div className="hidden flex-1 lg:block" />
                         <button

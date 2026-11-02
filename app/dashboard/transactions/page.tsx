@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, CircleAlert, Download, Loader2, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Loader2, Plus } from "lucide-react";
 import AddTransactionModal from "@/app/components/dashboard/AddTransactionModal";
 import TransactionDetailsDrawer from "@/app/components/dashboard/TransactionDetailsDrawer";
-import { TransactionFilterPanel, useTransactionFilters } from "@/app/components/dashboard/TransactionFilters";
-import { Account, AccountsAPI, apiErrorMessage, EntriesAPI, SplitBill, Transaction } from "@/app/lib/api";
-import { formatDate, formatMoney } from "@/app/lib/format";
+import { PeriodPicker, TransactionFilterPanel, useTransactionFilters } from "@/app/components/dashboard/TransactionFilters";
+import { buttonSecondary, EmptyPanel, ErrorNotice, iconButton, PageHeader, Panel } from "@/app/components/dashboard/kit";
+import CategoryTile from "@/app/components/ui/CategoryTile";
+import { Account, AccountsAPI, apiErrorMessage, EntriesAPI, ReportsAPI, SplitBill, Transaction, TransactionReportSummary } from "@/app/lib/api";
+import { formatDateRange, formatMoney, formatRupees } from "@/app/lib/format";
 import { downloadTransactionsCSV } from "@/app/lib/export-transactions";
 import { cn } from "@/app/lib/utils";
 import Skeleton from "@/app/components/ui/Skeleton";
@@ -15,11 +17,58 @@ import { useToast } from "@/app/components/ui/Toast";
 
 type TransactionEditDraft = { transaction: Transaction; splitBill: SplitBill | null; splitDataAvailable: boolean };
 
-function TransactionCard({ transaction, onOpen }: { transaction: Transaction; onOpen: () => void }) {
-    return <button type="button" onClick={onOpen} className="w-full rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:border-accent/40">
-        <div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="truncate text-sm font-bold">{transaction.merchant || transaction.title}</p><p className="mt-1 text-xs text-text-muted">{formatDate(transaction.date)} · {transaction.category}</p></div><p className={cn("shrink-0 text-sm font-bold", transaction.type === "income" && "text-emerald-600")}>{transaction.type === "income" ? "+" : "−"}{formatMoney(transaction.amount)}</p></div>
-        <p className="mt-3 text-xs text-zinc-400">{transaction.account?.name || transaction.mode}</p>
-    </button>;
+const PAGE_SIZE = 25;
+const dayHeading = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short" });
+
+function dayLabel(date: string) {
+    const [y, m, d] = date.split("-").map(Number);
+    const value = new Date(y, m - 1, d);
+    const today = new Date();
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+    if (value.toDateString() === today.toDateString()) return "Today";
+    if (value.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return dayHeading.format(value);
+}
+
+type DayGroup = { date: string; rows: Transaction[]; spent: number; received: number; complete: boolean };
+
+/**
+ * A page of rows under day headings. A day's total is only shown when the
+ * whole day is on this page: the first day may have begun on the page before,
+ * and the last may carry on to the next.
+ */
+function groupByDay(rows: Transaction[], page: number, totalPages: number): DayGroup[] {
+    const groups: DayGroup[] = [];
+    for (const row of rows) {
+        let group = groups.at(-1);
+        if (!group || group.date !== row.date) {
+            group = { date: row.date, rows: [], spent: 0, received: 0, complete: true };
+            groups.push(group);
+        }
+        group.rows.push(row);
+        if (row.type === "income") group.received += row.amount;
+        else group.spent += row.amount;
+    }
+    if (groups.length && page > 1) groups[0].complete = false;
+    if (groups.length && page < totalPages) groups[groups.length - 1].complete = false;
+    return groups;
+}
+
+function TransactionRow({ transaction, onOpen }: { transaction: Transaction; onOpen: () => void }) {
+    const income = transaction.type === "income";
+    return (
+        <button type="button" onClick={onOpen} className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-track sm:px-5 lg:grid-cols-[36px_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_8rem] lg:gap-4">
+            <CategoryTile category={transaction.category} />
+            <span className="min-w-0">
+                <span className="block truncate text-[15px] font-semibold">{transaction.merchant || transaction.title}</span>
+                <span className="block truncate text-[13px] text-muted lg:hidden">{transaction.category} · {transaction.account?.name || transaction.mode}</span>
+                {transaction.merchant && transaction.title && transaction.title !== transaction.merchant ? <span className="hidden truncate text-[13px] text-muted lg:block">{transaction.title}</span> : null}
+            </span>
+            <span className="hidden truncate text-sm lg:block">{transaction.category}</span>
+            <span className="hidden truncate text-sm text-muted lg:block">{transaction.account?.name || transaction.mode}</span>
+            <span className={cn("shrink-0 text-right text-[15px] font-bold tabular-nums", income && "text-positive")}>{income ? "+" : "−"}{formatMoney(transaction.amount)}</span>
+        </button>
+    );
 }
 
 export default function TransactionsScreen() {
@@ -36,19 +85,24 @@ export default function TransactionsScreen() {
     const [isExporting, setIsExporting] = useState(false);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
+    const [summary, setSummary] = useState<TransactionReportSummary | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [editing, setEditing] = useState<TransactionEditDraft | null>(null);
     const filterController = useTransactionFilters("30d");
-    const { filters, entryParams, amountError, dateError, update } = filterController;
+    const { filters, entryParams, amountError, dateError, update, range } = filterController;
 
     useEffect(() => { AccountsAPI.list().then((response) => setAccounts(response.data)).catch(() => setAccounts([])); }, []);
     const loadTransactions = useCallback(async () => {
         setLoading(true); setError("");
         if (amountError || dateError) { setError(amountError || dateError); setLoading(false); setHasLoaded(true); return; }
         try {
-            const response = await EntriesAPI.list(entryParams(true));
+            const [response, report] = await Promise.all([
+                EntriesAPI.list(entryParams(true)),
+                ReportsAPI.transactionSummary(entryParams()).catch(() => null),
+            ]);
             setTransactions(response.data.entries); setTotalPages(Math.max(1, response.data.total_pages)); setTotal(response.data.total);
+            setSummary(report ? report.data.summary : null);
         } catch (requestError) { setError(apiErrorMessage(requestError, "We couldn’t load your transactions.")); }
         finally { setLoading(false); setHasLoaded(true); }
     }, [amountError, dateError, entryParams]);
@@ -83,19 +137,63 @@ export default function TransactionsScreen() {
     };
     const handleSaved = async (saved: Transaction) => { setTransactions((current) => current.map((item) => item.id === saved.id ? saved : item)); await loadTransactions(); if (editing) setSelectedTransaction(saved); };
 
+    const days = useMemo(() => groupByDay(transactions, filters.page, totalPages), [transactions, filters.page, totalPages]);
+    const first = total ? (filters.page - 1) * PAGE_SIZE + 1 : 0;
+    const last = Math.min(filters.page * PAGE_SIZE, total);
+    const pager = (
+        <span className="flex items-center gap-2">
+            <span className="text-[13px] tabular-nums text-muted">{first}–{last} of {total.toLocaleString("en-IN")}</span>
+            <button type="button" disabled={filters.page <= 1 || loading} onClick={() => update({ page: filters.page - 1 })} className={cn(iconButton, "h-9 w-9")} aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" disabled={filters.page >= totalPages || loading} onClick={() => update({ page: filters.page + 1 })} className={cn(iconButton, "h-9 w-9")} aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
+        </span>
+    );
+
     return <>
-        <div className="space-y-6 pb-12">
-            <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Confirmed records</p><h1 className="mt-2 text-3xl font-bold tracking-tight font-rounded sm:text-4xl">Transactions</h1><p className="mt-2 text-sm text-zinc-500">Search, filter, inspect, add, edit, duplicate, or delete real entries.</p></div><div className="flex gap-3"><button onClick={() => void exportCurrentView()} disabled={isExporting} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-bold text-zinc-600 disabled:opacity-40 dark:text-zinc-300">{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Export CSV</button><button onClick={() => { setEditing(null); setIsModalOpen(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950 shadow-lg shadow-accent/20"><Plus className="h-4 w-4" /> Add</button></div></header>
-            <TransactionFilterPanel controller={filterController} accounts={accounts} searchLabel="Search transactions" />
-            {exportError && <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0" /><p>{exportError}</p></div>}
-            {error && <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0" /><div><p>{error}</p><button onClick={() => void loadTransactions()} className="mt-2 font-bold underline">Try again</button></div></div>}
-            <section className="overflow-hidden rounded-panel border border-border bg-card"><div className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-6"><p className="text-sm font-bold">{total.toLocaleString("en-IN")} matching records</p><p className="text-xs text-zinc-400">Page {filters.page} of {totalPages}</p></div>
-                {!hasLoaded ? <div className="space-y-3 p-4">{[0,1,2,3,4].map((item) => <Skeleton key={item} className="h-16" />)}</div> : transactions.length === 0 ? <p className="grid h-64 place-items-center text-sm text-zinc-400">No transactions match these filters.</p> : <>
-                    <div className={cn("space-y-3 p-4 transition-opacity md:hidden", loading && "opacity-60")} aria-busy={loading}>{transactions.map((transaction) => <TransactionCard key={transaction.id} transaction={transaction} onOpen={() => setSelectedTransaction(transaction)} />)}</div>
-                    <div className={cn("hidden transition-opacity md:block", loading && "opacity-60")} aria-busy={loading}><table className="w-full text-left"><thead className="bg-zinc-50 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-300"><tr><th className="px-6 py-4">Date</th><th className="px-6 py-4">Merchant</th><th className="px-6 py-4">Category</th><th className="px-6 py-4">Account</th><th className="px-6 py-4 text-right">Amount</th></tr></thead><tbody className="divide-y divide-border">{transactions.map((transaction) => <tr key={transaction.id} tabIndex={0} role="button" aria-label={`Open ${transaction.merchant || transaction.title}, ${formatMoney(transaction.amount)}`} onClick={() => setSelectedTransaction(transaction)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedTransaction(transaction); } }} className="cursor-pointer transition hover:bg-zinc-50 dark:hover:bg-zinc-800/40"><td className="px-6 py-4 text-sm text-zinc-500">{formatDate(transaction.date)}</td><td className="px-6 py-4"><p className="text-sm font-bold">{transaction.merchant || transaction.title}</p><p className="mt-0.5 text-xs capitalize text-zinc-400">{transaction.type}</p></td><td className="px-6 py-4 text-sm text-zinc-500">{transaction.category}</td><td className="px-6 py-4 text-sm text-zinc-500">{transaction.account?.name || transaction.mode}</td><td className={cn("px-6 py-4 text-right text-sm font-bold", transaction.type === "income" && "text-emerald-600")}>{transaction.type === "income" ? "+" : "−"}{formatMoney(transaction.amount)}</td></tr>)}</tbody></table></div>
+        <div className="space-y-5 pb-12">
+            <PageHeader
+                title="Transactions"
+                description={range ? formatDateRange(range.start_date, range.end_date) : "All time"}
+                actions={<>
+                    <PeriodPicker controller={filterController} allowAll />
+                    <button type="button" onClick={() => void exportCurrentView()} disabled={isExporting || !total} className={iconButton} aria-label={isExporting ? "Exporting" : "Export these transactions as CSV"} title="Export CSV">{isExporting ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <Download className="h-[18px] w-[18px]" />}</button>
+                    <button type="button" onClick={() => { setEditing(null); setIsModalOpen(true); }} className={buttonSecondary}><Plus className="h-4 w-4" /> Add</button>
                 </>}
-                <div className="flex items-center justify-end gap-2 border-t border-border p-4"><button disabled={filters.page <= 1 || loading} onClick={() => update({ page: filters.page - 1 })} className="grid h-10 w-10 place-items-center rounded-xl border border-border disabled:opacity-30" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button><button disabled={filters.page >= totalPages || loading} onClick={() => update({ page: filters.page + 1 })} className="grid h-10 w-10 place-items-center rounded-xl border border-border disabled:opacity-30" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button></div>
-            </section>
+            />
+            <TransactionFilterPanel controller={filterController} accounts={accounts} searchLabel="Search transactions" searchInHeader />
+            {exportError && <ErrorNotice message={exportError} />}
+            {error && <ErrorNotice message={error} onRetry={() => void loadTransactions()} />}
+
+            {hasLoaded && total > 0 && (
+                <section aria-label="Totals for these transactions" className="flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-2xl bg-track px-5 py-3.5 text-[15px]">
+                    <span><span className="font-bold tabular-nums">{total.toLocaleString("en-IN")}</span> <span className="text-muted">transaction{total === 1 ? "" : "s"}</span></span>
+                    {summary && <>
+                        <span><span className="text-muted">Spent </span><span className="font-bold tabular-nums">{formatRupees(summary.total_expense)}</span></span>
+                        <span><span className="text-muted">Received </span><span className="font-bold tabular-nums text-positive">{formatRupees(summary.total_income)}</span></span>
+                        <span><span className="text-muted">Net </span><span className={cn("font-bold tabular-nums", summary.net_cashflow < 0 ? "text-negative" : "text-positive")}>{summary.net_cashflow < 0 ? "−" : "+"}{formatRupees(Math.abs(summary.net_cashflow))}</span></span>
+                    </>}
+                </section>
+            )}
+
+            {!hasLoaded ? (
+                <Panel className="space-y-3 p-4">{[0, 1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-14" />)}</Panel>
+            ) : transactions.length === 0 ? (
+                <EmptyPanel title="No transactions match" body="Try another period, or clear a filter." />
+            ) : (
+                <div className={cn("space-y-4 transition-opacity", loading && "opacity-60")} aria-busy={loading}>
+                    {days.map((day) => (
+                        <section key={day.date} aria-label={dayLabel(day.date)}>
+                            <div className="mb-1.5 flex items-baseline justify-between gap-3 px-1">
+                                <h2 className="text-sm font-bold">{dayLabel(day.date)}</h2>
+                                {day.complete && <p className="text-[13px] tabular-nums text-muted">{day.spent > 0 ? `Spent ${formatMoney(day.spent)}` : ""}{day.spent > 0 && day.received > 0 ? " · " : ""}{day.received > 0 ? `Received ${formatMoney(day.received)}` : ""}</p>}
+                            </div>
+                            <Panel className="divide-y divide-border overflow-hidden">
+                                {day.rows.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} onOpen={() => setSelectedTransaction(transaction)} />)}
+                            </Panel>
+                        </section>
+                    ))}
+                    {totalPages > 1 && <div className="flex justify-end">{pager}</div>}
+                </div>
+            )}
         </div>
         <AddTransactionModal isOpen={isModalOpen} onClose={closeModal} transaction={editing?.transaction} linkedSplitBill={editing?.splitBill} splitDataAvailable={editing?.splitDataAvailable} onSaved={handleSaved} />
         <TransactionDetailsDrawer isOpen={Boolean(selectedTransaction) && !isModalOpen} transaction={selectedTransaction} onEdit={(transaction, splitBill, splitDataAvailable) => { setEditing({ transaction, splitBill, splitDataAvailable }); setIsModalOpen(true); }} onClose={closeSelectedTransaction} onChanged={() => { void loadTransactions(); }} />

@@ -303,6 +303,13 @@ export interface DashboardSummary {
     total_income: number;
     daily_average: number;
     transaction_count: number;
+    /** Expenses only; `transaction_count` counts income too. */
+    expense_count?: number;
+    /** What the comparison window (`period.previous_*`) spent, and the change. */
+    previous_total_spent?: number;
+    spend_change?: number;
+    /** False when the earlier window was too thin to divide by. */
+    spend_change_comparable?: boolean;
 }
 
 export interface DashboardCategory {
@@ -310,6 +317,8 @@ export interface DashboardCategory {
     amount: number;
     percentage: number;
     change: number;
+    /** False when the earlier window was too thin to divide by; `change` is then 0. */
+    change_comparable?: boolean;
 }
 
 export interface DashboardMerchant {
@@ -395,7 +404,7 @@ export interface RecurringCandidateDecision {
 }
 
 export interface DashboardResponse {
-    period: { start: string; end: string };
+    period: { start: string; end: string; previous_start?: string; previous_end?: string; comparison_label?: string };
     summary: DashboardSummary;
     top_categories: DashboardCategory[];
     top_merchants: DashboardMerchant[];

@@ -247,7 +247,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <button type="button" onClick={beginGuestClaim} className="mt-3 min-h-9 w-full rounded-full border border-border bg-card px-3 text-xs font-bold">Save workspace</button>
                     </div>}
                     <div className="flex items-center gap-3 rounded-2xl bg-track p-3">
-                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-selected text-sm font-bold text-accent">
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-selected text-sm font-bold text-eyebrow">
                             {(user?.username || "G").slice(0, 1).toUpperCase()}
                         </span>
                         <div className="min-w-0 flex-1">

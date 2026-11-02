@@ -16,6 +16,8 @@ interface AuthContextType {
     beginGuestClaim: () => void;
     closeGuestClaim: () => void;
     claimGuest: (claimToken: string, pin: string) => Promise<User>;
+    /** Saves the guest workspace under a Google account; the guest is upgraded in place. */
+    claimGuestWithGoogle: (idToken: string, nonce: string) => Promise<User>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
     beginGuestClaim: () => { },
     closeGuestClaim: () => { },
     claimGuest: async () => { throw new Error("No guest workspace to claim"); },
+    claimGuestWithGoogle: async () => { throw new Error("No guest workspace to claim"); },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -119,8 +122,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return response.data.user;
     };
 
+    const claimGuestWithGoogle = async (idToken: string, nonce: string) => {
+        if (!user?.is_guest) throw new Error("No guest workspace to claim");
+        const storedDeviceId = localStorage.getItem("finnri_web_device_id");
+        const deviceId = storedDeviceId || `web_${crypto.randomUUID()}`;
+        localStorage.setItem("finnri_web_device_id", deviceId);
+        const response = await AuthAPI.loginGoogle({ id_token: idToken, nonce, guest_uuid: user.uuid, device_id: deviceId, biometrics_enabled: false });
+        login(response.data.token, response.data.user);
+        return response.data.user;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, updateUser, logout, loginAsGuest, isGuestClaimOpen, beginGuestClaim: () => setIsGuestClaimOpen(true), closeGuestClaim: () => setIsGuestClaimOpen(false), claimGuest }}>
+        <AuthContext.Provider value={{ user, token, isLoading, login, updateUser, logout, loginAsGuest, isGuestClaimOpen, beginGuestClaim: () => setIsGuestClaimOpen(true), closeGuestClaim: () => setIsGuestClaimOpen(false), claimGuest, claimGuestWithGoogle }}>
             {children}
         </AuthContext.Provider>
     );

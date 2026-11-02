@@ -240,7 +240,7 @@ export default function DashboardHome() {
                                 </div>
                             </Panel>
 
-                            <section id="attention" aria-labelledby="attention-heading" className="scroll-mt-24">
+                            <section id="attention" aria-labelledby="attention-heading" className="min-w-0 scroll-mt-24">
                                 <SectionTitle id="attention-heading" title="Needs attention" detail={attentionCount ? `${attentionCount}` : undefined} />
                                 {attentionCount === 0 ? (
                                     <EmptyPanel title="All clear" body="Nothing unusual this period, and every transaction has a category and an account." />
@@ -289,7 +289,7 @@ export default function DashboardHome() {
                         </StatStrip>
 
                         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-                            <section aria-labelledby="where-heading">
+                            <section aria-labelledby="where-heading" className="min-w-0">
                                 <SectionTitle id="where-heading" title="Where it went" href="/dashboard/reports" linkLabel="Full report" />
                                 {categories.length ? (
                                     <Panel>
@@ -310,7 +310,7 @@ export default function DashboardHome() {
                                 ) : <EmptyPanel title="No spending in this period" />}
                             </section>
 
-                            <section aria-labelledby="coming-heading">
+                            <section aria-labelledby="coming-heading" className="min-w-0">
                                 <SectionTitle id="coming-heading" title="Coming up" detail={comingUp.length ? `${formatRupees(comingUpTotal)} in ${COMING_UP_DAYS} days` : undefined} href="/dashboard/tools" linkLabel="All bills" />
                                 {comingUp.length ? (
                                     <Panel className="divide-y divide-border">
@@ -328,13 +328,13 @@ export default function DashboardHome() {
 
                         <div className={cn("grid gap-5 lg:items-start", dashboard.budget_statuses.length > 0 && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]")}>
                             {dashboard.budget_statuses.length > 0 && (
-                                <section aria-labelledby="budget-heading">
+                                <section aria-labelledby="budget-heading" className="min-w-0">
                                     <SectionTitle id="budget-heading" title="Budgets this month" href="/dashboard/tools#budgets" linkLabel="All budgets" />
                                     <Panel className="divide-y divide-border">{dashboard.budget_statuses.slice(0, 4).map((budget) => <BudgetRow key={budget.budget_id} budget={budget} />)}</Panel>
                                 </section>
                             )}
 
-                            <section aria-labelledby="recent-heading">
+                            <section aria-labelledby="recent-heading" className="min-w-0">
                                 <SectionTitle id="recent-heading" title="Recent transactions" href={transactionHref(range)} linkLabel="View all" />
                                 {dashboard.recent_transactions.length ? (
                                     <Panel className="divide-y divide-border overflow-hidden">

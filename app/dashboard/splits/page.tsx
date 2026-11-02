@@ -97,7 +97,7 @@ export default function SplitsScreen() {
     const [showSettled, setShowSettled] = useState(false);
     const [activityFilter, setActivityFilter] = useState<"all" | "bill" | "settlement">("all");
     const [activityShown, setActivityShown] = useState(ACTIVITY_STEP);
-    const [settleWith, setSettleWith] = useState<SplitFriend | null | undefined>(undefined);
+    const [settleWith, setSettleWith] = useState<{ friend: SplitFriend | null; balance?: number } | undefined>(undefined);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -191,7 +191,7 @@ export default function SplitsScreen() {
                     <h2 className="truncate text-lg font-bold">{selectedPerson ? selectedPerson.friend.name : selectedGroup!.name}</h2>
                     <p className="truncate text-sm text-muted">{selectedPerson ? balanceWords(selectedPerson.net_balance) : `${selectedGroup!.members.map((member) => member.friend.name).join(", ")} and you`}</p>
                 </div>
-                {selectedPerson && Math.round(selectedPerson.net_balance) !== 0 && <button type="button" onClick={() => setSettleWith(selectedPerson.friend)} className={cn(buttonSecondary, "max-sm:w-full")}><HandCoins className="h-4 w-4" /> Record a payment</button>}
+                {selectedPerson && Math.round(selectedPerson.net_balance) !== 0 && <button type="button" onClick={() => setSettleWith({ friend: selectedPerson.friend, balance: selectedPerson.net_balance })} className={cn(buttonSecondary, "max-sm:w-full")}><HandCoins className="h-4 w-4" /> Record a payment</button>}
                 {selectedGroup && <p className="text-sm text-muted">From its bills <Balance amount={groupBalance(selectedGroup.id, bills)} className="ml-1 text-[15px]" /></p>}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -208,7 +208,7 @@ export default function SplitsScreen() {
                     description={`Who owes whom, from the bills and payments you’ve shared${balances.length ? ` with ${balances.length} ${balances.length === 1 ? "person" : "people"}` : ""}.`}
                     actions={<>
                         <button type="button" onClick={() => void load()} disabled={loading} className={iconButton} aria-label="Refresh"><RefreshCw className={cn("h-[18px] w-[18px]", loading && "animate-spin")} /></button>
-                        <button type="button" onClick={() => setSettleWith(null)} disabled={!friends.length} className={buttonSecondary}><HandCoins className="h-4 w-4" /> Record a payment</button>
+                        <button type="button" onClick={() => setSettleWith({ friend: null })} disabled={!friends.length} className={buttonSecondary}><HandCoins className="h-4 w-4" /> Record a payment</button>
                     </>}
                 />
                 {error && <ErrorNotice message={error} onRetry={() => void load()} />}
@@ -258,7 +258,7 @@ export default function SplitsScreen() {
                             </section>
                         ) : (
                             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-start">
-                                <div className={cn(detailOpen && "max-lg:hidden")}>
+                                <div className={cn("min-w-0", detailOpen && "max-lg:hidden")}>
                                     {tab === "people" ? (
                                         people.length ? (
                                             <Panel className="divide-y divide-border overflow-hidden">
@@ -277,7 +277,7 @@ export default function SplitsScreen() {
                                         </Panel>
                                     ) : <EmptyPanel title="No groups yet" body="Groups you create in the Finnri app show here with what’s owed in each." />}
                                 </div>
-                                <div className={cn(!detailOpen && "max-lg:hidden")}>{ledgerPanel || <EmptyPanel title="Pick someone to see your history together" />}</div>
+                                <div className={cn("min-w-0", !detailOpen && "max-lg:hidden")}>{ledgerPanel || <EmptyPanel title="Pick someone to see your history together" />}</div>
                             </div>
                         )}
 
@@ -285,7 +285,7 @@ export default function SplitsScreen() {
                     </>
                 )}
             </div>
-            {settleWith !== undefined && <SettlementDialog friends={friends} suggestedFriend={settleWith || undefined} onClose={() => setSettleWith(undefined)} onSaved={() => { setSettleWith(undefined); void load(); }} />}
+            {settleWith !== undefined && <SettlementDialog friends={friends} suggestedFriend={settleWith.friend || undefined} suggestedBalance={settleWith.balance} onClose={() => setSettleWith(undefined)} onSaved={() => { setSettleWith(undefined); void load(); }} />}
         </>
     );
 }

@@ -33,7 +33,7 @@ export default function AddDetailChips<Key extends string>({
     if (options.length === 0) return null;
     return (
         <div>
-            {title && <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">{title}</p>}
+            {title && <p className="mb-2 text-[13px] font-semibold text-muted">{title}</p>}
             <div className="flex flex-wrap gap-2">
                 {options.map((option) => {
                     const Icon = option.icon;
@@ -43,10 +43,10 @@ export default function AddDetailChips<Key extends string>({
                             type="button"
                             onClick={() => onAdd(option.key)}
                             aria-label={`Add ${option.label.toLowerCase()}`}
-                            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-zinc-300 bg-card px-3.5 text-xs font-bold text-zinc-600 transition-colors hover:border-accent hover:text-accent dark:border-zinc-600 dark:text-zinc-300"
+                            className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-dashed border-border bg-card px-3.5 text-[13px] font-semibold transition-colors hover:border-accent hover:bg-selected"
                         >
                             <Plus className="h-3.5 w-3.5 text-accent" aria-hidden />
-                            <Icon className="h-3.5 w-3.5 text-zinc-400" aria-hidden />
+                            <Icon className="h-3.5 w-3.5 text-muted" aria-hidden />
                             {option.label}
                         </button>
                     );

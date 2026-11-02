@@ -171,5 +171,5 @@ export function ErrorNotice({ message, onRetry }: { message: string; onRetry?: (
 
 /** A small rounded tile with a letter, for people and accounts without an icon. */
 export function Monogram({ name, className }: { name: string; className?: string }) {
-    return <span aria-hidden="true" className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-selected text-sm font-bold text-accent", className)}>{name.trim().slice(0, 1).toUpperCase() || "?"}</span>;
+    return <span aria-hidden="true" className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-selected text-sm font-bold text-eyebrow", className)}>{name.trim().slice(0, 1).toUpperCase() || "?"}</span>;
 }

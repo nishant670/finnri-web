@@ -122,7 +122,7 @@ export default function BudgetsAndBillsScreen() {
                     </section>
                 ) : loading && !subscriptions.length && !statuses.length ? <PageSkeleton /> : (
                     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] xl:items-start">
-                        <section id="subscriptions" aria-labelledby="bills-heading" className="scroll-mt-24">
+                        <section id="subscriptions" aria-labelledby="bills-heading" className="min-w-0 scroll-mt-24">
                             <SectionTitle id="bills-heading" title="Coming up" detail={dueSoon.length ? `${formatRupees(dueTotal)} due in ${DUE_WINDOW} days` : undefined} />
                             {billError ? errorView(billError, "Bills and reminders") : groups.length ? (
                                 <div className="space-y-4">
@@ -149,7 +149,7 @@ export default function BudgetsAndBillsScreen() {
                             ) : <EmptyPanel title="No bills or repeat payments yet" body="Track EMIs, SIPs, rent and subscriptions in the Finnri app and they’ll show here before they’re due." />}
                         </section>
 
-                        <section id="budgets" aria-labelledby="budgets-heading" className="scroll-mt-24">
+                        <section id="budgets" aria-labelledby="budgets-heading" className="min-w-0 scroll-mt-24">
                             <SectionTitle id="budgets-heading" title="Budgets this month" detail={statuses.length ? `${formatRupees(budgetSpent)} of ${formatRupees(budgetTotal)}` : undefined} />
                             {budgetError ? errorView(budgetError, "Budgets") : statuses.length ? (
                                 <>

@@ -114,7 +114,7 @@ export default function TransactionDetailsDrawer({ isOpen, onClose, onChanged, t
 
     return (
         <>
-            <Dialog open={isOpen} onClose={onClose} labelledBy="transaction-details-title" className="justify-end p-0" panelClassName="h-dvh max-w-md rounded-none border-y-0 border-r-0">
+            <Dialog open={isOpen} onClose={onClose} labelledBy="transaction-details-title" animated={false} className="items-stretch justify-end p-0 sm:items-stretch sm:p-0" panelClassName="h-dvh max-h-none max-w-md rounded-none border-y-0 border-r-0 sm:max-h-none sm:rounded-none">
                     <div className="drawer-enter font-body flex h-dvh flex-col bg-card">
                         <div className="flex items-center justify-between border-b border-border px-5 py-4">
                             <h3 id="transaction-details-title" className="text-[17px] font-bold">Transaction</h3>

@@ -26,13 +26,15 @@ function unlockBodyScroll() {
     if (lockDepth === 0) document.body.style.overflow = overflowBeforeLock;
 }
 
-export default function Dialog({ open, onClose, labelledBy, children, className, panelClassName }: {
+export default function Dialog({ open, onClose, labelledBy, children, className, panelClassName, animated = true }: {
     open: boolean;
     onClose: () => void;
     labelledBy: string;
     children: React.ReactNode;
     className?: string;
     panelClassName?: string;
+    /** False for panels that bring their own entrance, like the side drawer. */
+    animated?: boolean;
 }) {
     const panelRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLElement | null>(null);
@@ -67,9 +69,9 @@ export default function Dialog({ open, onClose, labelledBy, children, className,
 
     if (!open || typeof document === "undefined") return null;
     return createPortal(
-        <div className={cn("fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6", className)}>
-            <button type="button" aria-label="Close dialog" tabIndex={-1} onClick={onClose} className="absolute inset-0 cursor-default bg-zinc-950/45 backdrop-blur-sm" />
-            <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={labelledBy} tabIndex={-1} className={cn("relative w-full overflow-y-auto rounded-panel border border-border bg-card shadow-2xl outline-none", panelClassName)}>
+        <div className={cn("font-body fixed inset-0 z-[120] flex items-end justify-center sm:items-center sm:p-6", className)}>
+            <button type="button" aria-label="Close dialog" tabIndex={-1} onClick={onClose} className="absolute inset-0 cursor-default bg-black/50 backdrop-blur-[2px]" />
+            <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={labelledBy} tabIndex={-1} className={cn(animated && "dialog-enter", "relative max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-border bg-card text-foreground shadow-2xl outline-none sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl", panelClassName)}>
                 {children}
             </div>
         </div>,

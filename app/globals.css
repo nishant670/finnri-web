@@ -259,3 +259,57 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .rise-in, .drift, .mic-ring, .wave-bar, .scan-line, .caret, .row-in { animation: none !important; }
 }
+
+/* Calculator charts: what you put in (blue) against what the money earns or
+   costs (coral). Checked for colour-blind separation on both card surfaces. */
+:root {
+  --series-base: #3F72D6;
+  --series-gain: #E8643F;
+}
+.dark {
+  --series-base: #4F84E6;
+  --series-gain: #E8643F;
+}
+
+/* A range input with a filled track: --fill is set inline, 0–100%. */
+.range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) var(--fill, 0%), var(--track) var(--fill, 0%));
+}
+.range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) var(--fill, 0%), var(--track) var(--fill, 0%));
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  margin-top: -7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: transform 150ms ease;
+}
+.range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.range:active::-webkit-slider-thumb { transform: scale(1.15); }
+.range:focus-visible { outline: none; }
+.range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent); }
+.range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent); }

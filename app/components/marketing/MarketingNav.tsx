@@ -7,10 +7,10 @@ import { AuthProvider, useAuth } from "@/app/context/AuthContext";
 import BrandMark from "@/app/components/ui/BrandMark";
 
 const navigation = [
-    { href: "#how-it-works", label: "How it works" },
-    { href: "#features", label: "Features" },
-    { href: "#security", label: "Security" },
-    { href: "#pricing", label: "Pricing" },
+    { href: "/#how-it-works", label: "How it works" },
+    { href: "/#features", label: "Features" },
+    { href: "/#security", label: "Security" },
+    { href: "/#pricing", label: "Pricing" },
     { href: "/tools", label: "Free tools" },
 ];
 

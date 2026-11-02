@@ -22,18 +22,18 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import MarketingFooter from "@/app/components/marketing/MarketingFooter";
 import MarketingNav from "@/app/components/marketing/MarketingNav";
 import HeroDemo from "@/app/components/marketing/HeroDemo";
 import PhoneFrame from "@/app/components/marketing/PhoneFrame";
 import PhraseShowcase from "@/app/components/marketing/PhraseShowcase";
 import PlayBadge from "@/app/components/marketing/PlayBadge";
 import ScrollReveal from "@/app/components/marketing/ScrollReveal";
-import BrandMark from "@/app/components/ui/BrandMark";
 import CategoryTile from "@/app/components/ui/CategoryTile";
-import { LEGAL_BUSINESS_NAME, MERCHANT_IDENTITY_PUBLISHED, PLAY_STORE_LISTED, PLAY_STORE_URL, SITE_URL } from "@/app/lib/site";
+import { LEGAL_BUSINESS_NAME, PLAY_STORE_LISTED, PLAY_STORE_URL, SITE_URL } from "@/app/lib/site";
 import { discountPercent, formatMinor } from "@/app/lib/billing-format";
 import { fetchPublishedPrices, intervalDuration } from "@/app/lib/public-plans";
-import { calculateEMI, calculateSIP, SIP_PRESETS } from "@/app/lib/calculators";
+import { calculateEMI, calculateSIP, EMI_PRESETS, SIP_PRESETS } from "@/app/lib/calculators";
 import { cn } from "@/app/lib/utils";
 
 const faqs = [
@@ -72,7 +72,7 @@ export default async function Home() {
   // them carries the label.
   const launchOffer = plans.find((plan) => plan.offer)?.offer ?? null;
   const sip = calculateSIP(SIP_PRESETS[0]);
-  const emi = calculateEMI({ principalAmount: 1000000, annualInterestRatePercent: 9, tenureMonths: 240 });
+  const emi = calculateEMI(EMI_PRESETS[0]);
 
   const websiteSchema = {
     "@context": "https://schema.org",
@@ -435,17 +435,17 @@ export default async function Home() {
               <h2 className="font-display text-3xl font-bold leading-[1.08] lg:text-4xl">Plan the big numbers, free.</h2>
               <p className="mt-4 leading-relaxed text-muted">SIP and EMI calculators with year-by-year tables. No sign-up, no catch.</p>
             </div>
-            <Link href="/tools" data-reveal style={{ "--reveal-delay": "100ms" } as CSSProperties} className="group rounded-3xl border border-border bg-card p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+            <Link href="/tools/sip-calculator" data-reveal style={{ "--reveal-delay": "100ms" } as CSSProperties} className="group rounded-3xl border border-border bg-card p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
               <span className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-selected text-accent"><TrendingUp className="h-5 w-5" /></span><ArrowRight className="h-5 w-5 text-muted transition group-hover:translate-x-1 group-hover:text-foreground" /></span>
               <p className="mt-5 font-bold">SIP calculator</p>
               <p className="mt-1 text-sm text-muted">₹10,000 a month for 10 years at 12%, stepping up 10% a year</p>
               <p className="font-display mt-4 text-3xl font-bold tabular-nums">{rupees(sip.maturityValue)}</p>
               <p className="text-xs text-muted">estimated value · you put in {rupees(sip.investedAmount)}</p>
             </Link>
-            <Link href="/tools" data-reveal style={{ "--reveal-delay": "200ms" } as CSSProperties} className="group rounded-3xl border border-border bg-card p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+            <Link href="/tools/emi-calculator" data-reveal style={{ "--reveal-delay": "200ms" } as CSSProperties} className="group rounded-3xl border border-border bg-card p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
               <span className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-selected text-accent"><Calculator className="h-5 w-5" /></span><ArrowRight className="h-5 w-5 text-muted transition group-hover:translate-x-1 group-hover:text-foreground" /></span>
               <p className="mt-5 font-bold">EMI calculator</p>
-              <p className="mt-1 text-sm text-muted">A ₹10 lakh loan at 9% for 20 years</p>
+              <p className="mt-1 text-sm text-muted">A ₹30 lakh home loan at 8.5% for 20 years</p>
               <p className="font-display mt-4 text-3xl font-bold tabular-nums">{rupees(emi.monthlyEMI)}<span className="text-base font-semibold text-muted"> /month</span></p>
               <p className="text-xs text-muted">{rupees(emi.totalInterest)} in interest over the loan</p>
             </Link>
@@ -595,24 +595,7 @@ export default async function Home() {
       </section>
       </main>
 
-      <footer className="border-t border-border py-14">
-        <div className={`${shell} grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]`}>
-          <div>
-            <BrandMark />
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">Day-to-day money tracking for India, by voice, text or tap — saved only when you say so.</p>
-            {PLAY_STORE_LISTED && <PlayBadge size="md" className="mt-5" />}
-          </div>
-          <FooterColumn title="Product" links={[["#features", "Features"], ["#pricing", "Pricing"], ["/tools", "SIP & EMI calculators"], ["/login", "Web dashboard"]]} />
-          <FooterColumn title="Policies" links={[["/privacy", "Privacy Policy"], ["/terms", "Terms of Service"], ["/refunds", "Refunds"], ["/shipping", "Digital delivery"]]} />
-          <FooterColumn title="Support" links={[
-            ["mailto:support@finnri.app?subject=Finnri%20Support", "Contact Support"],
-            ...(MERCHANT_IDENTITY_PUBLISHED ? [["/contact", "Contact"] as [string, string]] : []),
-            ["/pricing", "Pricing details"],
-            ["/delete-account", "Delete Account"],
-          ]} />
-        </div>
-        <p className={`${shell} mt-12 text-sm text-muted`}>© 2026 Finnri · Made in India.</p>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
@@ -652,20 +635,5 @@ function BentoCard({ icon: Icon, title, body, tag, className = "", delay = 0, ch
       <p className="mt-2 max-w-md leading-relaxed text-muted">{body}</p>
       {children}
     </div>
-  );
-}
-
-function FooterColumn({ title, links }: { title: string; links: [string, string][] }) {
-  return (
-    <nav aria-label={title}>
-      <p className="text-sm font-bold">{title}</p>
-      <ul className="mt-4 space-y-2.5 text-sm text-muted">
-        {links.map(([href, label]) => (
-          <li key={href}>
-            {href.startsWith("/") || href.startsWith("#") ? <Link href={href} className="transition-colors hover:text-foreground">{label}</Link> : <a href={href} className="transition-colors hover:text-foreground">{label}</a>}
-          </li>
-        ))}
-      </ul>
-    </nav>
   );
 }

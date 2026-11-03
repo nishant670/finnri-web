@@ -157,13 +157,16 @@ const fieldClass = "h-10 w-full rounded-full border border-border bg-card text-s
 export function PeriodPicker({ controller, allowAll = false }: { controller: TransactionFilterController; allowAll?: boolean }) {
     const { filters, setRange } = controller;
     const options = PERIOD_OPTIONS.filter((option) => allowAll || option.value !== "all");
+    // A screen without "All time" (Overview) falls back to this month when the
+    // shared period is all time; the picker says so rather than naming nothing.
+    const value = !allowAll && filters.dateRange === "all" ? "month" : filters.dateRange;
     return (
         <div className="flex flex-wrap items-center gap-2">
             <label className="relative inline-flex">
                 <CalendarRange className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-accent" aria-hidden="true" />
                 <span className="sr-only">Period</span>
                 <select
-                    value={filters.dateRange}
+                    value={value}
                     onChange={(event) => setRange(event.target.value as DateRangePreset)}
                     className={cn(fieldClass, "w-auto appearance-none pl-10 pr-9 font-bold")}
                 >

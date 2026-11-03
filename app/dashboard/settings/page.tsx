@@ -20,17 +20,18 @@ function Row({ title, body, children }: { title: string; body?: string; children
     );
 }
 
-export default function SettingsScreen() {
-    const { user, updateUser, logout, beginGuestClaim } = useAuth();
-    const { theme, setTheme } = useTheme();
+/**
+ * The name field, remounted (by `key`) whenever the account's name changes
+ * elsewhere, such as a guest workspace saved with Google, so it never holds a
+ * stale name that Save would write back.
+ */
+function NameForm({ current, onSaved }: { current: string; onSaved: (user: Awaited<ReturnType<typeof UserAPI.updateProfile>>["data"]["user"]) => void }) {
     const { toast } = useToast();
-    // Seeded once; the dashboard renders this page only after the session is restored.
-    const [name, setName] = useState(user?.username ?? "");
+    const [name, setName] = useState(current);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const trimmed = name.trim().replace(/\s+/g, " ");
-    const dirty = trimmed !== (user?.username ?? "");
-    const ThemeIcon = THEME_ICONS[theme];
+    const dirty = trimmed !== current;
 
     const save = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -39,7 +40,7 @@ export default function SettingsScreen() {
         setError("");
         try {
             const response = await UserAPI.updateProfile({ username: trimmed });
-            updateUser(response.data.user);
+            onSaved(response.data.user);
             toast({ title: "Name saved" });
         } catch (requestError) {
             setError(apiErrorMessage(requestError, "We couldn’t save your name. Try again."));
@@ -47,6 +48,24 @@ export default function SettingsScreen() {
             setSaving(false);
         }
     };
+
+    return (
+        <form onSubmit={(event) => void save(event)} className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-end">
+            <Monogram name={trimmed || "?"} className="h-12 w-12 text-lg" />
+            <label className="min-w-0 flex-1">
+                <span className="text-sm font-semibold text-muted">Name</span>
+                <input id="settings-name" value={name} onChange={(event) => { setName(event.target.value); setError(""); }} autoComplete="name" className="mt-1 h-11 w-full rounded-xl border border-border bg-background px-4 text-[15px] outline-none transition focus:border-accent/60 focus:ring-4 focus:ring-accent/10" />
+                {error && <span role="alert" className="mt-1 block text-sm font-semibold text-negative">{error}</span>}
+            </label>
+            <button type="submit" disabled={!dirty || saving} className={`${buttonPrimary} h-11`}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save</button>
+        </form>
+    );
+}
+
+export default function SettingsScreen() {
+    const { user, updateUser, logout, beginGuestClaim } = useAuth();
+    const { theme, setTheme } = useTheme();
+    const ThemeIcon = THEME_ICONS[theme];
 
     return (
         <div className="mx-auto max-w-3xl space-y-5 pb-20">
@@ -64,15 +83,7 @@ export default function SettingsScreen() {
             )}
 
             <Panel className="divide-y divide-border overflow-hidden">
-                <form onSubmit={(event) => void save(event)} className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-end">
-                    <Monogram name={trimmed || "?"} className="h-12 w-12 text-lg" />
-                    <label className="min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-muted">Name</span>
-                        <input id="settings-name" value={name} onChange={(event) => { setName(event.target.value); setError(""); }} autoComplete="name" className="mt-1 h-11 w-full rounded-xl border border-border bg-background px-4 text-[15px] outline-none transition focus:border-accent/60 focus:ring-4 focus:ring-accent/10" />
-                        {error && <span role="alert" className="mt-1 block text-sm font-semibold text-negative">{error}</span>}
-                    </label>
-                    <button type="submit" disabled={!dirty || saving} className={`${buttonPrimary} h-11`}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save</button>
-                </form>
+                <NameForm key={user?.username ?? ""} current={user?.username ?? ""} onSaved={updateUser} />
                 <Row title="Email" body={user?.is_guest ? "Guest workspace, not signed in" : "Your Google sign-in"}>
                     <span className="text-[15px] text-muted">{user?.email || user?.phone || "—"}</span>
                 </Row>

@@ -57,14 +57,19 @@ export default function GoogleSignInButton({ onCredential, onError, busy = false
                     else handlers.current.onError?.("Google did not return a sign-in token.");
                 },
             });
-            const dark = document.documentElement.classList.contains("dark") || window.matchMedia("(prefers-color-scheme: dark)").matches;
+            // The page's own theme, which the root script and Settings both set
+            // through `.dark`; the device setting alone would ignore a chosen Light.
+            const dark = document.documentElement.classList.contains("dark");
             window.google.accounts.id.renderButton(ref.current, { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text, width });
             return true;
         };
 
         const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => requestAnimationFrame(() => { render(); })) : null;
         observer?.observe(element);
-        if (render()) return () => observer?.disconnect();
+        // Redraw in the other theme when the page switches between light and dark.
+        const themeObserver = new MutationObserver(() => { renderedWidth = 0; render(); });
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+        if (render()) return () => { observer?.disconnect(); themeObserver.disconnect(); };
 
         let script = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
         if (!script) {
@@ -78,6 +83,7 @@ export default function GoogleSignInButton({ onCredential, onError, busy = false
         script.addEventListener("load", onLoad, { once: true });
         return () => {
             observer?.disconnect();
+            themeObserver.disconnect();
             script?.removeEventListener("load", onLoad);
         };
     }, [clientId, text]);

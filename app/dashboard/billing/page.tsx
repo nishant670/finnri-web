@@ -196,7 +196,6 @@ function Meter({ label, used, total, detail }: { label: string; used: number; to
 function CurrentPlanCard({ status }: { status: BillingStatus }) {
     const isPaid = Boolean(status.plan) && status.subscription_status === "active";
     const credits = status.credits;
-    const included = status.plan?.included_credits ?? 0;
     return (
         <Panel className="p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -213,9 +212,8 @@ function CurrentPlanCard({ status }: { status: BillingStatus }) {
                     <p className="mt-1 text-[13px] text-muted">AI credits left</p>
                 </div>
             </div>
-            <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+            <dl className="mt-5 grid gap-4 sm:max-w-md">
                 <Meter label="Used today" used={credits.daily_credits_used} total={credits.daily_limit} detail={`${credits.daily_credits_used} of ${credits.daily_limit} · resets ${formatDate(credits.reset_at)}`} />
-                {included > 0 ? <Meter label="Pass credits used" used={Math.max(0, included - credits.total_credits_remaining)} total={included} detail={`${Math.max(0, included - credits.total_credits_remaining).toLocaleString("en-IN")} of ${included.toLocaleString("en-IN")}`} /> : null}
             </dl>
         </Panel>
     );

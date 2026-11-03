@@ -45,6 +45,18 @@ export const SIP_PRESETS: readonly SIPInput[] = [
     { id: "custom", label: "Custom", monthlyInvestment: 10000, expectedAnnualReturnPercent: 8, tenureYears: 10, annualStepUpPercent: 0, currentCorpus: 0 },
 ];
 
+export type EMIPresetID = "home" | "car" | "personal" | "education";
+
+// Starting points for the public EMI calculator. The rates are illustrative,
+// not quotes: lenders price each borrower, so the page asks visitors to put in
+// the rate they were offered.
+export const EMI_PRESETS: readonly (EMIInput & { id: EMIPresetID; label: string })[] = [
+    { id: "home", label: "Home loan", principalAmount: 3000000, annualInterestRatePercent: 8.5, tenureMonths: 240 },
+    { id: "car", label: "Car loan", principalAmount: 800000, annualInterestRatePercent: 9.5, tenureMonths: 60 },
+    { id: "personal", label: "Personal loan", principalAmount: 300000, annualInterestRatePercent: 12, tenureMonths: 36 },
+    { id: "education", label: "Education loan", principalAmount: 1000000, annualInterestRatePercent: 10, tenureMonths: 84 },
+];
+
 export const PROJECTION_DISCLAIMER = "Projections are estimates based only on the assumptions provided; they are informational, not forecasts or financial advice.";
 
 function roundMoney(value: number) {
@@ -125,4 +137,33 @@ export function validateEMIInput(input: EMIInput) {
     if (!Number.isFinite(input.annualInterestRatePercent) || input.annualInterestRatePercent < 0 || input.annualInterestRatePercent > 100) errors.push("Interest rate must be between 0 and 100.");
     if (!Number.isInteger(input.tenureMonths) || input.tenureMonths < 1 || input.tenureMonths > 360) errors.push("Tenure must be between 1 and 360 months.");
     return errors;
+}
+
+/** The amortization schedule folded into loan years, for charts and tables. */
+export function summarizeEMIByYear(schedule: EMICalculation["schedule"]) {
+    const years: Array<{ year: number; principalPaid: number; interestPaid: number; closingBalance: number }> = [];
+    for (const row of schedule) {
+        const year = Math.ceil(row.month / 12);
+        const current = years[year - 1] ?? (years[year - 1] = { year, principalPaid: 0, interestPaid: 0, closingBalance: 0 });
+        current.principalPaid = roundMoney(current.principalPaid + row.principalAmount);
+        current.interestPaid = roundMoney(current.interestPaid + row.interestAmount);
+        current.closingBalance = row.closingBalance;
+    }
+    return years;
+}
+
+/**
+ * The SIP breakdown with running totals: what each year's monthly instalment
+ * was, what had gone in by year end (current corpus included), and the value.
+ */
+export function summarizeSIPByYear(result: SIPCalculation) {
+    // The last year can be part of a year (say 10.5 years); its instalments
+    // still came in at that year's monthly amount.
+    const finalMonths = Math.round(result.tenureYears * 12) % 12 || 12;
+    return result.breakdown.reduce<Array<{ year: number; monthlyInvestment: number; investedSoFar: number; value: number }>>((years, row, index) => {
+        const before = index === 0 ? result.currentCorpus : years[index - 1].investedSoFar;
+        const months = index === result.breakdown.length - 1 ? finalMonths : 12;
+        years.push({ year: row.year, monthlyInvestment: row.yearlyInvestment / months, investedSoFar: before + row.yearlyInvestment, value: row.yearEndValue });
+        return years;
+    }, []);
 }

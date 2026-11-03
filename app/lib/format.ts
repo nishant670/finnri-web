@@ -22,6 +22,20 @@ export function formatMoney(value: MoneyValue): string {
     return currency.format(Number.isFinite(amount) ? amount : 0);
 }
 
+/**
+ * Rupees the way people say big sums in India: "₹33.41 lakh", "₹1.2 crore".
+ * Below a lakh it is the plain amount.
+ */
+export function formatLakhCrore(value: number): string {
+    const amount = Number.isFinite(value) ? value : 0;
+    const sign = amount < 0 ? "-" : "";
+    const absolute = Math.abs(amount);
+    const short = (scaled: number) => scaled.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+    if (absolute >= 1e7) return `${sign}₹${short(absolute / 1e7)} crore`;
+    if (absolute >= 1e5) return `${sign}₹${short(absolute / 1e5)} lakh`;
+    return formatMoney(Math.round(amount));
+}
+
 /** Integer paise from billing/admin APIs, formatted only at the render boundary. */
 export function formatMinorMoney(value: MoneyValue): string {
     const minor = typeof value === "string" ? Number(value) : Number(value ?? 0);

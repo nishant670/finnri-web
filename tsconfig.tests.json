@@ -38,6 +38,8 @@
     "app/lib/form-summaries.ts",
     "app/lib/form-summaries.test.ts",
     "app/lib/feedback-attachments.ts",
-    "app/lib/feedback-attachments.test.ts"
+    "app/lib/feedback-attachments.test.ts",
+    "app/lib/demo-parse.ts",
+    "app/lib/demo-parse.test.ts"
   ]
 }

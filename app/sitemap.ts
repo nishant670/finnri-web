@@ -4,9 +4,12 @@ import { MERCHANT_IDENTITY_PUBLISHED, SITE_URL } from "@/app/lib/site";
 export default function sitemap(): MetadataRoute.Sitemap {
     const lastModified = new Date("2026-09-05");
     const contentUpdated = new Date("2026-10-07");
+    const toolsUpdated = new Date("2026-11-02");
     return [
         { url: SITE_URL, lastModified: contentUpdated, changeFrequency: "weekly", priority: 1 },
-        { url: `${SITE_URL}/tools`, lastModified, changeFrequency: "monthly", priority: 0.9 },
+        { url: `${SITE_URL}/tools`, lastModified: toolsUpdated, changeFrequency: "monthly", priority: 0.8 },
+        { url: `${SITE_URL}/tools/sip-calculator`, lastModified: toolsUpdated, changeFrequency: "monthly", priority: 0.9 },
+        { url: `${SITE_URL}/tools/emi-calculator`, lastModified: toolsUpdated, changeFrequency: "monthly", priority: 0.9 },
         { url: `${SITE_URL}/pricing`, lastModified: contentUpdated, changeFrequency: "monthly", priority: 0.8 },
         { url: `${SITE_URL}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.3 },
         { url: `${SITE_URL}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },

@@ -45,15 +45,14 @@ export default function AnalyticsPage() {
     return (
         <div className="space-y-7">
             <header>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Product intelligence</p>
-                <h1 className="mt-2 text-3xl font-bold font-rounded">Analytics</h1>
-                <p className="mt-2 text-sm text-text-muted">
+                <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Analytics</h1>
+                <p className="mt-2 text-sm text-muted">
                     Activation and retention are approximated from signups, sessions, entries, and AI usage—no screen-event pipeline.
                 </p>
             </header>
-            {error && <div className="rounded-xl bg-red-50 p-4 text-red-700">{error}</div>}
+            {error && <div className="rounded-xl bg-negative/10 p-4 text-negative">{error}</div>}
             {activation && adoption && (
-                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                     <StatTile label="Signup cohort" value={activation.cohort_size} />
                     <StatTile label="Onboarded" value={activation.onboarded} hint="Reached first transaction" />
                     <StatTile label="Registered users" value={adoption.registered_users} />
@@ -66,17 +65,17 @@ export default function AnalyticsPage() {
             )}
             <section className="grid gap-5 xl:grid-cols-2">
                 {activation && (
-                    <article className="rounded-panel border border-border bg-card p-6">
-                        <h2 className="text-lg font-bold font-rounded">7-day activation funnel</h2>
+                    <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                        <h2 className="text-[17px] font-bold">7-day activation funnel</h2>
                         <div className="mt-6">
                             <FunnelChart steps={activation.steps} />
                         </div>
                     </article>
                 )}
                 {engagement && (
-                    <article className="rounded-panel border border-border bg-card p-6">
-                        <h2 className="text-lg font-bold font-rounded">DAU / WAU / MAU</h2>
-                        <p className="mt-1 text-xs text-text-muted">Daily active-user series; chart shows DAU.</p>
+                    <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                        <h2 className="text-[17px] font-bold">DAU / WAU / MAU</h2>
+                        <p className="mt-1 text-xs text-muted">Daily active-user series; chart shows DAU.</p>
                         <div className="mt-5">
                             <TrendChart data={engagement.series} dataKey="dau" label="Daily active users" />
                         </div>
@@ -84,23 +83,23 @@ export default function AnalyticsPage() {
                 )}
             </section>
             {retention && (
-                <section className="rounded-panel border border-border bg-card p-6">
-                    <h2 className="text-lg font-bold font-rounded">Retention cohorts</h2>
-                    <p className="mt-1 text-xs text-text-muted">Signup week × weeks since signup; cells are percent active.</p>
+                <section className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                    <h2 className="text-[17px] font-bold">Retention cohorts</h2>
+                    <p className="mt-1 text-xs text-muted">Signup week × weeks since signup; cells are percent active.</p>
                     <div className="mt-5">
                         <CohortGrid cohorts={retention.cohorts} />
                     </div>
                 </section>
             )}
             {adoption && (
-                <section className="rounded-panel border border-border bg-card p-6">
-                    <h2 className="text-lg font-bold font-rounded">Feature adoption</h2>
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <section className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                    <h2 className="text-[17px] font-bold">Feature adoption</h2>
+                    <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
                         {adoption.features.map((feature) => (
-                            <div key={feature.code} className="rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-900">
-                                <p className="text-xs font-bold capitalize text-text-muted">{feature.code.replaceAll("_", " ")}</p>
-                                <p className="mt-3 text-2xl font-bold font-rounded">{percent(feature.percent)}</p>
-                                <p className="mt-1 text-xs text-text-muted">{feature.users} users</p>
+                            <div key={feature.code} className="rounded-2xl bg-track p-4">
+                                <p className="text-xs font-bold capitalize text-muted">{feature.code.replaceAll("_", " ")}</p>
+                                <p className="mt-3 text-2xl font-bold">{percent(feature.percent)}</p>
+                                <p className="mt-1 text-xs text-muted">{feature.users} users</p>
                             </div>
                         ))}
                     </div>

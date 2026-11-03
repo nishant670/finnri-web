@@ -57,9 +57,8 @@ export default function AdminUsersPage() {
         <div className="space-y-6">
             <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Customer directory</p>
-                    <h1 className="mt-2 text-3xl font-bold font-rounded">Users</h1>
-                    <p className="mt-2 text-sm text-text-muted">PII is masked in this list. Support-level detail views are audited.</p>
+                    <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Users</h1>
+                    <p className="mt-2 text-sm text-muted">PII is masked in this list. Support-level detail views are audited.</p>
                 </div>
                 <a
                     href="/api/admin/export/users.csv"
@@ -69,10 +68,10 @@ export default function AdminUsersPage() {
                     Export CSV
                 </a>
             </header>
-            <form onSubmit={search} className="flex flex-col gap-3 rounded-panel border border-border bg-card p-4 sm:flex-row">
+            <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row">
                 <label className="relative flex-1">
                     <span className="sr-only">Search users</span>
-                    <Search className="absolute left-4 top-3.5 h-4 w-4 text-text-muted" />
+                    <Search className="absolute left-4 top-3.5 h-4 w-4 text-muted" />
                     <input
                         value={q}
                         onChange={(event) => setQ(event.target.value)}
@@ -92,14 +91,14 @@ export default function AdminUsersPage() {
                     <option value="registered">Registered</option>
                     <option value="guest">Guests</option>
                 </select>
-                <button className="min-h-11 rounded-xl bg-accent px-6 text-sm font-bold text-zinc-950">Search</button>
+                <button className="min-h-11 rounded-xl bg-accent px-6 text-sm font-bold text-on-accent">Search</button>
             </form>
-            {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-300">{error}</div>}
+            {error && <div className="rounded-xl bg-negative/10 p-4 text-sm text-negative">{error}</div>}
             {loading ? (
                 <PageSkeleton rows={6} />
             ) : (
                 <>
-                    <div className="flex items-center justify-between text-xs text-text-muted">
+                    <div className="flex items-center justify-between text-xs text-muted">
                         <span>{total.toLocaleString("en-IN")} users</span>
                         <span>Page {page}</span>
                     </div>
@@ -111,12 +110,12 @@ export default function AdminUsersPage() {
                                 label: "User",
                                 render: (row) => (
                                     <Link href={`/admin/users/${row.id}`} className="flex items-center gap-3 font-bold hover:text-accent">
-                                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent-secondary text-accent">
+                                        <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-selected text-accent">
                                             <UserRound className="h-4 w-4" />
                                         </span>
                                         <span>
                                             {row.username}
-                                            <small className="mt-0.5 block font-normal text-text-muted">
+                                            <small className="mt-0.5 block font-normal text-muted">
                                                 #{row.id} · {row.email || row.phone || "Anonymous"}
                                             </small>
                                         </span>
@@ -127,7 +126,7 @@ export default function AdminUsersPage() {
                                 key: "kind",
                                 label: "Type",
                                 render: (row) => (
-                                    <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold dark:bg-zinc-800">
+                                    <span className="rounded-full bg-track px-2.5 py-1 text-xs font-bold">
                                         {row.is_guest ? "Guest" : "Registered"}
                                     </span>
                                 ),
@@ -140,7 +139,7 @@ export default function AdminUsersPage() {
                             {
                                 key: "activity",
                                 label: "Last active",
-                                render: (row) => <span className="text-text-muted">{formatDate(row.last_active_at)}</span>,
+                                render: (row) => <span className="text-muted">{formatDate(row.last_active_at)}</span>,
                             },
                             {
                                 key: "entries",

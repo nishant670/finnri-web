@@ -138,13 +138,12 @@ export default function OpsPage() {
     return (
         <div className="space-y-7">
             <header>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Operations & governance</p>
-                <h1 className="mt-2 text-3xl font-bold font-rounded">Ops</h1>
-                <p className="mt-2 text-sm text-text-muted">System health, audit evidence, moderation, plans, and admin access.</p>
+                <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Ops</h1>
+                <p className="mt-2 text-sm text-muted">System health, audit evidence, moderation, plans, and admin access.</p>
             </header>
-            {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+            {error && <div className="rounded-xl bg-negative/10 p-4 text-sm text-negative">{error}</div>}
             {health && (
-                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                     <StatTile label="Database" value={health.database.status} hint={`${health.database.latency_ms} ms latency`} />
                     <StatTile
                         label="AI circuit"
@@ -166,7 +165,7 @@ export default function OpsPage() {
             <section>
                 <div className="mb-4 flex items-center gap-2">
                     <Database className="h-5 w-5 text-accent" />
-                    <h2 className="text-lg font-bold font-rounded">Audit log</h2>
+                    <h2 className="text-[17px] font-bold">Audit log</h2>
                 </div>
                 <DataTable
                     rows={audit}
@@ -176,7 +175,7 @@ export default function OpsPage() {
                             key: "admin",
                             label: "Admin",
                             render: (row) =>
-                                row.admin_user_id ? `#${row.admin_user_id}` : <span className="text-text-muted">Machine token</span>,
+                                row.admin_user_id ? `#${row.admin_user_id}` : <span className="text-muted">Machine token</span>,
                         },
                         { key: "action", label: "Action", render: (row) => <span className="font-mono text-xs">{row.action}</span> },
                         {
@@ -188,21 +187,21 @@ export default function OpsPage() {
                             key: "payload",
                             label: "Payload",
                             render: (row) => (
-                                <span className="line-clamp-1 max-w-xs font-mono text-[10px] text-text-muted">{row.payload}</span>
+                                <span className="line-clamp-1 max-w-xs font-mono text-[10px] text-muted">{row.payload}</span>
                             ),
                         },
                     ]}
                 />
             </section>
             <RoleGate minimum="support">
-                <section className="rounded-panel border border-border bg-card p-6">
+                <section className="min-w-0 rounded-2xl border border-border bg-card p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <div className="flex items-center gap-2">
                                 <Ban className="h-5 w-5 text-accent" />
-                                <h2 className="text-lg font-bold font-rounded">AI abuse blocks</h2>
+                                <h2 className="text-[17px] font-bold">AI abuse blocks</h2>
                             </div>
-                            <p className="mt-1 text-xs text-text-muted">Support actions are audited.</p>
+                            <p className="mt-1 text-xs text-muted">Support actions are audited.</p>
                         </div>
                         <div className="flex gap-2">
                             <input
@@ -214,7 +213,7 @@ export default function OpsPage() {
                             />
                             <button
                                 onClick={() => void createBlock()}
-                                className="min-h-10 rounded-xl bg-red-600 px-4 text-xs font-bold text-white"
+                                className="min-h-10 rounded-xl bg-negative px-4 text-sm font-bold text-background"
                             >
                                 Block AI
                             </button>
@@ -235,7 +234,7 @@ export default function OpsPage() {
                                         row.active ? (
                                             <button
                                                 onClick={() => void lift(row)}
-                                                className="rounded-lg bg-zinc-100 px-3 py-2 text-xs font-bold dark:bg-zinc-800"
+                                                className="rounded-lg bg-track px-3 py-2 text-xs font-bold"
                                             >
                                                 Lift
                                             </button>
@@ -247,12 +246,12 @@ export default function OpsPage() {
                 </section>
             </RoleGate>
             <RoleGate minimum="owner">
-                <section className="rounded-panel border border-border bg-card p-6">
+                <section className="min-w-0 rounded-2xl border border-border bg-card p-6">
                     <div className="flex items-center gap-2">
                         <ShieldCheck className="h-5 w-5 text-accent" />
-                        <h2 className="text-lg font-bold font-rounded">Plan editor</h2>
+                        <h2 className="text-[17px] font-bold">Plan editor</h2>
                     </div>
-                    <p className="mt-1 text-xs text-text-muted">Prices are integer paise and feed the modelled MRR calculation.</p>
+                    <p className="mt-1 text-xs text-muted">Prices are integer paise and feed the modelled MRR calculation.</p>
                     <div className="mt-5 space-y-3">
                         {plans.map((plan) => (
                             <div
@@ -261,13 +260,13 @@ export default function OpsPage() {
                             >
                                 <div>
                                     <p className="font-bold">{plan.name}</p>
-                                    <p className="text-xs text-text-muted">
+                                    <p className="text-xs text-muted">
                                         {plan.code} · {formatMinorMoney(plan.price_minor)}
                                     </p>
                                 </div>
                                 {(["price_minor", "included_credits", "daily_credit_limit"] as const).map((field) => (
-                                    <label key={field} className="text-[10px] font-bold uppercase text-text-muted">
-                                        {field.replaceAll("_", " ")}
+                                    <label key={field} className="text-[13px] font-semibold text-muted">
+                                        {{ price_minor: "Price (paise)", included_credits: "Credits included", daily_credit_limit: "Daily credit limit" }[field]}
                                         <input
                                             type="number"
                                             value={plan[field]}
@@ -284,7 +283,7 @@ export default function OpsPage() {
                                 ))}
                                 <button
                                     onClick={() => void savePlan(plan)}
-                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-zinc-950"
+                                    className="self-end grid h-10 w-10 place-items-center rounded-xl bg-accent text-on-accent"
                                     aria-label={`Save ${plan.name}`}
                                 >
                                     <Save className="h-4 w-4" />
@@ -293,11 +292,11 @@ export default function OpsPage() {
                         ))}
                     </div>
                 </section>
-                <section className="rounded-panel border border-border bg-card p-6">
+                <section className="min-w-0 rounded-2xl border border-border bg-card p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div className="flex items-center gap-2">
                             <UserPlus className="h-5 w-5 text-accent" />
-                            <h2 className="text-lg font-bold font-rounded">Admin identities</h2>
+                            <h2 className="text-[17px] font-bold">Admin identities</h2>
                         </div>
                         <div className="flex gap-2">
                             <input
@@ -309,7 +308,7 @@ export default function OpsPage() {
                             />
                             <button
                                 onClick={() => void addAdmin()}
-                                className="min-h-10 rounded-xl bg-accent px-4 text-xs font-bold text-zinc-950"
+                                className="min-h-10 rounded-full bg-accent px-4 text-sm font-bold text-on-accent"
                             >
                                 Add viewer
                             </button>

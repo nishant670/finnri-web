@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarClock, Check, RefreshCw } from "lucide-react";
 import BudgetRow from "@/app/components/dashboard/BudgetProgressCard";
 import { buttonSecondary, EmptyPanel, ErrorNotice, iconButton, PageHeader, Panel, SectionTitle, Segmented } from "@/app/components/dashboard/kit";
@@ -42,13 +43,20 @@ function dueGroups(subscriptions: Subscription[]) {
     ].filter((group) => group.items.length);
 }
 
-function initialTab(): Tab {
-    return typeof window !== "undefined" && /^#(calculators|sip|emi)$/.test(window.location.hash) ? "calculators" : "bills";
-}
 
 export default function BudgetsAndBillsScreen() {
     const { toast } = useToast();
-    const [tab, setTab] = useState<Tab>(initialTab);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    // The tab lives in the URL (`?view=calculators`), so any link here, such as
+    // a bill notification to `#subscriptions`, lands on Bills & budgets even
+    // when Calculators was open.
+    const tab: Tab = searchParams.get("view") === "calculators" ? "calculators" : "bills";
+    const setTab = useCallback((next: Tab) => router.replace(next === "calculators" ? "/dashboard/tools?view=calculators" : "/dashboard/tools", { scroll: false }), [router]);
+    // Old links pointed at the calculators by hash.
+    useEffect(() => {
+        if (/^#(calculators|sip|emi)$/.test(window.location.hash) && searchParams.get("view") !== "calculators") router.replace(`/dashboard/tools?view=calculators${window.location.hash}`, { scroll: false });
+    }, [router, searchParams]);
     const [calculator, setCalculator] = useState<"sip" | "emi">(() => (typeof window !== "undefined" && window.location.hash === "#emi" ? "emi" : "sip"));
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [statuses, setStatuses] = useState<DashboardBudgetStatus[]>([]);

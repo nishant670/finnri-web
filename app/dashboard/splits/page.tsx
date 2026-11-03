@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ChevronDown, HandCoins, ReceiptText, RefreshCw, Users } from "lucide-react";
 import { SettlementDialog } from "@/app/components/dashboard/SplitDialogs";
 import { buttonPrimary, buttonSecondary, EmptyPanel, ErrorNotice, iconButton, Monogram, PageHeader, Panel, Segmented } from "@/app/components/dashboard/kit";
-import { apiErrorMessage, SplitAPI, SplitBalance, SplitBill, SplitFriend, SplitGroup, SplitSettlement } from "@/app/lib/api";
+import { apiErrorMessage, SplitActivityItem, SplitAPI, SplitBalance, SplitBill, SplitFriend, SplitGroup, SplitSettlement } from "@/app/lib/api";
 import { formatDate, formatMoney, formatRupees } from "@/app/lib/format";
-import { byMonth, groupBalance, groupLedger, personLedger, type LedgerEntry } from "@/app/lib/split-ledger";
+import { billNet, billPeople, byMonth, groupBalance, groupLedger, personLedger, settlementEffect, type LedgerEntry, type LedgerSettlement } from "@/app/lib/split-ledger";
 import { readJoinedGroupID, withoutJoinedGroup } from "@/app/lib/split-invite";
 import { cn } from "@/app/lib/utils";
 import { useToast } from "@/app/components/ui/Toast";
@@ -77,12 +77,36 @@ function LedgerList({ entries, emptyLabel }: { entries: LedgerEntry[]; emptyLabe
     );
 }
 
+const PAYMENT_PAGE_SIZE = 100;
+const PAYMENT_PAGE_LIMIT = 20;
+
+/** Every settlement row in the activity feed, a page at a time (the API caps a page at 100). */
+async function loadAllPayments() {
+    const items: SplitActivityItem[] = [];
+    for (let page = 1; page <= PAYMENT_PAGE_LIMIT; page += 1) {
+        const response = await SplitAPI.activity(page, PAYMENT_PAGE_SIZE, { type: "settlement" });
+        items.push(...response.data.items.filter((item) => item.type === "settlement"));
+        if (page * PAYMENT_PAGE_SIZE >= response.data.total || response.data.items.length === 0) break;
+    }
+    return items;
+}
+
+/** A feed payment in the ledger's terms; the feed already states it in the viewer's direction. */
+function asLedgerSettlement(item: SplitActivityItem): LedgerSettlement | null {
+    if (!item.friend_id || item.amount === undefined) return null;
+    const direction = item.direction === "friend_paid_user" || item.direction === "user_paid_friend" ? item.direction : null;
+    if (!direction) return null;
+    return { id: item.record_id, friend_id: item.friend_id, amount: Number(item.amount), direction, date: item.date, status: item.status, group_name: item.group_name };
+}
+
 export default function SplitsScreen() {
     const { toast } = useToast();
     const [friends, setFriends] = useState<SplitFriend[]>([]);
     const [groups, setGroups] = useState<SplitGroup[]>([]);
     const [bills, setBills] = useState<SplitBill[]>([]);
-    const [settlements, setSettlements] = useState<SplitSettlement[]>([]);
+    // Every payment between the viewer and anyone, whichever side recorded it,
+    // from the activity feed: the settlement list holds only the viewer's own.
+    const [payments, setPayments] = useState<SplitActivityItem[]>([]);
     const [balances, setBalances] = useState<SplitBalance[]>([]);
     // Settlements somebody else recorded against this user. A settlement moves
     // both ledgers on one person's word, and the person it names has to be able
@@ -103,13 +127,13 @@ export default function SplitsScreen() {
         setLoading(true);
         setError("");
         const [friendResult, groupResult, billResult, settlementResult, balanceResult, pendingResult] = await Promise.allSettled([
-            SplitAPI.listFriends(), SplitAPI.listGroups(), SplitAPI.listBills(), SplitAPI.listSettlements(), SplitAPI.balances(), SplitAPI.pendingSettlements(),
+            SplitAPI.listFriends(), SplitAPI.listGroups(), SplitAPI.listBills(), loadAllPayments(), SplitAPI.balances(), SplitAPI.pendingSettlements(),
         ]);
         const failed: string[] = [];
         if (friendResult.status === "fulfilled") setFriends(friendResult.value.data); else failed.push("friends");
         if (groupResult.status === "fulfilled") setGroups(groupResult.value.data); else failed.push("groups");
         if (billResult.status === "fulfilled") setBills(billResult.value.data); else failed.push("bills");
-        if (settlementResult.status === "fulfilled") setSettlements(settlementResult.value.data); else failed.push("settlements");
+        if (settlementResult.status === "fulfilled") setPayments(settlementResult.value); else failed.push("payments");
         if (balanceResult.status === "fulfilled") setBalances(balanceResult.value.data); else failed.push("balances");
         // A prompt that fails to load is a missing prompt, not a broken ledger.
         if (pendingResult.status === "fulfilled") setRequests(pendingResult.value.data.settlements ?? []);
@@ -132,6 +156,7 @@ export default function SplitsScreen() {
         if (joined) { setTab("groups"); setSelection({ kind: "group", id: joined.id }); }
     }, [hasLoaded, groups, toast]);
 
+    const settlements = useMemo(() => payments.map(asLedgerSettlement).filter((item): item is LedgerSettlement => item !== null), [payments]);
     const people = useMemo(() => [...balances].sort((a, b) => Math.abs(b.net_balance) - Math.abs(a.net_balance)), [balances]);
     const open = people.filter((balance) => Math.round(balance.net_balance) !== 0);
     const settled = people.filter((balance) => Math.round(balance.net_balance) === 0);
@@ -154,11 +179,15 @@ export default function SplitsScreen() {
 
     const activity = useMemo(() => {
         const entries: LedgerEntry[] = [
-            ...bills.map((bill) => ({ key: `bill-${bill.id}`, kind: "bill" as const, id: bill.id, date: bill.date, title: bill.title, detail: bill.group?.name || bill.participants.map((share) => share.friend.name).join(", "), amount: bill.total_amount, effect: bill.participants.reduce((total, share) => total + (share.direction === "friend_owes_user" ? share.share_amount : -share.share_amount), 0) })),
-            ...settlements.map((settlement) => ({ key: `settlement-${settlement.id}`, kind: "settlement" as const, id: settlement.id, date: settlement.date, title: settlement.direction === "friend_paid_user" ? `${settlement.friend.name} paid you` : `You paid ${settlement.friend.name}`, detail: settlement.group_name || "Settlement", amount: settlement.amount, effect: settlement.status === "denied" ? 0 : settlement.direction === "friend_paid_user" ? -settlement.amount : settlement.amount, status: settlement.status })),
+            ...bills.map((bill) => ({ key: `bill-${bill.id}`, kind: "bill" as const, id: bill.id, date: bill.date, title: bill.title, detail: bill.group?.name || billPeople(bill) || "Split", amount: bill.total_amount, effect: billNet(bill) })),
+            ...payments.flatMap((item) => {
+                const settlement = asLedgerSettlement(item);
+                if (!settlement) return [];
+                return [{ key: `settlement-${item.record_id}`, kind: "settlement" as const, id: item.record_id, date: item.date, title: item.title, detail: [item.group_name, item.actor_name ? `recorded by ${item.actor_name}` : ""].filter(Boolean).join(" · ") || "Payment", amount: settlement.amount, effect: settlementEffect(settlement), status: item.status }];
+            }),
         ];
         return entries.filter((entry) => activityFilter === "all" || entry.kind === activityFilter).sort((a, b) => (a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1));
-    }, [activityFilter, bills, settlements]);
+    }, [activityFilter, bills, payments]);
 
     const decide = async (settlement: SplitSettlement, decision: "confirm" | "deny") => {
         if (deciding) return;

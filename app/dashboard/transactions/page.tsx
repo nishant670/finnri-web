@@ -97,16 +97,20 @@ export default function TransactionsScreen() {
         setLoading(true); setError("");
         if (amountError || dateError) { setError(amountError || dateError); setLoading(false); setHasLoaded(true); return; }
         try {
-            const [response, report] = await Promise.all([
-                EntriesAPI.list(entryParams(true)),
-                ReportsAPI.transactionSummary(entryParams()).catch(() => null),
-            ]);
+            const response = await EntriesAPI.list(entryParams(true));
             setTransactions(response.data.entries); setTotalPages(Math.max(1, response.data.total_pages)); setTotal(response.data.total);
-            setSummary(report ? report.data.summary : null);
         } catch (requestError) { setError(apiErrorMessage(requestError, "We couldn’t load your transactions.")); }
         finally { setLoading(false); setHasLoaded(true); }
     }, [amountError, dateError, entryParams]);
     useEffect(() => { const timer = window.setTimeout(() => void loadTransactions(), 250); return () => window.clearTimeout(timer); }, [loadTransactions]);
+    // The totals cover every page, so they reload when a filter changes, not on paging.
+    const summaryKey = JSON.stringify(entryParams());
+    const loadSummary = useCallback(async () => {
+        if (amountError || dateError) { setSummary(null); return; }
+        try { setSummary((await ReportsAPI.transactionSummary(JSON.parse(summaryKey))).data.summary); }
+        catch { setSummary(null); }
+    }, [amountError, dateError, summaryKey]);
+    useEffect(() => { const timer = window.setTimeout(() => void loadSummary(), 250); return () => window.clearTimeout(timer); }, [loadSummary]);
     useEffect(() => {
         if (!entryIDParam || !/^\d+$/.test(entryIDParam)) return;
         let active = true;
@@ -135,7 +139,7 @@ export default function TransactionsScreen() {
         next.delete("entry_id");
         router.replace(next.size ? `/dashboard/transactions?${next.toString()}` : "/dashboard/transactions");
     };
-    const handleSaved = async (saved: Transaction) => { setTransactions((current) => current.map((item) => item.id === saved.id ? saved : item)); await loadTransactions(); if (editing) setSelectedTransaction(saved); };
+    const handleSaved = async (saved: Transaction) => { setTransactions((current) => current.map((item) => item.id === saved.id ? saved : item)); await Promise.all([loadTransactions(), loadSummary()]); if (editing) setSelectedTransaction(saved); };
 
     const days = useMemo(() => groupByDay(transactions, filters.page, totalPages), [transactions, filters.page, totalPages]);
     const first = total ? (filters.page - 1) * PAGE_SIZE + 1 : 0;
@@ -196,6 +200,6 @@ export default function TransactionsScreen() {
             )}
         </div>
         <AddTransactionModal isOpen={isModalOpen} onClose={closeModal} transaction={editing?.transaction} linkedSplitBill={editing?.splitBill} splitDataAvailable={editing?.splitDataAvailable} onSaved={handleSaved} />
-        <TransactionDetailsDrawer isOpen={Boolean(selectedTransaction) && !isModalOpen} transaction={selectedTransaction} onEdit={(transaction, splitBill, splitDataAvailable) => { setEditing({ transaction, splitBill, splitDataAvailable }); setIsModalOpen(true); }} onClose={closeSelectedTransaction} onChanged={() => { void loadTransactions(); }} />
+        <TransactionDetailsDrawer isOpen={Boolean(selectedTransaction) && !isModalOpen} transaction={selectedTransaction} onEdit={(transaction, splitBill, splitDataAvailable) => { setEditing({ transaction, splitBill, splitDataAvailable }); setIsModalOpen(true); }} onClose={closeSelectedTransaction} onChanged={() => { void loadTransactions(); void loadSummary(); }} />
     </>;
 }

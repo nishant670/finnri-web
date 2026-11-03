@@ -79,18 +79,20 @@ export default function DashboardHome() {
         setError("");
         try {
             const tz = timeZone();
-            const current = (await DashboardAPI.get({ start_date: startDate, end_date: endDate, tz })).data;
-            const compareRange = current.period.previous_start && current.period.previous_end
-                ? { start_date: current.period.previous_start, end_date: current.period.previous_end }
-                : comparisonRange({ start_date: startDate, end_date: endDate });
+            // `comparisonRange` mirrors the API's own rule, so the earlier
+            // windows are known up front and all three load together.
+            const compareRange = comparisonRange({ start_date: startDate, end_date: endDate });
             // A month is drawn against the whole month before it; any other
             // period against the same number of days before it.
             const lineRange = isWithinOneMonth({ start_date: startDate, end_date: endDate }) ? wholeMonthOf(compareRange.start_date) : compareRange;
             const sameWindow = lineRange.start_date === compareRange.start_date && lineRange.end_date === compareRange.end_date;
-            const [comparison, line] = await Promise.allSettled([
+            const [currentResult, comparison, line] = await Promise.allSettled([
+                DashboardAPI.get({ start_date: startDate, end_date: endDate, tz }),
                 DashboardAPI.get({ ...compareRange, tz }),
                 sameWindow ? Promise.resolve(null) : DashboardAPI.get({ ...lineRange, tz }),
             ]);
+            if (currentResult.status === "rejected") throw currentResult.reason;
+            const current = currentResult.value.data;
             const comparisonData = comparison.status === "fulfilled" ? comparison.value.data : null;
             const lineData = sameWindow ? comparisonData : line.status === "fulfilled" && line.value ? line.value.data : null;
             setData({ current, comparison: comparisonData, line: lineData, lineRange: lineData ? lineRange : null });

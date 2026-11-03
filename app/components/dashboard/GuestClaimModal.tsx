@@ -27,6 +27,9 @@ export default function GuestClaimModal() {
     const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
     const [identifier, setIdentifier] = useState("");
     const [savedAs, setSavedAs] = useState("");
+    // Set when Google signed into an account that already existed: the API
+    // signs in to it and leaves the guest's entries where they were.
+    const [joinedExisting, setJoinedExisting] = useState(false);
     const [otp, setOtp] = useState("");
     const [pin, setPin] = useState("");
     const [claimToken, setClaimToken] = useState("");
@@ -44,6 +47,7 @@ export default function GuestClaimModal() {
         setClaimToken("");
         setDevOTP("");
         setError("");
+        setJoinedExisting(false);
     }, [isGuestClaimOpen]);
 
     if (!isGuestClaimOpen || (!user?.is_guest && step !== "done")) return null;
@@ -56,9 +60,11 @@ export default function GuestClaimModal() {
         setLoading(true);
         setError("");
         try {
+            const guestUUID = user?.uuid;
             const saved = await claimGuestWithGoogle(credential, nonce);
             sessionStorage.removeItem("finnri_guest_prompt_dismissed");
             setSavedAs(saved.email || "your Google account");
+            setJoinedExisting(Boolean(guestUUID) && saved.uuid !== guestUUID);
             setStep("done");
         } catch (requestError) {
             setError(apiErrorMessage(requestError, "We couldn’t save this workspace. Your guest data is still here."));
@@ -180,7 +186,16 @@ export default function GuestClaimModal() {
                     </form>
                 )}
 
-                {step === "done" && (
+                {step === "done" && joinedExisting && (
+                    <div className="text-center">
+                        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-warning-surface text-warning"><AlertCircle className="h-7 w-7" /></span>
+                        <h2 id="guest-claim-title" className="font-display mt-4 text-2xl font-bold">You already had an account</h2>
+                        <p className="mt-1.5 text-[15px] leading-6 text-muted">You’re now signed in to your existing Finnri account, {savedAs}. What you added as a guest wasn’t moved into it, so add anything you still need here or in the app.</p>
+                        <button type="button" onClick={closeGuestClaim} className={`${primary} mt-6`}>Continue</button>
+                    </div>
+                )}
+
+                {step === "done" && !joinedExisting && (
                     <div className="text-center">
                         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-positive/15 text-positive"><CheckCircle2 className="h-7 w-7" /></span>
                         <h2 id="guest-claim-title" className="font-display mt-4 text-2xl font-bold">Workspace saved</h2>

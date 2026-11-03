@@ -1,18 +1,35 @@
 "use client";
 
 import React, { FormEvent, useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, Loader2, Lock, Mail, Phone, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Lock, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import { apiErrorMessage, AuthAPI } from "@/app/lib/api";
+import { EMAIL_LOGIN_ENABLED } from "@/app/lib/auth-policy";
 import Dialog from "@/app/components/ui/Dialog";
+import GoogleSignInButton from "@/app/components/ui/GoogleSignInButton";
+import { Segmented } from "@/app/components/dashboard/kit";
 
-type Step = "identifier" | "otp" | "pin" | "done";
+type Step = "choice" | "identifier" | "otp" | "pin" | "done";
 
+const field = "h-12 w-full rounded-xl border border-border bg-background px-4 text-[15px] outline-none transition focus:border-accent/60 focus:ring-4 focus:ring-accent/10";
+const primary = "flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-bold text-on-accent disabled:opacity-60";
+const back = "inline-flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-foreground";
+
+/**
+ * Saving a guest workspace. Google is the way in: the guest is upgraded in
+ * place, so every transaction, account and split stays. Email or phone with a
+ * PIN is offered only while `EMAIL_LOGIN_ENABLED` is on, since the API refuses
+ * one-time codes otherwise.
+ */
 export default function GuestClaimModal() {
-    const { isGuestClaimOpen, closeGuestClaim, claimGuest, user } = useAuth();
-    const [step, setStep] = useState<Step>("identifier");
+    const { isGuestClaimOpen, closeGuestClaim, claimGuest, claimGuestWithGoogle, user } = useAuth();
+    const [step, setStep] = useState<Step>("choice");
     const [identifierType, setIdentifierType] = useState<"email" | "phone">("email");
     const [identifier, setIdentifier] = useState("");
+    const [savedAs, setSavedAs] = useState("");
+    // Set when Google signed into an account that already existed: the API
+    // signs in to it and leaves the guest's entries where they were.
+    const [joinedExisting, setJoinedExisting] = useState(false);
     const [otp, setOtp] = useState("");
     const [pin, setPin] = useState("");
     const [claimToken, setClaimToken] = useState("");
@@ -22,7 +39,7 @@ export default function GuestClaimModal() {
 
     useEffect(() => {
         if (!isGuestClaimOpen) return;
-        setStep("identifier");
+        setStep("choice");
         setIdentifierType("email");
         setIdentifier("");
         setOtp("");
@@ -30,6 +47,7 @@ export default function GuestClaimModal() {
         setClaimToken("");
         setDevOTP("");
         setError("");
+        setJoinedExisting(false);
     }, [isGuestClaimOpen]);
 
     if (!isGuestClaimOpen || (!user?.is_guest && step !== "done")) return null;
@@ -37,6 +55,23 @@ export default function GuestClaimModal() {
     const normalizedIdentifier = identifierType === "email"
         ? identifier.trim().toLowerCase()
         : identifier.replace(/[\s()-]/g, "").trim();
+
+    const saveWithGoogle = async (credential: string, nonce: string) => {
+        setLoading(true);
+        setError("");
+        try {
+            const guestUUID = user?.uuid;
+            const saved = await claimGuestWithGoogle(credential, nonce);
+            sessionStorage.removeItem("finnri_guest_prompt_dismissed");
+            setSavedAs(saved.email || "your Google account");
+            setJoinedExisting(Boolean(guestUUID) && saved.uuid !== guestUUID);
+            setStep("done");
+        } catch (requestError) {
+            setError(apiErrorMessage(requestError, "We couldn’t save this workspace. Your guest data is still here."));
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const sendCode = async (event: FormEvent) => {
         event.preventDefault();
@@ -88,6 +123,7 @@ export default function GuestClaimModal() {
         try {
             await claimGuest(claimToken, pin);
             sessionStorage.removeItem("finnri_guest_prompt_dismissed");
+            setSavedAs(identifier);
             setStep("done");
         } catch (requestError) {
             setError(apiErrorMessage(requestError, "We couldn’t save this workspace. Your guest data is still here."));
@@ -97,41 +133,77 @@ export default function GuestClaimModal() {
     };
 
     return (
-        <Dialog open={isGuestClaimOpen} onClose={closeGuestClaim} labelledBy="guest-claim-title" className="z-[140]" panelClassName="max-h-[calc(100dvh-2rem)] max-w-md">
-                <header className="flex items-start justify-between gap-4 border-b border-border p-6">
-                    <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Keep your data</p><h2 id="guest-claim-title" className="mt-2 text-2xl font-bold font-rounded">Save this workspace</h2></div>
-                    <button type="button" onClick={closeGuestClaim} className="rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="Close save workspace"><X className="h-5 w-5" /></button>
-                </header>
-                <div className="p-6">
-                    {error && <p role="alert" className="mb-5 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
+        <Dialog open={isGuestClaimOpen} onClose={closeGuestClaim} labelledBy="guest-claim-title" className="z-[140]" panelClassName="sm:max-w-md">
+            <header className="flex items-start justify-between gap-4 px-6 pt-6">
+                <span className="grid h-11 w-11 place-items-center rounded-[12px] bg-selected text-accent"><ShieldCheck className="h-5 w-5" /></span>
+                <button type="button" onClick={closeGuestClaim} className="grid h-10 w-10 place-items-center rounded-full text-muted hover:bg-track hover:text-foreground" aria-label="Close"><X className="h-5 w-5" /></button>
+            </header>
+            <div className="px-6 pb-6 pt-4">
+                {error && <p role="alert" className="mb-4 flex items-start gap-2 rounded-xl bg-negative/10 p-3 text-sm font-semibold text-negative"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
 
-                    {step === "identifier" && <form onSubmit={sendCode} className="space-y-5">
-                        <p className="text-sm leading-6 text-zinc-500">Verify an email or phone and everything you’ve added here — transactions, accounts and splits — moves into your account.</p>
-                        <div className="grid grid-cols-2 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
-                            <button type="button" onClick={() => { setIdentifierType("email"); setIdentifier(""); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-lg text-xs font-bold ${identifierType === "email" ? "bg-white text-accent shadow-sm dark:bg-zinc-700" : "text-zinc-400"}`}><Mail className="h-4 w-4" />Email</button>
-                            <button type="button" onClick={() => { setIdentifierType("phone"); setIdentifier(""); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-lg text-xs font-bold ${identifierType === "phone" ? "bg-white text-accent shadow-sm dark:bg-zinc-700" : "text-zinc-400"}`}><Phone className="h-4 w-4" />Phone</button>
+                {step === "choice" && (
+                    <div className="space-y-5">
+                        <div>
+                            <h2 id="guest-claim-title" className="font-display text-2xl font-bold">Save this workspace</h2>
+                            <p className="mt-1.5 text-[15px] leading-6 text-muted">Sign in with Google and everything you’ve added as a guest (transactions, accounts and splits) moves into your account. Then it’s on every device you sign in to, including the Finnri app.</p>
                         </div>
-                        <label className="block space-y-2"><span className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-400">{identifierType === "email" ? "Email address" : "Phone number"}</span><input autoFocus required type={identifierType === "email" ? "email" : "tel"} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={identifierType === "email" ? "name@example.com" : "+91 98765 43210"} className="min-h-14 w-full rounded-2xl bg-zinc-100 px-4 outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800" /></label>
-                        <button disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent font-bold text-zinc-950 disabled:opacity-60">{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Send verification code <ArrowRight className="h-4 w-4" /></>}</button>
-                    </form>}
+                        <GoogleSignInButton busy={loading} onCredential={(credential, nonce) => void saveWithGoogle(credential, nonce)} onError={setError} />
+                        {loading && <p className="flex items-center justify-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Saving your workspace…</p>}
+                        {EMAIL_LOGIN_ENABLED && <button type="button" onClick={() => { setStep("identifier"); setError(""); }} className="w-full text-center text-sm font-semibold text-muted underline underline-offset-4 hover:text-foreground">Use email or phone instead</button>}
+                        <p className="text-[13px] text-muted">Until you save it, this workspace lives only in this browser. Clearing its data or switching device can lose it.</p>
+                    </div>
+                )}
 
-                    {step === "otp" && <form onSubmit={verifyCode} className="space-y-5">
-                        <button type="button" onClick={() => { setStep("identifier"); setError(""); }} className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-accent"><ArrowLeft className="h-4 w-4" />Change {identifierType}</button>
-                        <div><h3 className="text-lg font-bold">Verify your {identifierType}</h3><p className="mt-1 text-sm text-zinc-500">Enter the code sent to {identifier}.</p></div>
-                        {devOTP && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"><p className="text-[10px] font-bold uppercase tracking-wider">Local development code</p><div className="mt-2 flex items-center justify-between"><code className="text-lg font-bold tracking-[0.2em]">{devOTP}</code><button type="button" onClick={() => setOtp(devOTP)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold dark:bg-amber-900/40">Use code</button></div></div>}
-                        <input autoFocus required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} inputMode="numeric" maxLength={6} aria-label="Verification code" placeholder="000000" className="min-h-16 w-full rounded-2xl bg-zinc-100 px-4 text-center text-2xl font-bold tracking-[0.4em] outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800" />
-                        <button disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent font-bold text-zinc-950 disabled:opacity-60">{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Verify code <CheckCircle2 className="h-4 w-4" /></>}</button>
-                    </form>}
+                {step === "identifier" && (
+                    <form onSubmit={sendCode} className="space-y-4">
+                        <button type="button" onClick={() => { setStep("choice"); setError(""); }} className={back}><ArrowLeft className="h-4 w-4" /> Back</button>
+                        <h2 id="guest-claim-title" className="font-display text-2xl font-bold">Save with email or phone</h2>
+                        <Segmented label="Use" options={[{ value: "email", label: "Email" }, { value: "phone", label: "Phone" }] as const} value={identifierType} onChange={(value) => { setIdentifierType(value); setIdentifier(""); setError(""); }} className="w-full" />
+                        <label className="block">
+                            <span className="text-sm font-semibold text-muted">{identifierType === "email" ? "Email address" : "Phone number"}</span>
+                            <input autoFocus required type={identifierType === "email" ? "email" : "tel"} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={identifierType === "email" ? "name@example.com" : "+91 98765 43210"} className={`${field} mt-1`} />
+                        </label>
+                        <button disabled={loading} className={primary}>{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send a code"}</button>
+                    </form>
+                )}
 
-                    {step === "pin" && <form onSubmit={finishClaim} className="space-y-5">
-                        <button type="button" onClick={() => { setStep("otp"); setError(""); }} className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-accent"><ArrowLeft className="h-4 w-4" />Back</button>
-                        <div><h3 className="text-lg font-bold">Create a 4-digit PIN</h3><p className="mt-1 text-sm leading-6 text-zinc-500">Use it with {identifier} on another browser or device.</p></div>
-                        <span className="relative block"><Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" /><input autoFocus required type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))} aria-label="Four digit PIN" placeholder="••••" className="min-h-16 w-full rounded-2xl bg-zinc-100 pl-12 pr-4 text-center text-2xl font-bold tracking-[0.4em] outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800" /></span>
-                        <button disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent font-bold text-zinc-950 disabled:opacity-60">{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Save this workspace <ShieldCheck className="h-4 w-4" /></>}</button>
-                    </form>}
+                {step === "otp" && (
+                    <form onSubmit={verifyCode} className="space-y-4">
+                        <button type="button" onClick={() => { setStep("identifier"); setError(""); }} className={back}><ArrowLeft className="h-4 w-4" /> Change {identifierType}</button>
+                        <div><h2 id="guest-claim-title" className="font-display text-2xl font-bold">Enter the code</h2><p className="mt-1 text-[15px] text-muted">Sent to {identifier}.</p></div>
+                        {devOTP && process.env.NODE_ENV !== "production" && <div className="flex items-center justify-between rounded-xl bg-warning-surface p-3 text-warning"><span className="text-sm font-semibold">Local code <code className="ml-1 text-base font-bold tracking-[0.2em]">{devOTP}</code></span><button type="button" onClick={() => setOtp(devOTP)} className="rounded-full bg-card px-3 py-1.5 text-sm font-bold">Use it</button></div>}
+                        <input autoFocus required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="one-time-code" maxLength={6} aria-label="Verification code" placeholder="000000" className={`${field} h-14 text-center text-2xl font-bold tracking-[0.4em]`} />
+                        <button disabled={loading} className={primary}>{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify"}</button>
+                    </form>
+                )}
 
-                    {step === "done" && <div className="text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30"><CheckCircle2 className="h-7 w-7" /></span><h3 className="mt-4 text-xl font-bold">Workspace saved</h3><p className="mt-2 text-sm leading-6 text-zinc-500">Your transactions, accounts, and splits stayed here. You can now sign in with {identifier} on another device.</p><button type="button" onClick={closeGuestClaim} className="mt-6 min-h-12 w-full rounded-xl bg-accent font-bold text-zinc-950">Continue in dashboard</button></div>}
-                </div>
+                {step === "pin" && (
+                    <form onSubmit={finishClaim} className="space-y-4">
+                        <button type="button" onClick={() => { setStep("otp"); setError(""); }} className={back}><ArrowLeft className="h-4 w-4" /> Back</button>
+                        <div><h2 id="guest-claim-title" className="font-display text-2xl font-bold">Create a 4-digit PIN</h2><p className="mt-1 text-[15px] text-muted">You’ll use it with {identifier} on other devices.</p></div>
+                        <span className="relative block"><Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input autoFocus required type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))} aria-label="Four digit PIN" placeholder="••••" className={`${field} h-14 pl-12 text-center text-2xl font-bold tracking-[0.4em]`} /></span>
+                        <button disabled={loading} className={primary}>{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Save this workspace"}</button>
+                    </form>
+                )}
+
+                {step === "done" && joinedExisting && (
+                    <div className="text-center">
+                        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-warning-surface text-warning"><AlertCircle className="h-7 w-7" /></span>
+                        <h2 id="guest-claim-title" className="font-display mt-4 text-2xl font-bold">You already had an account</h2>
+                        <p className="mt-1.5 text-[15px] leading-6 text-muted">You’re now signed in to your existing Finnri account, {savedAs}. What you added as a guest wasn’t moved into it, so add anything you still need here or in the app.</p>
+                        <button type="button" onClick={closeGuestClaim} className={`${primary} mt-6`}>Continue</button>
+                    </div>
+                )}
+
+                {step === "done" && !joinedExisting && (
+                    <div className="text-center">
+                        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-positive/15 text-positive"><CheckCircle2 className="h-7 w-7" /></span>
+                        <h2 id="guest-claim-title" className="font-display mt-4 text-2xl font-bold">Workspace saved</h2>
+                        <p className="mt-1.5 text-[15px] leading-6 text-muted">Everything stayed where it was. Sign in as {savedAs} on any device to see it.</p>
+                        <button type="button" onClick={closeGuestClaim} className={`${primary} mt-6`}>Done</button>
+                    </div>
+                )}
+            </div>
         </Dialog>
     );
 }

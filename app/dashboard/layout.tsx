@@ -8,7 +8,7 @@ export default function DashboardRouteLayout({ children }: Readonly<{ children: 
     return (
         <ThemeProvider>
             <AuthProvider>
-                <Suspense fallback={<div className="grid min-h-screen place-items-center bg-zinc-50 text-sm font-semibold text-zinc-500">Opening your dashboard…</div>}>
+                <Suspense fallback={<div className="grid min-h-screen place-items-center bg-background text-sm font-semibold text-muted">Opening your dashboard…</div>}>
                     <ToastProvider><DashboardLayout>{children}</DashboardLayout></ToastProvider>
                 </Suspense>
             </AuthProvider>

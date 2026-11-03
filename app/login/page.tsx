@@ -1,24 +1,11 @@
 "use client";
 
 import React, { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-    AlertCircle,
-    ArrowLeft,
-    ArrowRight,
-    CheckCircle2,
-    ChevronRight,
-    KeyRound,
-    Loader2,
-    Lock,
-    Mail,
-    Phone,
-    ShieldCheck,
-    Smartphone,
-    UserRound,
-} from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, ChevronRight, KeyRound, Loader2, Lock, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import BrandMark from "@/app/components/ui/BrandMark";
+import GoogleSignInButton from "@/app/components/ui/GoogleSignInButton";
 import { apiErrorMessage, AuthAPI } from "@/app/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
 import { EMAIL_LOGIN_ENABLED } from "@/app/lib/auth-policy";
@@ -35,19 +22,6 @@ function formatCountdown(totalSeconds: number) {
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-declare global {
-    interface Window {
-        google?: {
-            accounts?: {
-                id?: {
-                    initialize: (config: { client_id: string; callback: (response: { credential?: string }) => void; nonce?: string }) => void;
-                    renderButton: (element: HTMLElement, options: Record<string, string | number | boolean>) => void;
-                };
-            };
-        };
-    }
-}
-
 function webDeviceID() {
     const existing = localStorage.getItem("finnri_web_device_id");
     if (existing) return existing;
@@ -59,7 +33,6 @@ function webDeviceID() {
 export default function LoginPage() {
     const router = useRouter();
     const { login, loginAsGuest, user, token, isLoading: authIsLoading } = useAuth();
-    const googleButtonRef = useRef<HTMLDivElement | null>(null);
     const [step, setStep] = useState<LoginStep>("choice");
     const [authMode, setAuthMode] = useState<AuthMode>("login");
     const [loginType, setLoginType] = useState<"email" | "phone">("email");
@@ -75,7 +48,6 @@ export default function LoginPage() {
     const [otpExpiresAt, setOtpExpiresAt] = useState("");
     const [resendAvailableAt, setResendAvailableAt] = useState(0);
     const [otpClock, setOtpClock] = useState(() => Date.now());
-    const googleNonce = useRef<string>("");
     const completingAuth = useRef(false);
 
     const completeLogin = useCallback((newToken: string, newUser: Parameters<typeof login>[1]) => {
@@ -102,90 +74,25 @@ export default function LoginPage() {
         return () => window.clearInterval(timer);
     }, [step]);
 
-    useEffect(() => {
-        if (step !== "choice" || !googleButtonRef.current) return;
-        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-        if (!clientId) return;
-
-        googleNonce.current = crypto.randomUUID();
-        const handleCredential = async (response: { credential?: string }) => {
-            if (!response.credential) {
-                setError("Google did not return a sign-in token.");
-                return;
-            }
-            setIsGoogleLoading(true);
-            setError(null);
-            try {
-                const result = await AuthAPI.loginGoogle({
-                    id_token: response.credential,
-                    nonce: googleNonce.current,
-                    guest_uuid: user?.is_guest ? user.uuid : undefined,
-                    device_id: webDeviceID(),
-                    biometrics_enabled: false,
-                });
-                trackAnalyticsEvent(ANALYTICS_EVENTS.funnelAuthenticated, { method: "google" });
-                completeLogin(result.data.token, result.data.user);
-            } catch (requestError) {
-                setError(apiErrorMessage(requestError, "Google sign-in failed."));
-            } finally {
-                setIsGoogleLoading(false);
-            }
-        };
-
-        let renderedGoogleButtonWidth = 0;
-        const getGoogleButtonWidth = () => {
-            if (!googleButtonRef.current) return 400;
-            const containerWidth = Math.floor(googleButtonRef.current.getBoundingClientRect().width);
-            return Math.min(Math.max(containerWidth, 200), 400);
-        };
-
-        const renderGoogleButton = () => {
-            if (!window.google?.accounts?.id || !googleButtonRef.current) return false;
-            const buttonWidth = getGoogleButtonWidth();
-            if (buttonWidth === renderedGoogleButtonWidth && googleButtonRef.current.childElementCount > 0) return true;
-            renderedGoogleButtonWidth = buttonWidth;
-            googleButtonRef.current.innerHTML = "";
-            window.google.accounts.id.initialize({
-                client_id: clientId,
-                callback: handleCredential,
-                nonce: googleNonce.current,
+    const handleGoogleCredential = async (credential: string, nonce: string) => {
+        setIsGoogleLoading(true);
+        setError(null);
+        try {
+            const result = await AuthAPI.loginGoogle({
+                id_token: credential,
+                nonce,
+                guest_uuid: user?.is_guest ? user.uuid : undefined,
+                device_id: webDeviceID(),
+                biometrics_enabled: false,
             });
-            window.google.accounts.id.renderButton(googleButtonRef.current, {
-                type: "standard",
-                theme: "outline_dark",
-                size: "large",
-                shape: "pill",
-                text: "continue_with",
-                width: buttonWidth,
-            });
-            return true;
-        };
-
-        const resizeObserver = typeof ResizeObserver !== "undefined" && googleButtonRef.current
-            ? new ResizeObserver(() => requestAnimationFrame(() => { renderGoogleButton(); }))
-            : null;
-        resizeObserver?.observe(googleButtonRef.current);
-
-        if (renderGoogleButton()) return () => resizeObserver?.disconnect();
-        const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]');
-        if (existingScript) {
-            existingScript.addEventListener("load", renderGoogleButton, { once: true });
-            return () => {
-                resizeObserver?.disconnect();
-                existingScript.removeEventListener("load", renderGoogleButton);
-            };
+            trackAnalyticsEvent(ANALYTICS_EVENTS.funnelAuthenticated, { method: "google" });
+            completeLogin(result.data.token, result.data.user);
+        } catch (requestError) {
+            setError(apiErrorMessage(requestError, "Google sign-in failed."));
+        } finally {
+            setIsGoogleLoading(false);
         }
-        const script = document.createElement("script");
-        script.src = "https://accounts.google.com/gsi/client";
-        script.async = true;
-        script.defer = true;
-        script.addEventListener("load", renderGoogleButton, { once: true });
-        document.head.appendChild(script);
-        return () => {
-            resizeObserver?.disconnect();
-            script.removeEventListener("load", renderGoogleButton);
-        };
-    }, [completeLogin, step, user?.is_guest, user?.uuid]);
+    };
 
     const normalizedIdentifier = () => loginType === "email"
         ? identifier.trim().toLowerCase()
@@ -317,85 +224,95 @@ export default function LoginPage() {
     const expirySeconds = Number.isFinite(expiresAtTime) ? Math.max(0, Math.ceil((expiresAtTime - otpClock) / 1000)) : 0;
 
     if (authIsLoading || token) {
-        return <main className="grid min-h-screen place-items-center bg-[#FDF5F7] text-sm font-semibold text-zinc-500 dark:bg-zinc-950">Opening your dashboard…</main>;
+        return <main className="font-body grid min-h-screen place-items-center bg-background text-sm font-semibold text-muted">Opening your dashboard…</main>;
     }
 
+    const field = "h-12 w-full rounded-xl border border-border bg-background px-4 text-[15px] outline-none transition focus:border-accent/60 focus:ring-4 focus:ring-accent/10";
+    const primary = "flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-bold text-on-accent transition hover:brightness-105 disabled:opacity-60";
+    const backButton = "inline-flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-foreground";
+    const option = "group flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-accent/50 hover:bg-selected disabled:opacity-60";
+
     return (
-        <main className="min-h-screen bg-[#FDF5F7] p-4 dark:bg-zinc-950 sm:grid sm:place-items-center sm:p-6">
-            <div className="mx-auto flex min-h-[680px] w-full max-w-md flex-col overflow-hidden rounded-panel border border-border bg-white shadow-2xl shadow-accent/5 dark:bg-zinc-900 sm:rounded-panel">
-                <div className="flex-1 p-6 sm:p-9">
-                    <Link href="/" className="mx-auto flex w-fit flex-col items-center gap-3">
-                        <span className="relative grid h-16 w-36 place-items-center overflow-hidden rounded-2xl bg-zinc-950 shadow-xl shadow-zinc-950/15 dark:bg-zinc-800"><Image src="/finnri-logo.png" alt="Finnri" fill sizes="144px" className="scale-[2.35] object-contain" priority /></span>
-                        <span className="text-center text-xs font-medium text-zinc-500 dark:text-zinc-300">Your money, understood.</span>
-                    </Link>
+        <main className="font-body relative isolate flex min-h-screen flex-col bg-background text-foreground">
+            <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden"><div className="absolute -top-40 right-[-10%] h-[480px] w-[480px] rounded-full blur-[120px]" style={{ background: "var(--glow)" }} /></div>
+            <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
+                <Link href="/" aria-label="Finnri home"><BrandMark compact tagline={false} /></Link>
+                <Link href="/" className="inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back to site</Link>
+            </header>
+            <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 pb-12 sm:px-6 lg:grid-cols-[1fr_440px] lg:gap-16">
+                <section className="hidden lg:block">
+                    <h2 className="font-display text-balance text-5xl font-bold leading-[1.05]">Your money, <span className="text-ink-gradient">understood.</span></h2>
+                    <p className="mt-4 max-w-md text-lg leading-relaxed text-muted">The dashboard is where you read it: where it went, what’s due, who owes whom, month against month.</p>
+                    <ul className="mt-8 space-y-3 text-[15px]">
+                        {["Same account as the Finnri app", "Totals from transactions you confirmed", "Never asks for a bank login"].map((point) => <li key={point} className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-accent" />{point}</li>)}
+                    </ul>
+                </section>
 
-                    <div className="mt-8">
-                        {notice && <div role="status" className="mb-5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{notice}</span></div>}
-                        {error && <div role="alert" className="mb-5 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-600 dark:bg-red-950/30 dark:text-red-300"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
+                <section className="w-full rounded-3xl border border-border bg-card p-6 shadow-[0_24px_60px_-40px_rgba(20,10,5,0.45)] sm:p-8">
+                    {notice && <div role="status" className="mb-5 flex items-start gap-2 rounded-xl bg-warning-surface p-3 text-sm font-semibold text-warning"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{notice}</span></div>}
+                    {error && <div role="alert" className="mb-5 flex items-start gap-2 rounded-xl bg-negative/10 p-3 text-sm font-semibold text-negative"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
 
-                        {step === "choice" && <div className="space-y-3">
-                            <div className="mb-6 text-center"><h1 className="text-2xl font-bold font-rounded">Open your dashboard</h1><p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-300">Sign in with Google, or start securely as a guest.</p></div>
-                            <div className="min-h-12 w-full">
-                                {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
-                                    <div className={`flex w-full justify-center [&>div]:!w-full [&_iframe]:!w-full ${isGoogleLoading ? "pointer-events-none opacity-60" : ""}`} ref={googleButtonRef} />
-                                ) : (
-                                    <button disabled className="flex min-h-14 w-full items-center justify-center rounded-2xl border border-border bg-zinc-50 text-sm font-bold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                                        Google sign-in is not configured
-                                    </button>
-                                )}
-                            </div>
-                            {/*
-                              Email and phone sign-in are switched off for
-                              launch — the backend refuses OTP outright, so
-                              offering these would walk someone into a 503 on
-                              the one screen they cannot get past.
-                            */}
-                            {EMAIL_LOGIN_ENABLED && <>
-                            <div className="relative py-3"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><span className="relative mx-auto block w-fit bg-white px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:bg-zinc-900 dark:text-zinc-300">or use PIN</span></div>
-                            <button onClick={() => chooseType("email")} className="group flex min-h-20 w-full items-center justify-between rounded-2xl border border-border bg-zinc-50 p-4 text-left transition hover:border-accent/30 hover:bg-white dark:bg-zinc-800/50 dark:hover:bg-zinc-800"><span className="flex items-center gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-accent/10 text-accent"><Mail className="h-5 w-5" /></span><span><span className="block font-bold">Continue with email</span><span className="mt-1 block text-xs text-zinc-500 dark:text-zinc-400">PIN for returning users, OTP to register</span></span></span><ChevronRight className="h-5 w-5 text-zinc-400 transition group-hover:translate-x-1 group-hover:text-accent" /></button>
-                            <button onClick={() => chooseType("phone")} className="group flex min-h-20 w-full items-center justify-between rounded-2xl border border-border bg-zinc-50 p-4 text-left transition hover:border-accent/30 hover:bg-white dark:bg-zinc-800/50 dark:hover:bg-zinc-800"><span className="flex items-center gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-accent/10 text-accent"><Phone className="h-5 w-5" /></span><span><span className="block font-bold">Continue with phone</span><span className="mt-1 block text-xs text-zinc-500 dark:text-zinc-400">Use your number with country code</span></span></span><ChevronRight className="h-5 w-5 text-zinc-400 transition group-hover:translate-x-1 group-hover:text-accent" /></button>
-                            </>}
-                            <div className="relative py-3"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><span className="relative mx-auto block w-fit bg-white px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:bg-zinc-900 dark:text-zinc-300">or</span></div>
-                            <button onClick={() => void handleGuestLogin()} disabled={isLoading} className="flex min-h-20 w-full items-center justify-between rounded-2xl border border-dashed border-accent/30 bg-accent/5 p-4 text-left text-accent disabled:opacity-60"><span className="flex items-center gap-4"><span className="grid h-11 w-11 place-items-center rounded-xl bg-accent text-zinc-950">{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <UserRound className="h-5 w-5" />}</span><span><span className="block font-bold">Continue as guest</span><span className="mt-1 block text-xs text-accent/70">Try everything first — no sign-up needed</span></span></span><ArrowRight className="h-4 w-4" /></button>
+                    {step === "choice" && <div className="space-y-5">
+                        <div>
+                            <h1 className="font-display text-[28px] font-bold leading-tight">Open your dashboard</h1>
+                            <p className="mt-1.5 text-[15px] text-muted">Sign in with the Google account you use in the app, or look around as a guest.</p>
+                        </div>
+                        <GoogleSignInButton busy={isGoogleLoading} onCredential={(credential, nonce) => void handleGoogleCredential(credential, nonce)} onError={setError} />
+                        {isGoogleLoading && <p className="flex items-center justify-center gap-2 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Signing you in…</p>}
+                        {/*
+                          Email and phone sign-in are switched off for
+                          launch — the backend refuses OTP outright, so
+                          offering these would walk someone into a 503 on
+                          the one screen they cannot get past.
+                        */}
+                        {EMAIL_LOGIN_ENABLED && <div className="space-y-2">
+                            <button type="button" onClick={() => chooseType("email")} className={option}><span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-track"><Mail className="h-5 w-5" /></span><span className="min-w-0 flex-1"><span className="block font-semibold">Continue with email</span><span className="block text-[13px] text-muted">PIN for returning users, a code to register</span></span><ChevronRight className="h-5 w-5 text-muted" /></button>
+                            <button type="button" onClick={() => chooseType("phone")} className={option}><span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-track"><Phone className="h-5 w-5" /></span><span className="min-w-0 flex-1"><span className="block font-semibold">Continue with phone</span><span className="block text-[13px] text-muted">Your number with country code</span></span><ChevronRight className="h-5 w-5 text-muted" /></button>
                         </div>}
+                        <div className="flex items-center gap-3 text-[13px] text-muted"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
+                        <button type="button" onClick={() => void handleGuestLogin()} disabled={isLoading} className={option}>
+                            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-selected text-accent"><UserRound className="h-5 w-5" /></span>
+                            <span className="min-w-0 flex-1"><span className="block font-semibold">Continue as a guest</span><span className="block text-[13px] text-muted">Try everything first, no sign-up</span></span>
+                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted" /> : <ArrowRight className="h-5 w-5 text-muted transition-transform group-hover:translate-x-0.5" />}
+                        </button>
+                        <p className="border-t border-border pt-4 text-[13px] leading-5 text-muted">Coming from the app? Use the same Google account. If you signed up in the app with a PIN instead, keep using the app until email and phone sign-in come to the web.</p>
+                    </div>}
 
-                        {step === "identifier" && <form onSubmit={handleIdentify} className="space-y-5">
-                            <button type="button" onClick={() => { setStep("choice"); setError(null); }} className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-accent dark:text-zinc-400"><ArrowLeft className="h-4 w-4" /> Sign-in options</button>
-                            <div><h1 className="text-2xl font-bold font-rounded">Enter your {loginType}</h1><p className="mt-2 text-sm leading-6 text-zinc-500">We’ll check whether you already have a Finnri account.</p></div>
-                            <label className="block space-y-2"><span className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{loginType === "email" ? "Email address" : "Phone number"}</span><span className="relative block">{loginType === "email" ? <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" /> : <Phone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />}<input required type={loginType === "email" ? "email" : "tel"} inputMode={loginType === "email" ? "email" : "tel"} autoComplete={loginType === "email" ? "email" : "tel"} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={loginType === "email" ? "name@example.com" : "+91 98765 43210"} className="min-h-14 w-full rounded-2xl border border-transparent bg-zinc-100 pl-12 pr-4 text-base outline-none transition focus:border-accent/30 focus:bg-white focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800 dark:focus:bg-zinc-900" autoFocus /></span></label>
-                            <button disabled={isLoading} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-base font-bold text-zinc-950 shadow-xl shadow-accent/20 disabled:opacity-60">{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Continue <ArrowRight className="h-4 w-4" /></>}</button>
-                        </form>}
+                    {step === "identifier" && <form onSubmit={handleIdentify} className="space-y-4">
+                        <button type="button" onClick={() => { setStep("choice"); setError(null); }} className={backButton}><ArrowLeft className="h-4 w-4" /> Sign-in options</button>
+                        <div><h1 className="font-display text-[28px] font-bold leading-tight">Enter your {loginType}</h1><p className="mt-1 text-[15px] text-muted">We’ll check whether you already have a Finnri account.</p></div>
+                        <label className="block"><span className="text-sm font-semibold text-muted">{loginType === "email" ? "Email address" : "Phone number"}</span><input autoFocus required type={loginType === "email" ? "email" : "tel"} autoComplete={loginType === "email" ? "email" : "tel"} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={loginType === "email" ? "name@example.com" : "+91 98765 43210"} className={`${field} mt-1`} /></label>
+                        <button disabled={isLoading} className={primary}>{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Continue <ArrowRight className="h-4 w-4" /></>}</button>
+                    </form>}
 
-                        {step === "otp" && <form onSubmit={handleVerifyOTP} className="space-y-5">
-                            <button type="button" onClick={() => { setStep("identifier"); setError(null); }} className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-accent dark:text-zinc-400"><ArrowLeft className="h-4 w-4" /> Change {loginType}</button>
-                            <div><h1 className="text-2xl font-bold font-rounded">Verify your {loginType}</h1><p className="mt-2 text-sm leading-6 text-zinc-500">Enter the 6-digit code sent to <strong>{identifier}</strong>.</p></div>
-                            {otpNotice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"><p className="font-bold">{otpNotice}</p><p className="mt-1 text-xs opacity-75">{expirySeconds > 0 ? `Code expires in ${formatCountdown(expirySeconds)}.` : "This code has expired. Request a new one."}</p></div>}
-                            {/*
-                              This panel printed a working sign-in code on the
-                              page with a one-click Use code button. It was
-                              meant for local development, but the server
-                              decides whether dev_otp is returned — and a
-                              deployed environment with the debug flag left on
-                              turned this screen into an account-takeover tool
-                              for anyone who knew an email address. It renders
-                              only outside production now.
-                            */}
-                            {devOTP && process.env.NODE_ENV !== "production" && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"><p className="text-[10px] font-bold uppercase tracking-[0.18em]">Local development code</p><div className="mt-2 flex items-center justify-between"><code className="text-xl font-bold tracking-[0.25em]">{devOTP}</code><button type="button" onClick={() => setOtp(devOTP)} className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold dark:bg-amber-900/40">Use code</button></div></div>}
-                            <input required type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} placeholder="000000" aria-label="Verification code" className="min-h-16 w-full rounded-2xl bg-zinc-100 px-4 text-center text-2xl font-bold tracking-[0.45em] outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800" autoFocus />
-                            <button disabled={isLoading} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-base font-bold text-zinc-950 shadow-xl shadow-accent/20 disabled:opacity-60">{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Verify code <CheckCircle2 className="h-4 w-4" /></>}</button>
-                            <button type="button" onClick={() => void resendCode()} disabled={isLoading || resendSeconds > 0} className="w-full text-center text-xs font-bold text-zinc-500 hover:text-accent disabled:opacity-50 dark:text-zinc-400">{resendSeconds > 0 ? `Send a new code in ${resendSeconds}s` : "Send a new code"}</button>
-                        </form>}
+                    {step === "otp" && <form onSubmit={handleVerifyOTP} className="space-y-4">
+                        <button type="button" onClick={() => { setStep("identifier"); setError(null); }} className={backButton}><ArrowLeft className="h-4 w-4" /> Change {loginType}</button>
+                        <div><h1 className="font-display text-[28px] font-bold leading-tight">Enter the code</h1><p className="mt-1 text-[15px] text-muted">Sent to <strong className="text-foreground">{identifier}</strong>.</p></div>
+                        {otpNotice && <p role="status" className="rounded-xl bg-positive/10 p-3 text-sm text-positive"><span className="font-bold">{otpNotice}</span> {expirySeconds > 0 ? `Code expires in ${formatCountdown(expirySeconds)}.` : "This code has expired. Request a new one."}</p>}
+                        {/*
+                          This panel printed a working sign-in code on the
+                          page with a one-click Use code button. It was
+                          meant for local development, but the server
+                          decides whether dev_otp is returned — and a
+                          deployed environment with the debug flag left on
+                          turned this screen into an account-takeover tool
+                          for anyone who knew an email address. It renders
+                          only outside production now.
+                        */}
+                        {devOTP && process.env.NODE_ENV !== "production" && <div className="flex items-center justify-between rounded-xl bg-warning-surface p-3 text-warning"><span className="text-sm font-semibold">Local code <code className="ml-1 text-base font-bold tracking-[0.2em]">{devOTP}</code></span><button type="button" onClick={() => setOtp(devOTP)} className="rounded-full bg-card px-3 py-1.5 text-sm font-bold">Use it</button></div>}
+                        <input required type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} placeholder="000000" aria-label="Verification code" className={`${field} h-14 text-center text-2xl font-bold tracking-[0.4em]`} />
+                        <button disabled={isLoading} className={primary}>{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify"}</button>
+                        <button type="button" onClick={() => void resendCode()} disabled={isLoading || resendSeconds > 0} className="w-full text-center text-sm font-semibold text-muted hover:text-foreground disabled:opacity-50">{resendSeconds > 0 ? `Send a new code in ${resendSeconds}s` : "Send a new code"}</button>
+                    </form>}
 
-                        {step === "pin" && <form onSubmit={handleFinalAuth} className="space-y-5">
-                            <button type="button" onClick={() => { setStep(authMode === "login" ? "identifier" : "otp"); setError(null); }} className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-accent dark:text-zinc-400"><ArrowLeft className="h-4 w-4" /> Back</button>
-                            <div><h1 className="text-2xl font-bold font-rounded">{authMode === "login" ? "Enter your PIN" : authMode === "reset" ? "Choose a new PIN" : "Create your PIN"}</h1><p className="mt-2 text-sm leading-6 text-zinc-500">{authMode === "login" ? `Signing in as ${identifier}` : "Use four digits with more than one distinct number."}</p></div>
-                            <span className="relative block"><Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" /><input required type="password" inputMode="numeric" autoComplete={authMode === "login" ? "current-password" : "new-password"} pattern="[0-9]{4}" maxLength={4} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))} placeholder="••••" aria-label="Four digit PIN" className="min-h-16 w-full rounded-2xl bg-zinc-100 pl-12 pr-4 text-center text-2xl font-bold tracking-[0.45em] outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800" autoFocus /></span>
-                            <button disabled={isLoading} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent text-base font-bold text-zinc-950 shadow-xl shadow-accent/20 disabled:opacity-60">{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>{authMode === "login" ? "Sign in" : authMode === "reset" ? "Save new PIN" : "Create account"} <ArrowRight className="h-4 w-4" /></>}</button>
-                            {authMode === "login" && <button type="button" onClick={() => void beginReset()} disabled={isLoading} className="flex w-full items-center justify-center gap-2 text-xs font-bold text-zinc-500 hover:text-accent disabled:opacity-50 dark:text-zinc-400"><KeyRound className="h-4 w-4" /> Forgot PIN? Verify and reset it</button>}
-                        </form>}
-                    </div>
-                </div>
-                <div className="flex items-center gap-4 border-t border-border bg-zinc-50 p-5 dark:bg-zinc-800/50 sm:p-6"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-accent shadow-sm dark:bg-zinc-700"><Smartphone className="h-5 w-5" /></span><div className="min-w-0"><p className="text-xs font-bold">Coming from mobile?</p><p className="mt-1 text-[11px] leading-4 text-zinc-500 dark:text-zinc-300">Use the same Google account. If you used a mobile-only PIN account, keep using the app until email and phone sign-in launches on the web.</p></div><ShieldCheck className="ml-auto h-5 w-5 shrink-0 text-emerald-500" /></div>
+                    {step === "pin" && <form onSubmit={handleFinalAuth} className="space-y-4">
+                        <button type="button" onClick={() => { setStep(authMode === "login" ? "identifier" : "otp"); setError(null); }} className={backButton}><ArrowLeft className="h-4 w-4" /> Back</button>
+                        <div><h1 className="font-display text-[28px] font-bold leading-tight">{authMode === "login" ? "Enter your PIN" : authMode === "reset" ? "Choose a new PIN" : "Create your PIN"}</h1><p className="mt-1 text-[15px] text-muted">{authMode === "login" ? `Signing in as ${identifier}` : "Four digits, not all the same."}</p></div>
+                        <span className="relative block"><Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input required autoFocus type="password" inputMode="numeric" autoComplete={authMode === "login" ? "current-password" : "new-password"} pattern="[0-9]{4}" maxLength={4} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))} placeholder="••••" aria-label="Four digit PIN" className={`${field} h-14 pl-12 text-center text-2xl font-bold tracking-[0.4em]`} /></span>
+                        <button disabled={isLoading} className={primary}>{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>{authMode === "login" ? "Sign in" : authMode === "reset" ? "Save new PIN" : "Create account"} <ArrowRight className="h-4 w-4" /></>}</button>
+                        {authMode === "login" && <button type="button" onClick={() => void beginReset()} disabled={isLoading} className="flex w-full items-center justify-center gap-2 text-sm font-semibold text-muted hover:text-foreground disabled:opacity-50"><KeyRound className="h-4 w-4" /> Forgot your PIN? Reset it</button>}
+                    </form>}
+                </section>
             </div>
         </main>
     );

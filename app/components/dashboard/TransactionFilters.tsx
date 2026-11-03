@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarRange, Filter, IndianRupee, Search, Tag, Tags, Wallet, X } from "lucide-react";
+import { CalendarRange, ChevronDown, IndianRupee, Search, SlidersHorizontal, Tag, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Account, EntryListParams, apiErrorMessage } from "@/app/lib/api";
 import { categoryOptionsFor, loadCategories } from "@/app/lib/categories";
-import { formatDate, toLocalISO } from "@/app/lib/format";
+import { toLocalISO } from "@/app/lib/format";
+import { comparisonRange, DateRange, isPeriodPreset, PERIOD_OPTIONS, PeriodPreset, presetRange, rememberedPeriod, rememberPeriod } from "@/app/lib/period";
+import { Segmented } from "@/app/components/dashboard/kit";
+import { cn } from "@/app/lib/utils";
 
-export type DateRangePreset = "month" | "30d" | "90d" | "all" | "custom";
+export type DateRangePreset = PeriodPreset;
 
 type FilterUpdate = Record<string, string | number | null | undefined>;
 
@@ -23,14 +26,6 @@ export type TransactionFilterState = {
     startDate: string;
     endDate: string;
     page: number;
-};
-
-const RANGE_LABELS: Record<DateRangePreset, string> = {
-    month: "This month",
-    "30d": "Last 30 days",
-    "90d": "Last 90 days",
-    all: "All time",
-    custom: "Custom dates",
 };
 
 function currentMonthStart() {
@@ -50,22 +45,16 @@ function amountValue(value: string | null) {
     return Number.isFinite(parsed) && parsed >= 0 ? value : "";
 }
 
-function rangeParams(range: DateRangePreset, startDate: string, endDate: string) {
-    if (range === "all") return {};
-    if (range === "custom") {
-        return {
-            ...(startDate ? { start_date: startDate } : {}),
-            ...(endDate ? { end_date: endDate } : {}),
-        };
-    }
-    const end = new Date();
-    const start = new Date(end);
-    if (range === "month") start.setDate(1);
-    if (range === "30d") start.setDate(end.getDate() - 29);
-    if (range === "90d") start.setDate(end.getDate() - 89);
-    return { start_date: toLocalISO(start), end_date: toLocalISO(end) };
+function rangeFor(range: DateRangePreset, startDate: string, endDate: string): DateRange | null {
+    if (range === "custom") return { start_date: startDate || currentMonthStart(), end_date: endDate || toLocalISO() };
+    return presetRange(range);
 }
 
+/**
+ * Filters and the period, kept in the URL so a filtered view survives a
+ * reload and can be linked to. A screen opened without a period in its URL
+ * takes the one last chosen on any screen.
+ */
 export function useTransactionFilters(defaultRange: Exclude<DateRangePreset, "custom">) {
     const router = useRouter();
     const pathname = usePathname();
@@ -75,9 +64,8 @@ export function useTransactionFilters(defaultRange: Exclude<DateRangePreset, "cu
     const filters = useMemo<TransactionFilterState>(() => {
         const params = new URLSearchParams(queryString);
         const rangeValue = params.get("range");
-        const dateRange: DateRangePreset = rangeValue === "month" || rangeValue === "30d" || rangeValue === "90d" || rangeValue === "all" || rangeValue === "custom"
-            ? rangeValue
-            : defaultRange;
+        const remembered = rangeValue ? null : rememberedPeriod();
+        const dateRange: DateRangePreset = isPeriodPreset(rangeValue) ? rangeValue : remembered?.preset ?? defaultRange;
         const typeValue = params.get("type");
         const accountID = positiveInteger(params.get("account_id"));
         const pageValue = positiveInteger(params.get("page"));
@@ -90,8 +78,8 @@ export function useTransactionFilters(defaultRange: Exclude<DateRangePreset, "cu
             minAmount: amountValue(params.get("min_amount")),
             maxAmount: amountValue(params.get("max_amount")),
             dateRange,
-            startDate: params.get("start_date") || (dateRange === "custom" ? currentMonthStart() : ""),
-            endDate: params.get("end_date") || (dateRange === "custom" ? toLocalISO() : ""),
+            startDate: params.get("start_date") || remembered?.start_date || (dateRange === "custom" ? currentMonthStart() : ""),
+            endDate: params.get("end_date") || remembered?.end_date || (dateRange === "custom" ? toLocalISO() : ""),
             page: typeof pageValue === "number" ? pageValue : 1,
         };
     }, [defaultRange, queryString]);
@@ -108,12 +96,24 @@ export function useTransactionFilters(defaultRange: Exclude<DateRangePreset, "cu
         else router.push(href, { scroll: false });
     }, [pathname, queryString, router]);
 
-    const entryParams = useCallback((includePagination = false): EntryListParams => {
-        const params: EntryListParams = {};
-        if (includePagination) {
-            params.page = filters.page;
-            params.page_size = 25;
+    const range = useMemo(() => rangeFor(filters.dateRange, filters.startDate, filters.endDate), [filters.dateRange, filters.startDate, filters.endDate]);
+    const comparison = useMemo(() => (range ? comparisonRange(range) : null), [range]);
+
+    /** Choose a period here and every other screen opens on it too. */
+    const setRange = useCallback((preset: DateRangePreset, dates?: { start_date?: string; end_date?: string }) => {
+        if (preset === "custom") {
+            const start_date = dates?.start_date ?? (filters.startDate || currentMonthStart());
+            const end_date = dates?.end_date ?? (filters.endDate || toLocalISO());
+            rememberPeriod({ preset, start_date, end_date });
+            update({ range: preset, start_date, end_date });
+            return;
         }
+        rememberPeriod({ preset });
+        update({ range: preset, start_date: null, end_date: null });
+    }, [filters.endDate, filters.startDate, update]);
+
+    const filterParams = useCallback((): EntryListParams => {
+        const params: EntryListParams = {};
         if (filters.q) params.q = filters.q;
         if (filters.type !== "all") params.type = filters.type;
         if (filters.accountID) params.account_id = filters.accountID;
@@ -121,9 +121,18 @@ export function useTransactionFilters(defaultRange: Exclude<DateRangePreset, "cu
         if (filters.tag) params.tag = filters.tag;
         if (filters.minAmount !== "") params.min_amount = Number(filters.minAmount);
         if (filters.maxAmount !== "") params.max_amount = Number(filters.maxAmount);
-        Object.assign(params, rangeParams(filters.dateRange, filters.startDate, filters.endDate));
         return params;
     }, [filters]);
+
+    const entryParams = useCallback((includePagination = false): EntryListParams => {
+        const params = filterParams();
+        if (includePagination) {
+            params.page = filters.page;
+            params.page_size = 25;
+        }
+        if (range) Object.assign(params, range);
+        return params;
+    }, [filterParams, filters.page, range]);
 
     const amountError = filters.minAmount !== "" && filters.maxAmount !== "" && Number(filters.minAmount) > Number(filters.maxAmount)
         ? "Minimum amount cannot be greater than maximum amount."
@@ -132,14 +141,49 @@ export function useTransactionFilters(defaultRange: Exclude<DateRangePreset, "cu
         ? "Start date cannot be after end date."
         : "";
 
+    /** Clears every filter but keeps the period. */
     const clearAll = useCallback(() => {
-        router.push(`${pathname}?range=all`, { scroll: false });
-    }, [pathname, router]);
+        update({ q: null, type: null, account_id: null, category: null, tag: null, min_amount: null, max_amount: null });
+    }, [update]);
 
-    return { filters, update, entryParams, amountError, dateError, clearAll };
+    return { filters, update, setRange, range, comparison, entryParams, filterParams, amountError, dateError, clearAll };
 }
 
 export type TransactionFilterController = ReturnType<typeof useTransactionFilters>;
+
+const fieldClass = "h-10 w-full rounded-full border border-border bg-card text-sm outline-none transition focus:border-accent/60 focus:ring-4 focus:ring-accent/10";
+
+/** The period for a screen: a pill that opens the presets, and two dates for Custom. */
+export function PeriodPicker({ controller, allowAll = false }: { controller: TransactionFilterController; allowAll?: boolean }) {
+    const { filters, setRange } = controller;
+    const options = PERIOD_OPTIONS.filter((option) => allowAll || option.value !== "all");
+    // A screen without "All time" (Overview) falls back to this month when the
+    // shared period is all time; the picker says so rather than naming nothing.
+    const value = !allowAll && filters.dateRange === "all" ? "month" : filters.dateRange;
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <label className="relative inline-flex">
+                <CalendarRange className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-accent" aria-hidden="true" />
+                <span className="sr-only">Period</span>
+                <select
+                    value={value}
+                    onChange={(event) => setRange(event.target.value as DateRangePreset)}
+                    className={cn(fieldClass, "w-auto appearance-none pl-10 pr-9 font-bold")}
+                >
+                    {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+            </label>
+            {filters.dateRange === "custom" && (
+                <span className="inline-flex items-center gap-1.5">
+                    <label><span className="sr-only">From</span><input type="date" value={filters.startDate} max={filters.endDate || toLocalISO()} onChange={(event) => event.target.value && setRange("custom", { start_date: event.target.value })} className={cn(fieldClass, "w-auto px-3")} /></label>
+                    <span className="text-muted" aria-hidden="true">–</span>
+                    <label><span className="sr-only">To</span><input type="date" value={filters.endDate} min={filters.startDate || undefined} max={toLocalISO()} onChange={(event) => event.target.value && setRange("custom", { end_date: event.target.value })} className={cn(fieldClass, "w-auto px-3")} /></label>
+                </span>
+            )}
+        </div>
+    );
+}
 
 type FilterChip = {
     key: string;
@@ -166,18 +210,31 @@ function DebouncedFilterInput({
     return <input {...props} value={draft} onChange={(event) => setDraft(event.target.value)} />;
 }
 
+const TYPE_OPTIONS = [{ value: "all", label: "All" }, { value: "expense", label: "Spent" }, { value: "income", label: "Received" }] as const;
+
+/**
+ * Search, type and account always in view; category, tag and amount behind
+ * "More filters". What is applied shows as chips that remove themselves.
+ */
 export function TransactionFilterPanel({
     controller,
     accounts,
     searchLabel,
+    showSearch = true,
+    searchInHeader = false,
 }: {
     controller: TransactionFilterController;
     accounts: Account[];
     searchLabel: string;
+    showSearch?: boolean;
+    /** The top bar's search already drives this list on desktop, so only phones need this box. */
+    searchInHeader?: boolean;
 }) {
     const { filters, update, amountError, dateError, clearAll } = controller;
     const [categories, setCategories] = useState<string[]>([]);
     const [categoriesError, setCategoriesError] = useState("");
+    const hasMore = Boolean(filters.category || filters.tag || filters.minAmount || filters.maxAmount);
+    const [moreOpen, setMoreOpen] = useState(hasMore);
 
     useEffect(() => {
         let active = true;
@@ -196,120 +253,88 @@ export function TransactionFilterPanel({
 
     const chips = useMemo<FilterChip[]>(() => {
         const items: FilterChip[] = [];
-        if (filters.q) items.push({ key: "q", label: `Search: ${filters.q}`, remove: () => update({ q: null }) });
-        if (filters.type !== "all") items.push({ key: "type", label: filters.type === "expense" ? "Expenses" : "Income", remove: () => update({ type: null }) });
+        if (filters.q) items.push({ key: "q", label: `“${filters.q}”`, remove: () => update({ q: null }) });
         if (filters.accountID) {
             const account = accounts.find((item) => item.id === filters.accountID);
-            items.push({ key: "account", label: `Account: ${account?.name || `#${filters.accountID}`}`, remove: () => update({ account_id: null }) });
+            items.push({ key: "account", label: account?.name || `Account #${filters.accountID}`, remove: () => update({ account_id: null }) });
         }
-        if (filters.category) items.push({ key: "category", label: `Category: ${filters.category}`, remove: () => update({ category: null }) });
-        if (filters.tag) items.push({ key: "tag", label: `Tag: ${filters.tag}`, remove: () => update({ tag: null }) });
+        if (filters.category) items.push({ key: "category", label: filters.category, remove: () => update({ category: null }) });
+        if (filters.tag) items.push({ key: "tag", label: `#${filters.tag}`, remove: () => update({ tag: null }) });
         if (filters.minAmount !== "") items.push({ key: "min", label: `At least ₹${filters.minAmount}`, remove: () => update({ min_amount: null }) });
         if (filters.maxAmount !== "") items.push({ key: "max", label: `At most ₹${filters.maxAmount}`, remove: () => update({ max_amount: null }) });
-        const dateLabel = filters.dateRange === "custom"
-            ? `${filters.startDate ? formatDate(filters.startDate) : "Any date"} – ${filters.endDate ? formatDate(filters.endDate) : "Today"}`
-            : RANGE_LABELS[filters.dateRange];
-        items.push({ key: "date", label: dateLabel, remove: () => update({ range: "all", start_date: null, end_date: null }) });
         return items;
     }, [accounts, filters, update]);
 
-    const selectRange = (range: DateRangePreset) => {
-        if (range === "custom") {
-            update({ range, start_date: filters.startDate || currentMonthStart(), end_date: filters.endDate || toLocalISO() });
-            return;
-        }
-        update({ range, start_date: null, end_date: null });
-    };
-
     return (
-        <section className="space-y-4 rounded-panel border border-border bg-white p-4 dark:bg-zinc-900" aria-label="Transaction filters">
-            <div className="grid gap-3 xl:grid-cols-4">
-                <label className="relative xl:col-span-2">
-                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                    <span className="sr-only">{searchLabel}</span>
-                    <DebouncedFilterInput key={`q-${filters.q}`} initialValue={filters.q} onCommit={(value) => update({ q: value.trim() || null }, true)} placeholder="Merchant, title, or note…" className="min-h-11 w-full rounded-xl bg-zinc-100 pl-11 pr-4 text-sm outline-none focus:ring-4 focus:ring-accent/10 dark:bg-zinc-800" />
-                </label>
+        <section className="space-y-3" aria-label="Filters">
+            <div className="flex flex-wrap items-center gap-2">
+                {showSearch && (
+                    <label className={cn("relative min-w-[200px] flex-1", searchInHeader && "lg:hidden")}>
+                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                        <span className="sr-only">{searchLabel}</span>
+                        <DebouncedFilterInput key={`q-${filters.q}`} initialValue={filters.q} onCommit={(value) => update({ q: value.trim() || null }, true)} placeholder="Search merchant, title or note" className={cn(fieldClass, "pl-11 pr-4")} />
+                    </label>
+                )}
+                <Segmented label="Type" options={TYPE_OPTIONS} value={filters.type} onChange={(value) => update({ type: value === "all" ? null : value })} />
                 <label className="relative">
-                    <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                    <span className="sr-only">Transaction type</span>
-                    <select value={filters.type} onChange={(event) => update({ type: event.target.value === "all" ? null : event.target.value })} className="min-h-11 w-full appearance-none rounded-xl bg-zinc-100 pl-10 pr-8 text-sm font-semibold outline-none dark:bg-zinc-800">
-                        <option value="all">All types</option>
-                        <option value="expense">Expenses</option>
-                        <option value="income">Income</option>
-                    </select>
-                </label>
-                <label className="relative">
-                    <Wallet className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
                     <span className="sr-only">Account</span>
-                    <select value={filters.accountID} onChange={(event) => update({ account_id: event.target.value || null })} className="min-h-11 w-full appearance-none rounded-xl bg-zinc-100 pl-10 pr-8 text-sm font-semibold outline-none dark:bg-zinc-800">
+                    <select value={filters.accountID} onChange={(event) => update({ account_id: event.target.value || null })} className={cn(fieldClass, "w-auto max-w-[220px] appearance-none pl-4 pr-9 font-semibold")}>
                         <option value="">All accounts</option>
                         {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
                     </select>
+                    <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
                 </label>
+                <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className={cn("inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-bold transition", moreOpen || hasMore ? "border-foreground/25 bg-track" : "border-border bg-card hover:bg-track")}>
+                    <SlidersHorizontal className="h-4 w-4" /> More filters
+                </button>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <label className="relative">
-                    <Tags className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                    <span className="sr-only">Category</span>
-                    <select value={filters.category} onChange={(event) => update({ category: event.target.value || null })} disabled={Boolean(categoriesError)} className="min-h-11 w-full appearance-none rounded-xl bg-zinc-100 pl-10 pr-8 text-sm font-semibold outline-none disabled:opacity-50 dark:bg-zinc-800">
-                        <option value="">All categories</option>
-                        {categoryOptionsFor(categories, filters.category).map((category) => <option key={category} value={category}>{category}</option>)}
-                    </select>
-                </label>
-                <label className="relative">
-                    <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                    <span className="sr-only">Tag</span>
-                    <DebouncedFilterInput key={`tag-${filters.tag}`} initialValue={filters.tag} onCommit={(value) => update({ tag: value.trim() || null }, true)} placeholder="Tag" className="min-h-11 w-full rounded-xl bg-zinc-100 pl-10 pr-3 text-sm outline-none dark:bg-zinc-800" />
-                </label>
-                <label className="relative">
-                    <IndianRupee className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                    <span className="sr-only">Minimum amount</span>
-                    <DebouncedFilterInput key={`min-${filters.minAmount}`} initialValue={filters.minAmount} onCommit={(value) => update({ min_amount: value || null }, true)} type="number" min="0" step="0.01" placeholder="Minimum" className="min-h-11 w-full rounded-xl bg-zinc-100 pl-10 pr-3 text-sm outline-none dark:bg-zinc-800" />
-                </label>
-                <label className="relative">
-                    <IndianRupee className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                    <span className="sr-only">Maximum amount</span>
-                    <DebouncedFilterInput key={`max-${filters.maxAmount}`} initialValue={filters.maxAmount} onCommit={(value) => update({ max_amount: value || null }, true)} type="number" min="0" step="0.01" placeholder="No maximum" className="min-h-11 w-full rounded-xl bg-zinc-100 pl-10 pr-3 text-sm outline-none dark:bg-zinc-800" />
-                </label>
-                <label className="relative">
-                    <CalendarRange className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                    <span className="sr-only">Date range</span>
-                    <select value={filters.dateRange} onChange={(event) => selectRange(event.target.value as DateRangePreset)} className="min-h-11 w-full appearance-none rounded-xl bg-zinc-100 pl-10 pr-8 text-sm font-semibold outline-none dark:bg-zinc-800">
-                        <option value="month">This month</option>
-                        <option value="30d">Last 30 days</option>
-                        <option value="90d">Last 90 days</option>
-                        <option value="all">All time</option>
-                        <option value="custom">Custom range</option>
-                    </select>
-                </label>
-            </div>
-
-            {filters.dateRange === "custom" && (
-                <div className="flex flex-col gap-3 rounded-2xl bg-zinc-50 p-3 dark:bg-zinc-800/60 sm:flex-row sm:items-center">
-                    <CalendarRange className="hidden h-4 w-4 text-accent sm:block" />
-                    <label className="flex flex-1 items-center gap-2 text-xs font-bold text-zinc-500"><span>From</span><input type="date" value={filters.startDate} max={filters.endDate || toLocalISO()} onChange={(event) => update({ range: "custom", start_date: event.target.value || null })} className="min-h-10 flex-1 rounded-xl border border-border bg-white px-3 outline-none dark:bg-zinc-900" /></label>
-                    <label className="flex flex-1 items-center gap-2 text-xs font-bold text-zinc-500"><span>To</span><input type="date" value={filters.endDate} min={filters.startDate || undefined} max={toLocalISO()} onChange={(event) => update({ range: "custom", end_date: event.target.value || null })} className="min-h-10 flex-1 rounded-xl border border-border bg-white px-3 outline-none dark:bg-zinc-900" /></label>
+            {moreOpen && (
+                <div className="disclosure-enter grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <label className="relative">
+                        <span className="sr-only">Category</span>
+                        <select value={filters.category} onChange={(event) => update({ category: event.target.value || null })} disabled={Boolean(categoriesError)} className={cn(fieldClass, "appearance-none pl-4 pr-9 font-semibold disabled:opacity-50")}>
+                            <option value="">All categories</option>
+                            {categoryOptionsFor(categories, filters.category).map((category) => <option key={category} value={category}>{category}</option>)}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+                    </label>
+                    <label className="relative">
+                        <Tag className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                        <span className="sr-only">Tag</span>
+                        <DebouncedFilterInput key={`tag-${filters.tag}`} initialValue={filters.tag} onCommit={(value) => update({ tag: value.trim() || null }, true)} placeholder="Tag" className={cn(fieldClass, "pl-10 pr-3")} />
+                    </label>
+                    <label className="relative">
+                        <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                        <span className="sr-only">Minimum amount</span>
+                        <DebouncedFilterInput key={`min-${filters.minAmount}`} initialValue={filters.minAmount} onCommit={(value) => update({ min_amount: value || null }, true)} type="number" min="0" step="0.01" placeholder="Minimum amount" className={cn(fieldClass, "pl-10 pr-3")} />
+                    </label>
+                    <label className="relative">
+                        <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                        <span className="sr-only">Maximum amount</span>
+                        <DebouncedFilterInput key={`max-${filters.maxAmount}`} initialValue={filters.maxAmount} onCommit={(value) => update({ max_amount: value || null }, true)} type="number" min="0" step="0.01" placeholder="Maximum amount" className={cn(fieldClass, "pl-10 pr-3")} />
+                    </label>
                 </div>
             )}
 
             {(categoriesError || amountError || dateError) && (
-                <div className="space-y-1 text-xs font-semibold text-red-600 dark:text-red-300">
+                <div className="space-y-1 text-sm font-semibold text-negative">
                     {categoriesError && <p>{categoriesError} The current category remains visible, but new category choices need the API.</p>}
                     {amountError && <p>{amountError}</p>}
                     {dateError && <p>{dateError}</p>}
                 </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4" aria-label="Active filters">
-                <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">Applied</span>
-                {chips.map((chip) => (
-                    <button key={chip.key} type="button" onClick={chip.remove} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-accent/10 px-3 text-xs font-bold text-accent" aria-label={`Remove ${chip.label} filter`}>
-                        {chip.label}<X className="h-3.5 w-3.5" />
-                    </button>
-                ))}
-                <button type="button" onClick={clearAll} className="ml-auto min-h-8 px-2 text-xs font-bold text-zinc-500 underline decoration-zinc-300 underline-offset-4">Clear all</button>
-            </div>
+            {chips.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2" aria-label="Active filters">
+                    {chips.map((chip) => (
+                        <button key={chip.key} type="button" onClick={chip.remove} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-selected px-3 text-[13px] font-bold" aria-label={`Remove filter ${chip.label}`}>
+                            {chip.label}<X className="h-3.5 w-3.5" />
+                        </button>
+                    ))}
+                    <button type="button" onClick={clearAll} className="min-h-8 px-2 text-[13px] font-bold text-muted underline underline-offset-4 hover:text-foreground">Clear filters</button>
+                </div>
+            )}
         </section>
     );
 }

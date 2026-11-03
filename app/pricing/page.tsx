@@ -21,7 +21,7 @@ export default async function PricingPage() {
                 <h2>Published plans</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                     {plans.map((plan) => (
-                        <article key={plan.code} className="rounded-2xl border border-border bg-white p-5 dark:bg-zinc-900">
+                        <article key={plan.code} className="rounded-2xl border border-border bg-card p-5">
                             <h3 className="text-lg font-bold">{plan.name}</h3>
                             <p className="mt-2 flex flex-wrap items-baseline gap-2">
                                 <span className="text-3xl font-bold text-foreground">{formatMinor(plan.offer?.price_minor ?? plan.price_minor ?? 0, plan.currency)}</span>
@@ -31,7 +31,7 @@ export default async function PricingPage() {
                                     <s className="text-sm">{formatMinor(plan.list_price_minor, plan.currency)}</s>
                                 )}
                             </p>
-                            {plan.offer && <p className="mt-1 text-xs font-bold text-accent">{plan.offer.label} · {plan.offer.percent_off}% off your first pass</p>}
+                            {plan.offer && <p className="mt-1 text-xs font-bold text-eyebrow">{plan.offer.label} · {plan.offer.percent_off}% off your first pass</p>}
                             <p className="mt-2 text-sm">{intervalDuration(plan.billing_interval)} · {plan.included_credits.toLocaleString("en-IN")} credits</p>
                             <p className="mt-1 text-sm">Up to {plan.daily_credit_limit.toLocaleString("en-IN")} credits per day</p>
                         </article>

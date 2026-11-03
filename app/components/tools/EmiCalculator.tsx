@@ -21,7 +21,7 @@ const thisMonth = () => { const now = new Date(); return `${now.getFullYear()}-$
  * The public EMI calculator: loan type presets, then amount, rate and tenure,
  * with the tenure in years or months. Recalculates on every change.
  */
-export default function EmiCalculator() {
+export default function EmiCalculator({ inDashboard = false }: { inDashboard?: boolean } = {}) {
   const [presetId, setPresetId] = useState<EMIPresetID | "custom">(EMI_PRESETS[0].id);
   const [principal, setPrincipal] = useState(EMI_PRESETS[0].principalAmount);
   const [rate, setRate] = useState(EMI_PRESETS[0].annualInterestRatePercent);
@@ -143,10 +143,12 @@ export default function EmiCalculator() {
           </div>
         )}
 
-        <div className="mt-7 flex flex-col gap-3 rounded-2xl bg-selected/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm leading-relaxed"><span className="font-bold">Paying this EMI?</span> Finnri shows it before it’s due each month, and you mark it paid in a tap.</p>
-          <Link href="/" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-eyebrow hover:underline">See Finnri <ArrowRight className="h-4 w-4" /></Link>
-        </div>
+        {!inDashboard && (
+          <div className="mt-7 flex flex-col gap-3 rounded-2xl bg-selected/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-relaxed"><span className="font-bold">Paying this EMI?</span> Finnri shows it before it’s due each month, and you mark it paid in a tap.</p>
+            <Link href="/" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-eyebrow hover:underline">See Finnri <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+        )}
         <p className="mt-5 text-xs leading-relaxed text-muted">{PROJECTION_DISCLAIMER} Assumes a fixed rate and no prepayments; your lender’s schedule may differ by a few rupees.</p>
       </div>
 

@@ -1,22 +1,15 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Change } from "@/app/components/dashboard/kit";
 
+/** One headline figure, styled like the dashboard's figures. `delta` is a percent change. */
 export default function StatTile({ label, value, hint, delta }: { label: string; value: string | number; hint?: string; delta?: number }) {
-    const positive = (delta || 0) >= 0;
     return (
-        <article className="rounded-panel border border-border bg-card p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">{label}</p>
-                {delta !== undefined && (
-                    <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold ${positive ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300" : "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300"}`}
-                    >
-                        {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {Math.abs(delta).toFixed(1)}%
-                    </span>
-                )}
+        <article className="min-w-0 rounded-2xl border border-border bg-card px-4 py-3.5 sm:px-5 sm:py-4">
+            <p className="truncate text-[13px] font-semibold text-muted">{label}</p>
+            <p className="mt-0.5 truncate text-[22px] font-bold leading-8 tabular-nums sm:text-[26px] sm:leading-9">{value}</p>
+            <div className="flex min-h-5 flex-wrap items-center gap-x-2 text-[13px] leading-5 text-muted">
+                {delta !== undefined ? <Change value={delta} goodWhen="up" /> : null}
+                {hint ? <span>{hint}</span> : null}
             </div>
-            <p className="mt-4 text-3xl font-bold tracking-tight font-rounded">{value}</p>
-            {hint && <p className="mt-2 text-xs leading-5 text-text-muted">{hint}</p>}
         </article>
     );
 }

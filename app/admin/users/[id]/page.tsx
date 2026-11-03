@@ -178,19 +178,18 @@ export default function AdminUserDetail() {
         }
     }
     if (loading) return <PageSkeleton />;
-    if (!detail) return <div className="rounded-panel bg-red-50 p-8 text-red-700">{error || "User not found"}</div>;
+    if (!detail) return <div className="rounded-2xl bg-negative/10 p-8 text-negative">{error || "User not found"}</div>;
     return (
         <div className="space-y-6">
-            <Link href="/admin/users" className="inline-flex items-center gap-2 text-sm font-bold text-text-muted hover:text-accent">
+            <Link href="/admin/users" className="inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-accent">
                 <ArrowLeft className="h-4 w-4" />
                 Users
             </Link>
-            <header className="rounded-panel border border-border bg-card p-6 sm:p-8">
+            <header className="rounded-2xl border border-border bg-card p-6 sm:p-8">
                 <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">User #{id}</p>
-                        <h1 className="mt-2 text-3xl font-bold font-rounded">{String(user.username || "Unknown user")}</h1>
-                        <p className="mt-2 text-sm text-text-muted">
+                        <h1 className="font-display text-[30px] font-bold leading-tight sm:text-[34px]">{String(user.username || "Unknown user")}</h1>
+                        <p className="mt-2 text-sm text-muted">
                             {String(user.email || user.phone || "Anonymous guest")} · Joined {formatDate(String(user.created_at || ""))}
                         </p>
                     </div>
@@ -202,13 +201,14 @@ export default function AdminUserDetail() {
                     </div>
                 </div>
             </header>
-            {error && <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            {error && <div className="rounded-xl bg-negative/10 p-4 text-sm text-negative">{error}</div>}
+            <div role="group" aria-label="User sections" className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-track p-1">
                 {tabs.map((item) => (
                     <button
                         key={item}
                         onClick={() => setTab(item)}
-                        className={`min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold ${tab === item ? "bg-accent text-zinc-950" : "border border-border bg-card text-text-muted"}`}
+                        aria-pressed={tab === item}
+                        className={`h-8 shrink-0 rounded-full px-3.5 text-sm transition ${tab === item ? "bg-card font-bold shadow-sm dark:bg-border" : "font-medium text-muted hover:text-foreground"}`}
                     >
                         {tabLabels[item]}
                     </button>
@@ -219,11 +219,9 @@ export default function AdminUserDetail() {
                     <Panel title="Feature adoption">
                         <div className="grid grid-cols-2 gap-3">
                             {Object.entries(detail.feature_adoption).map(([name, active]) => (
-                                <div
-                                    key={name}
-                                    className={`rounded-xl p-3 text-sm font-semibold ${active ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20" : "bg-zinc-100 text-text-muted dark:bg-zinc-800"}`}
-                                >
-                                    {name.replaceAll("_", " ")}: {active ? "Used" : "Not used"}
+                                <div key={name} className="flex items-center justify-between gap-2 rounded-xl bg-track px-3 py-2.5 text-sm">
+                                    <span className="truncate font-semibold">{name.charAt(0).toUpperCase() + name.slice(1).replaceAll("_", " ")}</span>
+                                    <span className={`shrink-0 text-[13px] font-semibold ${active ? "text-positive" : "text-muted"}`}>{active ? "Used" : "Not yet"}</span>
                                 </div>
                             ))}
                         </div>
@@ -237,9 +235,9 @@ export default function AdminUserDetail() {
                                 >
                                     <div>
                                         <p className="font-semibold">{item.label}</p>
-                                        <p className="text-xs capitalize text-text-muted">{item.type}</p>
+                                        <p className="text-xs capitalize text-muted">{item.type}</p>
                                     </div>
-                                    <span className="text-xs text-text-muted">{formatDate(item.at)}</span>
+                                    <span className="text-xs text-muted">{formatDate(item.at)}</span>
                                 </div>
                             ))}
                         </div>
@@ -278,7 +276,7 @@ export default function AdminUserDetail() {
                                     onChange={(event) => setReason(event.target.value)}
                                     className="min-h-11 flex-1 rounded-xl border border-border bg-background px-4"
                                 />
-                                <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-bold text-text-muted">
+                                <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-bold text-muted">
                                     Expires
                                     <input
                                         type="date"
@@ -291,7 +289,7 @@ export default function AdminUserDetail() {
                                 </label>
                                 <button
                                     onClick={() => setConfirm(true)}
-                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950"
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-bold text-on-accent"
                                 >
                                     <Coins className="h-4 w-4" />
                                     Grant
@@ -316,7 +314,7 @@ export default function AdminUserDetail() {
                 <div className="space-y-5">
                     <RoleGate minimum="support">
                         <Panel title="Gift a pass">
-                            <p className="-mt-2 mb-4 text-sm leading-6 text-text-muted">
+                            <p className="-mt-2 mb-4 text-sm leading-6 text-muted">
                                 Free, no payment taken. It unlocks every paid feature and carries the plan&apos;s credits, starts when
                                 any pass they already have ends, and is left out of revenue.
                             </p>
@@ -333,7 +331,7 @@ export default function AdminUserDetail() {
                                         </option>
                                     ))}
                                 </select>
-                                <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-bold text-text-muted">
+                                <label className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 text-xs font-bold text-muted">
                                     ×
                                     <input
                                         type="number"
@@ -357,7 +355,7 @@ export default function AdminUserDetail() {
                                 <button
                                     onClick={openGift}
                                     disabled={!giftReady}
-                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-zinc-950 disabled:opacity-50"
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-bold text-on-accent disabled:opacity-50"
                                 >
                                     <Gift className="h-4 w-4" />
                                     Gift
@@ -396,7 +394,7 @@ export default function AdminUserDetail() {
                                             <RoleGate minimum="support">
                                                 <button
                                                     onClick={() => setRevoking(row)}
-                                                    className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                    className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-bold text-negative hover:bg-negative/10"
                                                 >
                                                     <Undo2 className="h-3.5 w-3.5" />
                                                     Revoke
@@ -425,11 +423,11 @@ export default function AdminUserDetail() {
             {tab === "moderation" && (
                 <Panel title="Active abuse blocks">
                     {detail.active_abuse_blocks.length ? (
-                        <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-zinc-950 p-4 text-xs text-zinc-100">
+                        <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-track p-4 font-mono text-xs">
                             {JSON.stringify(detail.active_abuse_blocks, null, 2)}
                         </pre>
                     ) : (
-                        <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">
+                        <div className="flex items-center gap-3 rounded-xl bg-positive/10 p-4 text-sm text-positive">
                             <ShieldAlert className="h-5 w-5" />
                             No active abuse block.
                         </div>
@@ -494,16 +492,16 @@ function describeError(reason: unknown, fallback: string) {
 }
 function Mini({ label, value }: { label: string; value: string | number }) {
     return (
-        <div className="min-w-28 rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-900">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{label}</p>
-            <p className="mt-2 font-bold capitalize font-rounded">{String(value).replaceAll("_", " ")}</p>
+        <div className="min-w-28 rounded-2xl bg-track p-4">
+            <p className="text-[13px] font-semibold tracking-wider text-muted">{label}</p>
+            <p className="mt-2 font-bold capitalize">{String(value).replaceAll("_", " ")}</p>
         </div>
     );
 }
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <section className="rounded-panel border border-border bg-card p-5 sm:p-7">
-            <h2 className="mb-5 text-lg font-bold font-rounded">{title}</h2>
+        <section className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-7">
+            <h2 className="mb-5 text-[17px] font-bold">{title}</h2>
             {children}
         </section>
     );

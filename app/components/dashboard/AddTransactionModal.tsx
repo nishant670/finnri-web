@@ -273,15 +273,15 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
 
     const fieldClass = (field: DraftField, base: string) => cn(
         base,
-        fieldReviewState(field) === "review" && "ring-2 ring-amber-400/70 bg-amber-50 dark:bg-amber-950/20",
-        fieldReviewState(field) === "filled" && "ring-1 ring-accent/40 bg-accent/5"
+        fieldReviewState(field) === "review" && "border-warning bg-warning-surface ring-2 ring-warning/25",
+        fieldReviewState(field) === "filled" && "border-accent/50 bg-selected/60"
     );
 
     const FieldStatus = ({ field }: { field: DraftField }) => {
         const status = fieldReviewState(field);
         if (status === "manual") return null;
-        if (status === "review") return <button type="button" onClick={(event) => { event.preventDefault(); markFieldReviewed(field); }} title={`Confirm the AI's ${DRAFT_FIELD_LABELS[field]} value`} className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] tracking-normal text-amber-700 hover:bg-amber-200 dark:bg-amber-950/50 dark:text-amber-300">Check this · confirm</button>;
-        return <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[9px] tracking-normal text-accent">AI filled</span>;
+        if (status === "review") return <button type="button" onClick={(event) => { event.preventDefault(); markFieldReviewed(field); }} title={`Confirm the AI's ${DRAFT_FIELD_LABELS[field]} value`} className="ml-2 rounded-full bg-warning-surface px-2 py-0.5 text-[11px] font-bold text-warning ring-1 ring-warning/40 hover:brightness-95">Check · tap to confirm</button>;
+        return <span className="ml-2 rounded-full bg-selected px-2 py-0.5 text-[11px] font-bold">AI filled</span>;
     };
 
     const canSplit = type === "expense" && (!isEditing || splitDataAvailable);
@@ -462,301 +462,198 @@ export default function AddTransactionModal({ isOpen, onClose, transaction = nul
         }
     };
 
+    const label = "flex items-center text-sm font-semibold text-muted";
+    const input = "h-12 w-full rounded-xl border border-border bg-background px-4 text-[15px] outline-none transition focus:border-accent/60 focus:ring-4 focus:ring-accent/10 disabled:opacity-60";
+    const iconInput = cn(input, "pl-10");
+    const fieldIcon = "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted";
+
     return (
-        <Dialog open={isOpen} onClose={onClose} labelledBy="transaction-dialog-title" panelClassName="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-hidden sm:max-h-[90dvh]">
-                    <div className="dialog-enter max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card sm:max-h-[90dvh]">
-                        {/* Header */}
-                        <div className="px-6 py-5 sm:px-8 border-b border-border flex items-center justify-between bg-zinc-50/90 dark:bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-md">
-                            <div>
-                                <h3 id="transaction-dialog-title" className="text-xl font-bold font-rounded">{isEditing ? "Edit transaction" : "Add a transaction"}</h3>
-                                <p className="mt-0.5 text-sm text-zinc-500">{isEditing ? "Changes show up everywhere this transaction appears." : "Only the amount and account are needed. The rest is optional."}</p>
-                            </div>
-                            <button onClick={onClose} aria-label="Close transaction dialog" className="p-2.5 bg-white dark:bg-zinc-700 rounded-xl hover:text-accent transition-colors shadow-sm">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
+        <Dialog open={isOpen} onClose={onClose} labelledBy="transaction-dialog-title" panelClassName="sm:max-w-2xl">
+            <div className="flex min-h-full flex-col">
+                <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card px-5 py-4 sm:px-7">
+                    <div>
+                        <h3 id="transaction-dialog-title" className="text-xl font-bold">{isEditing ? "Edit transaction" : "Add a transaction"}</h3>
+                        <p className="mt-0.5 text-sm text-muted">{isEditing ? "Changes show everywhere this transaction appears." : "Only the amount and account are needed."}</p>
+                    </div>
+                    <button type="button" onClick={onClose} aria-label="Close" className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted hover:bg-track hover:text-foreground"><X className="h-5 w-5" /></button>
+                </div>
 
-                        {/* Mode Switcher */}
-                        {!isEditing && <div className="px-6 pt-6 sm:px-8">
-                            <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl">
-                                <button
-                                    onClick={() => setMode("quick")}
-                                    className={cn(
-                                        "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
-                                        mode === "quick" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-400 hover:text-zinc-600"
-                                    )}
-                                >
-                                    <Sparkles className="w-4 h-4" /> Describe it
+                {!isEditing && (
+                    <div className="px-5 pt-5 sm:px-7">
+                        <div role="tablist" aria-label="How to add it" className="grid grid-cols-2 gap-1 rounded-full bg-track p-1">
+                            {([["quick", "Describe it", Sparkles], ["manual", "Fill it in", Plus]] as const).map(([value, text, Icon]) => (
+                                <button key={value} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)} className={cn("flex h-10 items-center justify-center gap-2 rounded-full text-sm transition", mode === value ? "bg-card font-bold shadow-sm dark:bg-border" : "font-medium text-muted hover:text-foreground")}>
+                                    <Icon className="h-4 w-4" /> {text}
                                 </button>
-                                <button
-                                    onClick={() => setMode("manual")}
-                                    className={cn(
-                                        "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all",
-                                        mode === "manual" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-400 hover:text-zinc-600"
-                                    )}
-                                >
-                                    <Plus className="w-4 h-4" /> Fill it in
-                                </button>
-                            </div>
-                        </div>}
-
-                        <div className="min-h-[360px] p-6 pb-32 sm:p-8 sm:pb-36">
-                            {mode === "quick" ? (
-                                <div className="space-y-8 animate-in fade-in duration-500">
-                                    <div className="relative">
-                                        <textarea
-                                            value={text}
-                                            onChange={(e) => updateSourceText(e.target.value)}
-                                            aria-label="Describe the transaction"
-                                            placeholder="Say it the way you’d text it — “Lunch 250 on UPI”, or paste a bank SMS"
-                                            className="w-full h-44 bg-zinc-50 dark:bg-zinc-800 border-none rounded-panel px-6 pb-6 pt-12 text-lg font-medium outline-none focus:ring-4 focus:ring-accent/10 transition-all resize-none placeholder:text-zinc-400"
-                                        />
-                                        <div className="absolute top-5 left-6 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-0.5 rounded-full pointer-events-none">
-                                            <Sparkles className="w-3 h-3" /> Finnri AI
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <button
-                                            onClick={handleExtract}
-                                            disabled={extracting || !text}
-                                            className={cn(
-                                                "flex items-center justify-center gap-3 bg-accent text-zinc-950 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-accent/20 transition-all",
-                                                (extracting || !text) ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"
-                                            )}
-                                        >
-                                            {extracting ? (
-                                                <div className="flex items-center gap-3">
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                    Reading…
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <Brain className="w-5 h-5" />
-                                                    Fill it in for me
-                                                </>
-                                            )}
-                                        </button>
-                                        <div className="flex items-center gap-4 px-6 bg-zinc-50 dark:bg-zinc-800 rounded-2xl text-zinc-400">
-                                            <Info className="w-5 h-5 shrink-0" />
-                                            <p className="text-xs font-medium leading-snug">You’ll see every field before anything is saved.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                                    {!isEditing && text.trim() && (
-                                        <section className={cn("rounded-2xl border p-4", parsedDraft ? "border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/20" : "border-border bg-zinc-50 dark:bg-zinc-800")}>
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div>
-                                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">{parsedDraft ? "AI draft — review before saving" : "Your original text is still here"}</p>
-                                                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-700 dark:text-zinc-200">{text}</p>
-                                                </div>
-                                                <button onClick={() => setMode("quick")} className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-accent hover:bg-accent/10">Edit text</button>
-                                            </div>
-                                            {parsedDraft && pendingReviewFields.length > 0 && <p className="mt-3 text-xs font-bold text-amber-700 dark:text-amber-300">Check the {pendingReviewFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")} — then you can save.</p>}
-                                            {parseFailed && <p className="mt-3 text-xs text-zinc-500">Fill in the form yourself, or edit the text and try again.</p>}
-                                            {clarifications.map((clarification) => <p key={clarification} className="mt-2 flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200"><Info className="mt-0.5 h-4 w-4 shrink-0" />{clarification}</p>)}
-                                        </section>
-                                    )}
-                                    {parsedDraft && missingFields.length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"><p className="font-bold">Still needed</p><p className="mt-1">Fill or confirm: {missingFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")}.</p></div>}
-                                    {/* The number comes first and widest. It is the one thing every
-                                        entry needs, and the type beside it is a single tap. */}
-                                    <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-                                        <div className="space-y-2">
-                                            <label htmlFor="entry-amount" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Amount<FieldStatus field="amount" /></label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-zinc-400">₹</span>
-                                                <input
-                                                    id="entry-amount"
-                                                    type="number"
-                                                    inputMode="decimal"
-                                                    placeholder="0"
-                                                    value={amount}
-                                                    autoFocus={!isEditing}
-                                                    onChange={(e) => { setAmount(e.target.value); markFieldChanged("amount"); }}
-                                                    className={fieldClass("amount", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl pl-10 pr-4 py-3.5 text-3xl font-bold font-rounded outline-none focus:ring-2 focus:ring-accent/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Type<FieldStatus field="type" /></span>
-                                            <div role="radiogroup" aria-label="Transaction type" className={fieldClass("type", "flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl")}>
-                                                <button
-                                                    type="button"
-                                                    role="radio"
-                                                    aria-checked={type === "expense"}
-                                                    onClick={() => { setType("expense"); setCategory(expenseDefault); markFieldChanged("type"); }}
-                                                    className={cn("min-h-11 flex-1 px-5 text-xs font-bold rounded-lg transition-all", type === "expense" ? "bg-white dark:bg-zinc-700 text-accent shadow-sm" : "text-zinc-500")}
-                                                >
-                                                    Expense
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    role="radio"
-                                                    aria-checked={type === "income"}
-                                                    onClick={() => { setType("income"); setCategory(incomeDefault); setEntrySplit(null); markFieldChanged("type"); }}
-                                                    className={cn("min-h-11 flex-1 px-5 text-xs font-bold rounded-lg transition-all", type === "income" ? "bg-white dark:bg-zinc-700 text-green-600 shadow-sm" : "text-zinc-500")}
-                                                >
-                                                    Income
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <label htmlFor="entry-title" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">What was it for? <span className="font-medium normal-case tracking-normal">optional</span><FieldStatus field="title" /></label>
-                                            <div className="relative">
-                                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                                                <input
-                                                    id="entry-title"
-                                                    type="text"
-                                                    placeholder={category ? `Saved as “${category}” if blank` : "e.g. Lunch at Third Wave"}
-                                                    value={title}
-                                                    onChange={(e) => { setTitle(e.target.value); markFieldChanged("title"); }}
-                                                    className={fieldClass("title", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20")}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label htmlFor="entry-category" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Category<FieldStatus field="category" /></label>
-                                            <select
-                                                id="entry-category"
-                                                value={category}
-                                                onChange={(e) => { setCategory(e.target.value); markFieldChanged("category"); }}
-                                                disabled={categoryOptions.length === 0}
-                                                className={fieldClass("category", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-60")}
-                                            >
-                                                {categoryOptions.length === 0 && <option value="">{categoriesError ? "Categories unavailable" : "Loading categories…"}</option>}
-                                                {categoryOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                                            </select>
-                                            {categoriesError && <p className="text-[10px] font-bold text-red-500">{categoriesError}</p>}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <label htmlFor="entry-date" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Date & time<FieldStatus field="date" /></label>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                                                <input
-                                                    id="entry-date"
-                                                    type="datetime-local"
-                                                    value={date}
-                                                    onChange={(e) => { setDate(e.target.value); markFieldChanged("date"); }}
-                                                    className={fieldClass("date", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20")}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label htmlFor="entry-account" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{type === "income" ? "Received in" : "Paid from"}<FieldStatus field="account" /></label>
-                                            <div className="relative">
-                                                <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                                                <select
-                                                    id="entry-account"
-                                                    value={accountID}
-                                                    onChange={(e) => { setAccountID(Number(e.target.value)); markFieldChanged("account"); }}
-                                                    className={fieldClass("account", "w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20")}
-                                                >
-                                                    <option value="" disabled>Choose an account</option>
-                                                    {accounts.map((item) => <option key={item.id} value={item.id}>{item.name}{item.is_default ? " (default)" : ""}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {requiresExplicitPaymentMode && (
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Payment mode</label>
-                                            <select
-                                                value={explicitPaymentMode}
-                                                onChange={(event) => { setExplicitPaymentMode(event.target.value as PaymentMode); markFieldChanged("account"); }}
-                                                className={fieldClass("account", "w-full rounded-xl border-none bg-zinc-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20 dark:bg-zinc-800")}
-                                            >
-                                                <option value="" disabled>Choose how this account paid</option>
-                                                {PAYMENT_MODES.map((paymentMode) => <option key={paymentMode} value={paymentMode}>{paymentMode}</option>)}
-                                            </select>
-                                            <p className="text-xs text-zinc-400">“Other” accounts do not imply a payment rail, so Finnri will store exactly what you choose.</p>
-                                        </div>
-                                    )}
-
-                                    {/* Optional details. Each is a field once it has been asked for
-                                        or already holds something; the rest wait as chips below. */}
-                                    {isDetailShown("notes") && <div className="disclosure-enter">
-                                        <div className="space-y-2">
-                                            <label htmlFor="entry-notes" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Note<FieldStatus field="notes" /></label>
-                                            <textarea id="entry-notes" autoFocus={revealedDetails.includes("notes") && !notes} value={notes} onChange={(event) => { setNotes(event.target.value); markFieldChanged("notes"); }} rows={3} placeholder="Add context you’ll want later" className={fieldClass("notes", "w-full resize-none rounded-xl border-none bg-zinc-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/20 dark:bg-zinc-800")} />
-                                        </div>
-                                    </div>}
-                                    {isDetailShown("tags") && <div className="disclosure-enter">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Tags<FieldStatus field="tags" /></label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {tags.map((tag, i) => (
-                                                    <button type="button" aria-label={`Remove tag ${tag}`} key={i} onClick={() => { setTags(tags.filter(t => t !== tag)); markFieldChanged("tags"); }} className="flex items-center gap-1.5 px-3 py-1 bg-accent/10 text-accent text-xs font-bold rounded-lg group cursor-pointer hover:bg-red-500/10 hover:text-red-500 transition-colors">
-                                                        <Tag className="w-3 h-3" /> {tag} <X className="w-2.5 h-2.5 ml-1" />
-                                                    </button>
-                                                ))}
-                                                {showTagInput ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            autoFocus
-                                                            type="text"
-                                                            value={newTag}
-                                                            onChange={(e) => setNewTag(e.target.value)}
-                                                            onBlur={handleAddTag}
-                                                            onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-                                                            placeholder="New tag…"
-                                                            className="w-24 px-2 py-1 bg-white dark:bg-zinc-900 border border-accent rounded-lg text-xs outline-none"
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <button onClick={() => setShowTagInput(true)} className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 text-xs font-bold rounded-lg border border-dashed border-zinc-300 hover:border-accent transition-colors">
-                                                        <Plus className="w-3 h-3" /> Add tag
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>}
-                                    {canSplit && isDetailShown("split") && <div className="disclosure-enter"><InlineSplitEditor amount={Number(amount || 0)} friends={splitFriends} groups={splitGroups} value={entrySplit} onChange={setEntrySplit} /></div>}
-                                    {isEditing && !splitDataAvailable && <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">The linked split could not be loaded, so this save will leave it unchanged. Open the split ledger to edit it separately.</p>}
-                                    <AddDetailChips options={availableDetails} onAdd={addDetail} />
-                                </div>
-                            )}
-                        </div>
-
-                        {accessError && <div className="mx-8 mb-4"><Paywall error={accessError} featureLabel={accessFeatureLabel} compact /></div>}
-                        {error && <p className="mx-8 mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30">{error}</p>}
-
-                        {/* Footer */}
-                        <div className="p-8 border-t border-border bg-zinc-50 dark:bg-zinc-800/50 flex justify-between items-center sticky bottom-0 z-10">
-                            <button onClick={onClose} className="px-6 py-3 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Cancel</button>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={handleSave}
-                                    disabled={saving || mode === "quick" || !accountID || pendingReviewFields.length > 0}
-                                    className={cn(
-                                        "group flex items-center justify-center gap-2 px-10 py-3 bg-accent text-zinc-950 rounded-xl font-bold text-sm shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-70",
-                                        success && "bg-green-500 shadow-green-500/20"
-                                    )}
-                                >
-                                    {saving ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : success ? (
-                                        <>
-                                            <Check className="w-5 h-5" /> {isEditing ? "Updated" : "Saved"}
-                                        </>
-                                    ) : (
-                                        <>
-                                            {isEditing ? "Save changes" : "Save transaction"}
-                                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     </div>
+                )}
+
+                <div className="flex-1 px-5 py-5 sm:px-7">
+                    {mode === "quick" ? (
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <span className="pointer-events-none absolute left-4 top-3.5 inline-flex items-center gap-1.5 rounded-full bg-selected px-2.5 py-0.5 text-[12px] font-bold"><Sparkles className="h-3.5 w-3.5 text-accent" /> Finnri AI</span>
+                                <textarea
+                                    value={text}
+                                    onChange={(e) => updateSourceText(e.target.value)}
+                                    aria-label="Describe the transaction"
+                                    placeholder="Say it the way you’d text it: “Lunch 250 on UPI”, or paste a bank SMS"
+                                    className="h-40 w-full resize-none rounded-2xl border border-border bg-background px-4 pb-4 pt-12 text-lg outline-none transition placeholder:text-muted focus:border-accent/60 focus:ring-4 focus:ring-accent/10"
+                                />
+                            </div>
+                            <button type="button" onClick={handleExtract} disabled={extracting || !text} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-bold text-on-accent transition hover:brightness-105 disabled:opacity-50">
+                                {extracting ? <><Loader2 className="h-5 w-5 animate-spin" /> Reading…</> : <><Brain className="h-5 w-5" /> Fill it in for me</>}
+                            </button>
+                            <p className="flex items-center gap-2 text-[13px] text-muted"><Info className="h-4 w-4 shrink-0" /> You’ll see every field before anything is saved.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-5">
+                            {!isEditing && text.trim() && (
+                                <section className={cn("rounded-2xl p-4", parsedDraft ? "bg-warning-surface" : "bg-track")}>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <p className={cn("text-[13px] font-bold", parsedDraft ? "text-warning" : "text-muted")}>{parsedDraft ? "AI draft · check before saving" : "Your original text"}</p>
+                                            <p className="mt-1 whitespace-pre-wrap text-[15px] leading-6">{text}</p>
+                                        </div>
+                                        <button type="button" onClick={() => setMode("quick")} className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-[13px] font-bold hover:bg-track">Edit text</button>
+                                    </div>
+                                    {parsedDraft && pendingReviewFields.length > 0 && <p className="mt-2 text-[13px] font-semibold text-warning">Check the {pendingReviewFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")}, then you can save.</p>}
+                                    {parseFailed && <p className="mt-2 text-[13px] text-muted">Fill in the form yourself, or edit the text and try again.</p>}
+                                    {clarifications.map((clarification) => <p key={clarification} className="mt-2 flex items-start gap-2 text-sm text-warning"><Info className="mt-0.5 h-4 w-4 shrink-0" />{clarification}</p>)}
+                                </section>
+                            )}
+                            {parsedDraft && missingFields.length > 0 && <p className="rounded-2xl bg-warning-surface p-4 text-sm text-warning"><span className="font-bold">Still needed: </span>{missingFields.map((field) => DRAFT_FIELD_LABELS[field]).join(", ")}.</p>}
+
+                            {/* The number comes first and widest. It is the one thing every
+                                entry needs, and the type beside it is a single tap. */}
+                            <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+                                <div>
+                                    <label htmlFor="entry-amount" className={label}>Amount<FieldStatus field="amount" /></label>
+                                    <div className="relative mt-1">
+                                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-muted">₹</span>
+                                        <input
+                                            id="entry-amount"
+                                            type="number"
+                                            inputMode="decimal"
+                                            placeholder="0"
+                                            value={amount}
+                                            autoFocus={!isEditing}
+                                            onChange={(e) => { setAmount(e.target.value); markFieldChanged("amount"); }}
+                                            className={fieldClass("amount", cn(input, "font-display h-16 pl-10 text-[32px] font-bold tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"))}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className={label}>Type<FieldStatus field="type" /></span>
+                                    <div role="radiogroup" aria-label="Transaction type" className={fieldClass("type", "mt-1 grid h-16 grid-cols-2 gap-1 rounded-xl border border-border bg-track p-1.5")}>
+                                        <button type="button" role="radio" aria-checked={type === "expense"} onClick={() => { setType("expense"); setCategory(expenseDefault); markFieldChanged("type"); }} className={cn("rounded-lg px-5 text-sm transition", type === "expense" ? "bg-card font-bold shadow-sm dark:bg-border" : "font-medium text-muted")}>Spent</button>
+                                        <button type="button" role="radio" aria-checked={type === "income"} onClick={() => { setType("income"); setCategory(incomeDefault); setEntrySplit(null); markFieldChanged("type"); }} className={cn("rounded-lg px-5 text-sm transition", type === "income" ? "bg-card font-bold text-positive shadow-sm dark:bg-border" : "font-medium text-muted")}>Received</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label htmlFor="entry-title" className={label}>What was it for?<span className="ml-1.5 font-normal">optional</span><FieldStatus field="title" /></label>
+                                    <div className="relative mt-1">
+                                        <Search className={fieldIcon} />
+                                        <input id="entry-title" type="text" placeholder={category ? `Saved as “${category}” if blank` : "e.g. Lunch at Third Wave"} value={title} onChange={(e) => { setTitle(e.target.value); markFieldChanged("title"); }} className={fieldClass("title", iconInput)} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="entry-category" className={label}>Category<FieldStatus field="category" /></label>
+                                    <select id="entry-category" value={category} onChange={(e) => { setCategory(e.target.value); markFieldChanged("category"); }} disabled={categoryOptions.length === 0} className={fieldClass("category", cn(input, "mt-1"))}>
+                                        {categoryOptions.length === 0 && <option value="">{categoriesError ? "Categories unavailable" : "Loading categories…"}</option>}
+                                        {categoryOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                                    </select>
+                                    {categoriesError && <p className="mt-1 text-[13px] font-semibold text-negative">{categoriesError}</p>}
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label htmlFor="entry-date" className={label}>Date & time<FieldStatus field="date" /></label>
+                                    <div className="relative mt-1">
+                                        <Calendar className={fieldIcon} />
+                                        <input id="entry-date" type="datetime-local" value={date} onChange={(e) => { setDate(e.target.value); markFieldChanged("date"); }} className={fieldClass("date", iconInput)} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="entry-account" className={label}>{type === "income" ? "Received in" : "Paid from"}<FieldStatus field="account" /></label>
+                                    <div className="relative mt-1">
+                                        <Wallet className={fieldIcon} />
+                                        <select id="entry-account" value={accountID} onChange={(e) => { setAccountID(Number(e.target.value)); markFieldChanged("account"); }} className={fieldClass("account", iconInput)}>
+                                            <option value="" disabled>Choose an account</option>
+                                            {accounts.map((item) => <option key={item.id} value={item.id}>{item.name}{item.is_default ? " (default)" : ""}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {requiresExplicitPaymentMode && (
+                                <div>
+                                    <label htmlFor="entry-payment-mode" className={label}>Payment mode</label>
+                                    <select id="entry-payment-mode" value={explicitPaymentMode} onChange={(event) => { setExplicitPaymentMode(event.target.value as PaymentMode); markFieldChanged("account"); }} className={fieldClass("account", cn(input, "mt-1"))}>
+                                        <option value="" disabled>Choose how this account paid</option>
+                                        {PAYMENT_MODES.map((paymentMode) => <option key={paymentMode} value={paymentMode}>{paymentMode}</option>)}
+                                    </select>
+                                    <p className="mt-1 text-[13px] text-muted">“Other” accounts don’t imply how you paid, so Finnri stores exactly what you choose.</p>
+                                </div>
+                            )}
+
+                            {/* Optional details. Each is a field once it has been asked for
+                                or already holds something; the rest wait as chips below. */}
+                            {isDetailShown("notes") && (
+                                <div className="disclosure-enter">
+                                    <label htmlFor="entry-notes" className={label}>Note<FieldStatus field="notes" /></label>
+                                    <textarea id="entry-notes" autoFocus={revealedDetails.includes("notes") && !notes} value={notes} onChange={(event) => { setNotes(event.target.value); markFieldChanged("notes"); }} rows={3} placeholder="Context you’ll want later" className={fieldClass("notes", cn(input, "mt-1 h-auto resize-none py-3"))} />
+                                </div>
+                            )}
+                            {isDetailShown("tags") && (
+                                <div className="disclosure-enter">
+                                    <span className={label}>Tags<FieldStatus field="tags" /></span>
+                                    <div className="mt-1.5 flex flex-wrap gap-2">
+                                        {tags.map((tag, i) => (
+                                            <button type="button" aria-label={`Remove tag ${tag}`} key={i} onClick={() => { setTags(tags.filter(t => t !== tag)); markFieldChanged("tags"); }} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-selected px-3 text-[13px] font-bold transition-colors hover:bg-negative/10 hover:text-negative">
+                                                <Tag className="h-3.5 w-3.5" /> {tag} <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        ))}
+                                        {showTagInput ? (
+                                            <input autoFocus type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} onBlur={handleAddTag} onKeyDown={(e) => e.key === "Enter" && handleAddTag()} placeholder="New tag" aria-label="New tag" className="h-9 w-32 rounded-full border border-accent bg-background px-3 text-[13px] outline-none" />
+                                        ) : (
+                                            <button type="button" onClick={() => setShowTagInput(true)} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-dashed border-border px-3 text-[13px] font-semibold hover:border-accent hover:bg-selected"><Plus className="h-3.5 w-3.5 text-accent" /> Add tag</button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {canSplit && isDetailShown("split") && <div className="disclosure-enter"><InlineSplitEditor amount={Number(amount || 0)} friends={splitFriends} groups={splitGroups} value={entrySplit} onChange={setEntrySplit} /></div>}
+                            {isEditing && !splitDataAvailable && <p className="rounded-2xl bg-warning-surface p-4 text-[13px] leading-5 text-warning">The linked split couldn’t be loaded, so saving leaves it unchanged. Edit it from Splits in the Finnri app.</p>}
+                            <AddDetailChips options={availableDetails} onAdd={addDetail} />
+                        </div>
+                    )}
+                </div>
+
+                {(accessError || error) && (
+                    <div className="space-y-3 px-5 pb-4 sm:px-7">
+                        {accessError && <Paywall error={accessError} featureLabel={accessFeatureLabel} compact />}
+                        {error && <p role="alert" className="rounded-xl bg-negative/10 p-3 text-sm font-semibold text-negative">{error}</p>}
+                    </div>
+                )}
+
+                <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-border bg-card px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-7">
+                    <button type="button" onClick={onClose} className="h-11 rounded-full border border-border px-5 text-sm font-bold hover:bg-track">Cancel</button>
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving || mode === "quick" || !accountID || pendingReviewFields.length > 0}
+                        className={cn("group inline-flex h-11 items-center justify-center gap-2 rounded-full px-6 text-sm font-bold transition disabled:opacity-50", success ? "bg-positive text-background" : "bg-accent text-on-accent hover:brightness-105")}
+                    >
+                        {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : success ? <><Check className="h-5 w-5" /> {isEditing ? "Updated" : "Saved"}</> : <>{isEditing ? "Save changes" : "Save transaction"}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>}
+                    </button>
+                </div>
+            </div>
         </Dialog>
     );
 }

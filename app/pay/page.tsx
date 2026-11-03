@@ -118,24 +118,24 @@ function PayScreen() {
     }, [orderId]);
 
     return (
-        <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10">
-            <div className="rounded-3xl border border-border bg-white p-7 shadow-sm dark:bg-zinc-900">
+        <main className="font-body mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10">
+            <div className="rounded-3xl border border-border bg-card p-7 shadow-sm">
                 {phase.name === "loading" && (
-                    <p className="flex items-center gap-3 text-sm font-medium text-zinc-500">
+                    <p className="flex items-center gap-3 text-sm font-medium text-muted">
                         <Loader2 className="h-4 w-4 animate-spin" /> Loading your order…
                     </p>
                 )}
 
                 {phase.name === "error" && (
                     <div className="flex flex-col gap-3">
-                        <XCircle className="h-8 w-8 text-red-500" />
-                        <h1 className="text-xl font-bold font-rounded">Something went wrong</h1>
-                        <p role="alert" className="text-sm leading-6 text-zinc-500">{phase.message}</p>
+                        <XCircle className="h-8 w-8 text-negative" />
+                        <h1 className="text-xl font-bold font-display">Something went wrong</h1>
+                        <p role="alert" className="text-sm leading-6 text-muted">{phase.message}</p>
                         {order && (
                             <button
                                 type="button"
                                 onClick={() => void openCheckout(order)}
-                                className="mt-2 flex min-h-13 items-center justify-center rounded-2xl bg-accent px-6 py-4 text-base font-bold text-zinc-950"
+                                className="mt-2 flex min-h-13 items-center justify-center rounded-full bg-accent px-6 py-4 text-base font-bold text-on-accent"
                             >
                                 Try again
                             </button>
@@ -145,9 +145,9 @@ function PayScreen() {
 
                 {phase.name === "settled" && (
                     <div className="flex flex-col gap-3">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                        <h1 className="text-xl font-bold font-rounded">Already paid</h1>
-                        <p className="text-sm leading-6 text-zinc-500">
+                        <CheckCircle2 className="h-8 w-8 text-positive" />
+                        <h1 className="text-xl font-bold font-display">Already paid</h1>
+                        <p className="text-sm leading-6 text-muted">
                             {phase.order.plan_name} is active on your account. You can close this tab and return to Finnri.
                         </p>
                     </div>
@@ -155,11 +155,11 @@ function PayScreen() {
 
                 {phase.name === "submitted" && (
                     <div className="flex flex-col gap-3">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                        <h1 className="text-xl font-bold font-rounded">Payment received</h1>
+                        <CheckCircle2 className="h-8 w-8 text-positive" />
+                        <h1 className="text-xl font-bold font-display">Payment received</h1>
                         {/* The bank confirms, not the browser. Saying "done" here and
                             having the plan not appear is how people pay twice. */}
-                        <p className="text-sm leading-6 text-zinc-500">
+                        <p className="text-sm leading-6 text-muted">
                             Your bank is confirming it now. Close this tab and go back to Finnri — your plan appears there
                             on its own, usually within a few seconds. You do not need to pay again.
                         </p>
@@ -169,22 +169,22 @@ function PayScreen() {
                 {(phase.name === "ready" || phase.name === "opening") && (
                     <div className="flex flex-col gap-5">
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">Finnri</p>
-                            <h1 className="mt-1 text-xl font-bold font-rounded">{phase.order.plan_name}</h1>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">Finnri</p>
+                            <h1 className="mt-1 text-xl font-bold font-display">{phase.order.plan_name}</h1>
                         </div>
-                        <p className="text-4xl font-bold font-rounded tabular-nums">
+                        <p className="text-4xl font-bold font-display tabular-nums">
                             {formatMinor(phase.order.amount_minor, phase.order.currency)}
                         </p>
                         <button
                             type="button"
                             onClick={() => void openCheckout(phase.order)}
                             disabled={phase.name === "opening"}
-                            className="flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-accent px-6 py-4 text-base font-bold text-zinc-950 shadow-lg shadow-accent/20 disabled:opacity-60"
+                            className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-accent px-6 py-4 text-base font-bold text-on-accent disabled:opacity-60"
                         >
                             {phase.name === "opening" ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                             {phase.name === "opening" ? "Opening…" : "Pay with UPI, card or net banking"}
                         </button>
-                        <p className="flex items-start gap-2 text-xs leading-5 text-zinc-500">
+                        <p className="flex items-start gap-2 text-xs leading-5 text-muted">
                             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
                             Payment is handled by Razorpay. Finnri never sees your card or UPI details.
                         </p>

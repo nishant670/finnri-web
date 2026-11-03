@@ -186,8 +186,23 @@ export interface SplitBill {
     date: string;
     notes: string;
     participants: SplitParticipant[];
+    /**
+     * The bill restated from the reader's side: who paid and each person's
+     * share, with the reader's own friend ids. A group bill another member
+     * wrote names people by *their* friend rows in `participants`.
+     */
+    viewer_shares?: SplitBillViewerShare[] | null;
     created_at: string;
     updated_at: string;
+}
+
+export interface SplitBillViewerShare {
+    slot: string;
+    friend_id: number;
+    name: string;
+    is_viewer: boolean;
+    paid: number;
+    share: number;
 }
 
 /**
@@ -239,6 +254,11 @@ export interface SplitActivityItem {
     participant_count?: number;
     participants?: SplitParticipant[];
     notes?: string;
+    /** On settlements: its standing, and the group it settled. */
+    status?: SplitSettlementStatus;
+    group_name?: string;
+    /** Set when somebody else recorded it. */
+    actor_name?: string;
     created_at: string;
 }
 
@@ -303,6 +323,13 @@ export interface DashboardSummary {
     total_income: number;
     daily_average: number;
     transaction_count: number;
+    /** Expenses only; `transaction_count` counts income too. */
+    expense_count?: number;
+    /** What the comparison window (`period.previous_*`) spent, and the change. */
+    previous_total_spent?: number;
+    spend_change?: number;
+    /** False when the earlier window was too thin to divide by. */
+    spend_change_comparable?: boolean;
 }
 
 export interface DashboardCategory {
@@ -310,6 +337,8 @@ export interface DashboardCategory {
     amount: number;
     percentage: number;
     change: number;
+    /** False when the earlier window was too thin to divide by; `change` is then 0. */
+    change_comparable?: boolean;
 }
 
 export interface DashboardMerchant {
@@ -395,7 +424,7 @@ export interface RecurringCandidateDecision {
 }
 
 export interface DashboardResponse {
-    period: { start: string; end: string };
+    period: { start: string; end: string; previous_start?: string; previous_end?: string; comparison_label?: string };
     summary: DashboardSummary;
     top_categories: DashboardCategory[];
     top_merchants: DashboardMerchant[];
@@ -776,7 +805,8 @@ export const SplitAPI = {
     pendingSettlements: () => api.get<{ settlements: SplitSettlement[] }>("/v1/split/settlements/pending"),
     decideSettlement: (id: number, decision: "confirm" | "deny") =>
         api.post<SplitSettlement>(`/v1/split/settlements/${id}/${decision}`, {}),
-    activity: (page = 1, pageSize = 20) => api.get<SplitActivityResponse>("/v1/split/activity", { params: { page, page_size: pageSize } }),
+    activity: (page = 1, pageSize = 20, filters?: { type?: SplitActivityItem["type"]; friend_id?: number }) =>
+        api.get<SplitActivityResponse>("/v1/split/activity", { params: { page, page_size: pageSize, ...filters } }),
     balances: () => api.get<SplitBalance[]>("/v1/split/balances"),
 };
 

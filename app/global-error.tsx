@@ -8,11 +8,11 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
     return (
         <html lang="en">
             <body>
-                <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, fontFamily: "system-ui, sans-serif" }}>
+                <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, fontFamily: "Inter, system-ui, sans-serif", background: "#FDF5F7", color: "#2D2D2D" }}>
                     <section style={{ maxWidth: 520, textAlign: "center" }}>
-                        <h1>Finnri hit an unexpected error.</h1>
-                        <p>Your data is safe. Please try again.</p>
-                        <button onClick={reset} style={{ minHeight: 48, padding: "0 24px", border: 0, borderRadius: 16, background: "#E76F51", color: "white", fontWeight: 700 }}>Try again</button>
+                        <h1 style={{ fontSize: 28, margin: 0 }}>Finnri hit an unexpected error.</h1>
+                        <p style={{ color: "rgba(45,45,45,0.75)", lineHeight: 1.6 }}>Your data is safe. Try again, and if it keeps happening, write to support@finnri.app.</p>
+                        <button onClick={reset} style={{ minHeight: 48, padding: "0 24px", border: 0, borderRadius: 999, background: "#FF8865", color: "#2D2D2D", fontWeight: 700, cursor: "pointer" }}>Try again</button>
                     </section>
                 </main>
             </body>

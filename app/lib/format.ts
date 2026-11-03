@@ -23,6 +23,16 @@ export function formatMoney(value: MoneyValue): string {
 }
 
 /**
+ * A headline figure, to the rupee: ₹39,156 rather than ₹39,155.66. Only for
+ * the big numbers at the top of a screen; lists and details keep the paise so
+ * their rows still add up.
+ */
+export function formatRupees(value: MoneyValue): string {
+    const amount = typeof value === "string" ? Number(value.replace(/[\s,]/g, "")) : Number(value ?? 0);
+    return formatMoney(Math.round(Number.isFinite(amount) ? amount : 0));
+}
+
+/**
  * Rupees the way people say big sums in India: "₹33.41 lakh", "₹1.2 crore".
  * Below a lakh it is the plain amount.
  */

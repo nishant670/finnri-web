@@ -61,9 +61,8 @@ export default function AdminOverview() {
         <div className="space-y-7">
             <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Command centre</p>
-                    <h1 className="mt-2 text-3xl font-bold font-rounded sm:text-4xl">Overview</h1>
-                    <p className="mt-2 text-sm text-text-muted">
+                    <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Overview</h1>
+                    <p className="mt-2 text-sm text-muted">
                         Users, activation, subscriptions, AI cost, and operational signals in one window.
                     </p>
                 </div>
@@ -79,13 +78,13 @@ export default function AdminOverview() {
                 </div>
             </header>
             {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">
+                <div className="rounded-2xl border border-negative/30 bg-negative/10 p-4 text-sm text-negative">
                     {error}
                 </div>
             )}
             {data && (
                 <>
-                    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                         <StatTile
                             label="Total users"
                             value={compactNumber(data.users.total)}
@@ -120,7 +119,7 @@ export default function AdminOverview() {
                         />
                     </section>
                     {data.ai.alerts?.length > 0 && (
-                        <section className="rounded-panel border border-amber-200 bg-amber-50 p-5 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                        <section className="rounded-2xl border border-warning/30 bg-warning-surface p-5 text-warning">
                             <div className="flex gap-3">
                                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                                 <div>
@@ -135,32 +134,32 @@ export default function AdminOverview() {
                         </section>
                     )}
                     <section className="grid gap-5 xl:grid-cols-2">
-                        <article className="rounded-panel border border-border bg-card p-5 sm:p-7">
-                            <h2 className="text-lg font-bold font-rounded">Signups</h2>
-                            <p className="mt-1 text-xs text-text-muted">New user rows per day</p>
+                        <article className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-7">
+                            <h2 className="text-[17px] font-bold">Signups</h2>
+                            <p className="mt-1 text-xs text-muted">New user rows per day</p>
                             <div className="mt-4">
                                 <TrendChart data={signups} dataKey="total" xKey="period" label="Daily signups" />
                             </div>
                         </article>
-                        <article className="rounded-panel border border-border bg-card p-5 sm:p-7">
-                            <h2 className="text-lg font-bold font-rounded">AI cost</h2>
-                            <p className="mt-1 text-xs text-text-muted">Estimated or actual provider cost in USD micros</p>
+                        <article className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-7">
+                            <h2 className="text-[17px] font-bold">AI cost</h2>
+                            <p className="mt-1 text-xs text-muted">Estimated or actual provider cost in USD micros</p>
                             <div className="mt-4">
                                 <TrendChart data={aiSeries} dataKey="cost_usd_micros" label="Daily AI cost" formatter={formatUSDMicros} />
                             </div>
                         </article>
                     </section>
                     <section className="grid gap-4 md:grid-cols-2">
-                        <Link href="/admin/feedback" className="group rounded-panel border border-border bg-card p-6">
-                            <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Open feedback</p>
-                            <p className="mt-3 text-3xl font-bold font-rounded">{data.open_feedback}</p>
+                        <Link href="/admin/feedback" className="group rounded-2xl border border-border bg-card p-6">
+                            <p className="text-xs font-bold text-muted">Open feedback</p>
+                            <p className="mt-3 text-3xl font-bold">{data.open_feedback}</p>
                             <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-accent">
                                 Open inbox <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                             </span>
                         </Link>
-                        <Link href="/admin/ai" className="group rounded-panel border border-border bg-card p-6">
-                            <p className="text-xs font-bold uppercase tracking-wider text-text-muted">AI stickiness context</p>
-                            <p className="mt-3 text-3xl font-bold font-rounded">{percent(data.engagement.stickiness)}</p>
+                        <Link href="/admin/ai" className="group rounded-2xl border border-border bg-card p-6">
+                            <p className="text-xs font-bold text-muted">AI stickiness context</p>
+                            <p className="mt-3 text-3xl font-bold">{percent(data.engagement.stickiness)}</p>
                             <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-accent">
                                 Inspect usage <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                             </span>

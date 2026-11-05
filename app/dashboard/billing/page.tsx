@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, CreditCard, Loader2, Rocket, ShieldAlert, Sparkles } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
+import { buttonPrimary, buttonSecondary, ErrorNotice, PageHeader, Panel, SectionTitle } from "@/app/components/dashboard/kit";
+import { cn } from "@/app/lib/utils";
 import { apiErrorMessage } from "@/app/lib/api";
 import { formatDate } from "@/app/lib/format";
 import {
@@ -130,122 +132,90 @@ export default function BillingScreen() {
     const checkoutAvailable = purchasable.some((plan) => plan.checkout_enabled);
     const offerNotice = launchOfferNotice(purchasable, status);
 
+    const isPaid = Boolean(status?.plan) && status?.subscription_status === "active";
+    const notice = "rounded-2xl px-4 py-3 text-sm font-medium";
+
     return (
-        <div className="mx-auto max-w-4xl space-y-8 pb-20">
-            <div>
-                <h1 className="text-3xl font-bold font-rounded tracking-tight dark:text-white">Plan &amp; billing</h1>
-                <p className="mt-1 text-sm font-medium text-zinc-500">
-                    Pay by UPI, card, or net banking. Every plan is a one-off purchase — nothing renews on its own.
-                </p>
-            </div>
+        <div className="mx-auto max-w-5xl space-y-5 pb-20">
+            <PageHeader title="Plan & billing" description="Pay by UPI, card or net banking. Every pass is a one-off purchase; nothing renews on its own." />
 
-            {loading && (
-                <div className="flex items-center gap-3 rounded-panel border border-border bg-white p-6 text-sm font-medium text-zinc-500 dark:bg-zinc-900">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading your plan…
-                </div>
-            )}
-
-            {!loading && loadError && (
-                <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
-                    {loadError}
-                </p>
-            )}
-
+            {loading && <Panel className="flex items-center gap-3 p-5 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading your plan…</Panel>}
+            {!loading && loadError && <ErrorNotice message={loadError} />}
             {!loading && !loadError && status && <CurrentPlanCard status={status} />}
 
             {user?.is_guest && (
-                <section className="rounded-panel border border-amber-200 bg-amber-50 p-6 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-100">
-                    <div className="flex items-start gap-4">
-                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
-                            <ShieldAlert className="h-5 w-5" />
-                        </span>
-                        <div>
-                            <h2 className="font-bold">Save your workspace before you buy</h2>
-                            <p className="mt-1 text-sm leading-6 opacity-75">
-                                A plan is tied to an account. Save this guest workspace first so the plan you buy stays with your data.
-                            </p>
-                        </div>
+                <section className="flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning-surface p-4 sm:p-5">
+                    <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+                    <div>
+                        <h2 className="font-bold">Save your workspace before you buy</h2>
+                        <p className="mt-0.5 text-sm text-muted">A pass is tied to an account. Save this guest workspace first so the pass you buy stays with your data.</p>
                     </div>
                 </section>
             )}
 
-            {purchase.phase === "error" && (
-                <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:bg-red-950/30 dark:text-red-300">
-                    {purchase.message}
-                </p>
-            )}
-
-            {purchase.phase === "confirmed" && (
-                <p role="status" className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-                    <CheckCircle2 className="h-4 w-4" /> Payment confirmed — your plan is active.
-                </p>
-            )}
-
-            {purchase.phase === "pending" && (
-                <p role="status" className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 dark:bg-blue-950/30 dark:text-blue-200">
-                    Your payment is still being confirmed by the bank. This page updates on its own once it lands — you do not need to pay again.
-                </p>
-            )}
-
-            {!loading && !loadError && !checkoutAvailable && purchasable.length > 0 && (
-                <p className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                    Checkout is not open yet. These are the plans it will offer.
-                </p>
-            )}
-
+            {purchase.phase === "error" && <ErrorNotice message={purchase.message} />}
+            {purchase.phase === "confirmed" && <p role="status" className={`${notice} flex items-center gap-2 bg-positive/10 text-positive`}><CheckCircle2 className="h-4 w-4" /> Payment confirmed. Your pass is active.</p>}
+            {purchase.phase === "pending" && <p role="status" className={`${notice} bg-track`}>Your payment is still being confirmed by the bank. This page updates on its own once it lands; you don’t need to pay again.</p>}
+            {!loading && !loadError && !checkoutAvailable && purchasable.length > 0 && <p className={`${notice} bg-track text-muted`}>Checkout isn’t open yet. These are the passes it will offer.</p>}
             {!loading && !loadError && offerNotice && <LaunchOfferBanner notice={offerNotice} />}
 
             {!loading && !loadError && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                    {purchasable.map((plan) => (
-                        <PlanCard
-                            key={plan.code}
-                            plan={plan}
-                            offer={offerForViewer(plan, status)}
-                            busy={busy}
-                            pendingCode={"planCode" in purchase ? purchase.planCode : undefined}
-                            disabled={busy || Boolean(user?.is_guest)}
-                            onBuy={() => handleBuy(plan)}
-                        />
-                    ))}
-                </div>
+                <section aria-labelledby="passes-heading">
+                    <SectionTitle id="passes-heading" title="Passes" detail="More AI credits, plus budgets, insights and reminders" />
+                    <div className="grid gap-4 md:grid-cols-3">
+                        {purchasable.map((plan) => (
+                            <PlanCard
+                                key={plan.code}
+                                plan={plan}
+                                offer={offerForViewer(plan, status)}
+                                current={isPaid && status?.plan?.code === plan.code}
+                                best={plan.billing_interval === "yearly"}
+                                busy={busy}
+                                pendingCode={"planCode" in purchase ? purchase.planCode : undefined}
+                                disabled={busy || Boolean(user?.is_guest)}
+                                onBuy={() => handleBuy(plan)}
+                            />
+                        ))}
+                    </div>
+                </section>
             )}
+        </div>
+    );
+}
+
+function Meter({ label, used, total, detail }: { label: string; used: number; total: number; detail: string }) {
+    const share = total > 0 ? Math.min(1, Math.max(0, used / total)) : 0;
+    return (
+        <div className="min-w-0">
+            <div className="flex items-baseline justify-between gap-3"><dt className="text-[13px] font-semibold text-muted">{label}</dt><dd className="text-[13px] text-muted">{detail}</dd></div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={total} aria-valuenow={used}><div className="h-full rounded-full bg-accent" style={{ width: `${share * 100}%` }} /></div>
         </div>
     );
 }
 
 function CurrentPlanCard({ status }: { status: BillingStatus }) {
     const isPaid = Boolean(status.plan) && status.subscription_status === "active";
+    const credits = status.credits;
     return (
-        <section className="rounded-panel border border-border bg-white p-6 shadow-sm dark:bg-zinc-900 sm:p-8">
-            <div className="flex items-start gap-4">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
-                    <Sparkles className="h-5 w-5" />
-                </span>
-                <div className="min-w-0">
-                    <h2 className="text-lg font-bold font-rounded">{status.plan?.name ?? "Finnri Free"}</h2>
-                    <p className="mt-1 text-sm text-zinc-500">
-                        {isPaid && status.current_period_end
-                            ? `Active until ${formatDate(new Date(status.current_period_end))}. It will not renew on its own.`
-                            : "You’re on the free plan."}
-                    </p>
+        <Panel className="p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-selected text-accent"><Sparkles className="h-5 w-5" /></span>
+                    <div>
+                        <p className="text-[13px] font-semibold text-muted">Your plan</p>
+                        <h2 className="font-display text-2xl font-bold">{status.plan?.name ?? "Finnri Free"}</h2>
+                        <p className="mt-0.5 text-sm text-muted">{isPaid && status.current_period_end ? `Active until ${formatDate(new Date(status.current_period_end))}. It won’t renew on its own.` : "You’re on the free plan."}</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="font-display text-[32px] font-bold leading-none tabular-nums">{credits.total_credits_remaining.toLocaleString("en-IN")}</p>
+                    <p className="mt-1 text-[13px] text-muted">AI credits left</p>
                 </div>
             </div>
-            <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
-                <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800">
-                    <dt className="text-xs font-bold uppercase tracking-wider text-zinc-400">Credits left</dt>
-                    <dd className="mt-1 font-bold">{status.credits.total_credits_remaining.toLocaleString("en-IN")}</dd>
-                </div>
-                <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800">
-                    <dt className="text-xs font-bold uppercase tracking-wider text-zinc-400">Today’s limit</dt>
-                    <dd className="mt-1 font-bold">{status.credits.daily_credits_remaining} of {status.credits.daily_limit}</dd>
-                </div>
-                <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800">
-                    <dt className="text-xs font-bold uppercase tracking-wider text-zinc-400">Status</dt>
-                    <dd className="mt-1 font-bold capitalize">{status.subscription_status.replace(/_/g, " ")}</dd>
-                </div>
+            <dl className="mt-5 grid gap-4 sm:max-w-md">
+                <Meter label="Used today" used={credits.daily_credits_used} total={credits.daily_limit} detail={`${credits.daily_credits_used} of ${credits.daily_limit} · resets ${formatDate(credits.reset_at)}`} />
             </dl>
-        </section>
+        </Panel>
     );
 }
 
@@ -256,15 +226,13 @@ function CurrentPlanCard({ status }: { status: BillingStatus }) {
  */
 function LaunchOfferBanner({ notice }: { notice: LaunchOfferNotice }) {
     return (
-        <section className="flex items-start gap-4 rounded-panel border border-accent/30 bg-accent/5 p-5">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
-                <Rocket className="h-5 w-5" />
-            </span>
+        <section className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-selected p-4 sm:p-5">
+            <Rocket className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
             <div className="min-w-0">
-                <h2 className="font-bold">Launch offer · {notice.percentOff}% off every plan</h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                <h2 className="font-bold">Launch offer · {notice.percentOff}% off every pass</h2>
+                <p className="mt-0.5 text-sm text-muted">
                     {notice.used
-                        ? "You have already used the launch price — thanks for being early."
+                        ? "You’ve already used the launch price. Thanks for being early."
                         : notice.spotsLeft != null
                           ? `For a limited time · only ${notice.spotsLeft} launch spot${notice.spotsLeft === 1 ? "" : "s"} left`
                           : "For a limited time, once per account"}
@@ -277,6 +245,8 @@ function LaunchOfferBanner({ notice }: { notice: LaunchOfferNotice }) {
 function PlanCard({
     plan,
     offer,
+    current,
+    best,
     busy,
     pendingCode,
     disabled,
@@ -285,6 +255,8 @@ function PlanCard({
     plan: BillingPlan;
     /** The launch offer this viewer would be charged, or null for the regular price. */
     offer: PlanOffer | null;
+    current: boolean;
+    best: boolean;
     busy: boolean;
     pendingCode?: string;
     disabled: boolean;
@@ -297,61 +269,30 @@ function PlanCard({
     const isThisPlanBusy = busy && pendingCode === plan.code;
 
     return (
-        <section className="flex flex-col rounded-panel border border-border bg-white p-6 shadow-sm dark:bg-zinc-900">
-            <div className="flex items-start justify-between gap-3">
-                <h3 className="text-lg font-bold font-rounded">{plan.name}</h3>
-                {offer && (
-                    <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-accent">
-                        {offer.percent_off}% off
-                    </span>
-                )}
-                {saving != null && (
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
-                        Save {saving}%
-                    </span>
-                )}
-            </div>
-
-            <p className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-bold font-rounded">
-                    {price != null ? formatMinor(price, plan.currency) : "—"}
+        <section className={cn("flex flex-col rounded-2xl border bg-card p-5", current ? "border-accent" : "border-border")}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-[17px] font-bold">{plan.name}</h3>
+                <span className="flex gap-1.5">
+                    {current && <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold text-on-accent">Current</span>}
+                    {offer && <span className="rounded-full bg-selected px-2.5 py-0.5 text-[11px] font-bold">{offer.percent_off}% off</span>}
+                    {!offer && best && saving != null && <span className="rounded-full bg-positive/15 px-2.5 py-0.5 text-[11px] font-bold text-positive">Best value · save {saving}%</span>}
+                    {!offer && !best && saving != null && <span className="rounded-full bg-positive/15 px-2.5 py-0.5 text-[11px] font-bold text-positive">Save {saving}%</span>}
                 </span>
-                <span className="text-sm font-medium text-zinc-500">/ {intervalLabel(plan.billing_interval)}</span>
+            </div>
+            <p className="mt-3 flex items-baseline gap-1.5">
+                <span className="font-display text-[32px] font-bold leading-none tabular-nums">{price != null ? formatMinor(price, plan.currency) : "—"}</span>
+                <span className="text-sm text-muted">/ {intervalLabel(plan.billing_interval)}</span>
             </p>
-            {offer && (
-                <p className="mt-1 text-xs font-medium text-zinc-400">
-                    <s>{formatMinor(offer.original_price_minor, plan.currency)}</s> · launch price for your first pass
-                </p>
-            )}
-            {saving != null && plan.list_price_minor != null && (
-                <p className="mt-1 text-xs font-medium text-zinc-400">
-                    <s>{formatMinor(plan.list_price_minor, plan.currency)}</s> at full price
-                </p>
-            )}
-
-            <ul className="mt-5 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    {plan.included_credits.toLocaleString("en-IN")} AI credits
-                </li>
-                <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    Up to {plan.daily_credit_limit} credits a day
-                </li>
-                <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />
-                    Budgets, insights and reminders
-                </li>
+            {offer && <p className="mt-1 text-[13px] text-muted"><s>{formatMinor(offer.original_price_minor, plan.currency)}</s> · launch price for your first pass</p>}
+            {saving != null && plan.list_price_minor != null && <p className="mt-1 text-[13px] text-muted"><s>{formatMinor(plan.list_price_minor, plan.currency)}</s> at full price</p>}
+            <ul className="mb-5 mt-4 space-y-1.5 text-sm">
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />{plan.included_credits.toLocaleString("en-IN")} AI credits</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />Up to {plan.daily_credit_limit} credits a day</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />Budgets, insights and reminders</li>
             </ul>
-
-            <button
-                type="button"
-                onClick={onBuy}
-                disabled={disabled || !plan.checkout_enabled}
-                className="mt-6 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-sm font-bold text-zinc-950 shadow-lg shadow-accent/20 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-            >
+            <button type="button" onClick={onBuy} disabled={disabled || !plan.checkout_enabled} className={cn("mt-auto w-full", current ? buttonSecondary : buttonPrimary, "h-11")}>
                 {isThisPlanBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                {isThisPlanBusy ? "Working…" : plan.checkout_enabled ? `Buy ${plan.name}` : "Coming soon"}
+                {isThisPlanBusy ? "Working…" : !plan.checkout_enabled ? "Coming soon" : current ? "Buy again" : `Buy ${plan.name}`}
             </button>
         </section>
     );

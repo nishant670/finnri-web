@@ -38,6 +38,12 @@
     "app/lib/form-summaries.ts",
     "app/lib/form-summaries.test.ts",
     "app/lib/feedback-attachments.ts",
-    "app/lib/feedback-attachments.test.ts"
+    "app/lib/feedback-attachments.test.ts",
+    "app/lib/demo-parse.ts",
+    "app/lib/demo-parse.test.ts",
+    "app/lib/period.ts",
+    "app/lib/period.test.ts",
+    "app/lib/split-ledger.ts",
+    "app/lib/split-ledger.test.ts"
   ]
 }

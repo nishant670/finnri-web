@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import { Download, Info } from "lucide-react";
 import StatTile from "@/app/components/admin/StatTile";
 import DataTable from "@/app/components/admin/DataTable";
 import TrendChart from "@/app/components/admin/TrendChart";
+import { RankedBars } from "@/app/components/dashboard/kit";
 import RoleGate from "@/app/components/admin/RoleGate";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { useToast } from "@/app/components/ui/Toast";
@@ -13,10 +13,6 @@ import { AdminAPI, AdminPage, dateWindow, withQuery } from "@/app/lib/admin-api"
 import { percent } from "@/app/lib/admin-metrics";
 import { formatDate, formatMinorMoney } from "@/app/lib/format";
 
-const PlanMixChart = dynamic(() => import("@/app/components/charts/PlanMixChart"), {
-    ssr: false,
-    loading: () => <div className="h-full animate-pulse rounded-2xl bg-surface-muted" aria-hidden="true" />,
-});
 
 type Revenue = {
     active_subscribers: number;
@@ -95,13 +91,11 @@ export default function SubscribersPage() {
             setError(reason instanceof Error ? reason.message : "Unable to update quote");
         }
     }
-    const mix = Object.entries(revenue?.by_plan || {}).map(([name, row]) => ({ name: name.replaceAll("_", " "), value: row.subscribers }));
     return (
         <div className="space-y-7">
             <header className="flex items-end justify-between gap-4">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Revenue & entitlements</p>
-                    <h1 className="mt-2 text-3xl font-bold font-rounded">Subscribers</h1>
+                    <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Subscribers</h1>
                 </div>
                 <a
                     href="/api/admin/export/subscriptions.csv"
@@ -111,7 +105,7 @@ export default function SubscribersPage() {
                     Export
                 </a>
             </header>
-            <div className="flex items-start gap-3 rounded-panel border border-border bg-card p-5 text-sm leading-6 text-text-muted">
+            <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-5 text-sm leading-6 text-muted">
                 <Info className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
                 <p>
                     <strong className="text-text">Cash</strong> is what Razorpay captured in the last 30 days, less anything since refunded
@@ -119,13 +113,13 @@ export default function SubscribersPage() {
                     plan&apos;s list price, so they are a forecast, not cash. Gifted passes count in neither.
                 </p>
             </div>
-            {error && <div className="rounded-xl bg-red-50 p-4 text-red-700">{error}</div>}
+            {error && <div className="rounded-xl bg-negative/10 p-4 text-negative">{error}</div>}
             {revenue && (
                 <>
                     {revenue.cash && (
                         <section className="space-y-4">
-                            <h2 className="text-lg font-bold font-rounded">Cash collected · last 30 days</h2>
-                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            <h2 className="text-[17px] font-bold">Cash collected · last 30 days</h2>
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                                 <StatTile
                                     label="Net collected"
                                     value={formatMinorMoney(revenue.cash.net_minor)}
@@ -147,9 +141,9 @@ export default function SubscribersPage() {
                                     hint={`${formatMinorMoney(revenue.cash.lifetime_collected_minor)} taken, ${formatMinorMoney(revenue.cash.lifetime_refunded_minor)} refunded`}
                                 />
                             </div>
-                            <article className="rounded-panel border border-border bg-card p-6">
-                                <h3 className="text-lg font-bold font-rounded">Cash by day</h3>
-                                <p className="mt-1 text-xs text-text-muted">Net of refunds, on the day each payment was captured (UTC).</p>
+                            <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                                <h3 className="text-[17px] font-bold">Cash by day</h3>
+                                <p className="mt-1 text-xs text-muted">Net of refunds, on the day each payment was captured (UTC).</p>
                                 <TrendChart
                                     data={revenue.trend || []}
                                     dataKey="cash_net_minor"
@@ -160,8 +154,8 @@ export default function SubscribersPage() {
                         </section>
                     )}
                     <div className="space-y-4">
-                        <h2 className="text-lg font-bold font-rounded">Modelled from plan prices</h2>
-                        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <h2 className="text-[17px] font-bold">Modelled from plan prices</h2>
+                        <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                             <StatTile
                                 label="Active subscribers"
                                 value={revenue.active_subscribers}
@@ -181,9 +175,9 @@ export default function SubscribersPage() {
                         </section>
                     </div>
                     <section className="grid gap-5 xl:grid-cols-2">
-                        <article className="rounded-panel border border-border bg-card p-6">
-                            <h2 className="text-lg font-bold font-rounded">Modelled MRR trend</h2>
-                            <p className="mt-1 text-xs text-text-muted">Reconstructed from current subscription periods.</p>
+                        <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                            <h2 className="text-[17px] font-bold">Modelled MRR trend</h2>
+                            <p className="mt-1 text-xs text-muted">Reconstructed from current subscription periods.</p>
                             <TrendChart
                                 data={revenue.trend || []}
                                 dataKey="modelled_mrr_minor"
@@ -191,15 +185,23 @@ export default function SubscribersPage() {
                                 formatter={formatMinorMoney}
                             />
                         </article>
-                        <article className="rounded-panel border border-border bg-card p-6">
-                            <h2 className="text-lg font-bold font-rounded">Plan mix</h2>
-                            <div className="h-72">
-                                <PlanMixChart data={mix} />
-                            </div>
+                        <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                            <h2 className="text-[17px] font-bold">Plan mix</h2>
+                            <p className="mb-3 text-sm text-muted">Active passes by plan, with each plan’s modelled MRR.</p>
+                            <RankedBars
+                                label="Subscribers by plan"
+                                rows={[...Object.entries(revenue.by_plan)].sort((a, b) => b[1].subscribers - a[1].subscribers).map(([code, plan], _, all) => ({
+                                    key: code,
+                                    label: code.charAt(0).toUpperCase() + code.slice(1),
+                                    amount: `${plan.subscribers.toLocaleString("en-IN")}`,
+                                    share: plan.subscribers / Math.max(1, all[0][1].subscribers),
+                                    sub: `${formatMinorMoney(plan.modelled_mrr_minor)} MRR · ${Math.round((plan.subscribers / Math.max(1, revenue.active_subscribers)) * 100)}% of passes`,
+                                }))}
+                            />
                         </article>
                     </section>
                     <section>
-                        <h2 className="mb-4 text-lg font-bold font-rounded">Subscriber ledger</h2>
+                        <h2 className="mb-4 text-[17px] font-bold">Subscriber ledger</h2>
                         <DataTable
                             rows={subs}
                             columns={[
@@ -209,7 +211,7 @@ export default function SubscribersPage() {
                                     render: (row) => (
                                         <span className="font-semibold">
                                             {row.user.username}
-                                            <small className="block font-normal text-text-muted">{row.user.email}</small>
+                                            <small className="block font-normal text-muted">{row.user.email}</small>
                                         </span>
                                     ),
                                 },
@@ -232,7 +234,7 @@ export default function SubscribersPage() {
                 </>
             )}
             <section>
-                <h2 className="mb-4 text-lg font-bold font-rounded">Lifetime quote queue</h2>
+                <h2 className="mb-4 text-[17px] font-bold">Lifetime quote queue</h2>
                 <DataTable
                     rows={quotes}
                     empty="No quote requests."

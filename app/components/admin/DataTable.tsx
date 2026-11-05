@@ -1,22 +1,24 @@
 import React from "react";
 
 export type DataColumn<T> = { key: string; label: string; render: (row: T) => React.ReactNode; className?: string };
+
+/** The admin's one table style: quiet headers, rows that highlight, horizontal scroll on phones. */
 export default function DataTable<T>({
     rows,
     columns,
-    empty = "No records found.",
+    empty = "Nothing here yet.",
 }: {
     rows: T[];
     columns: DataColumn<T>[];
     empty?: string;
 }) {
     return (
-        <div className="overflow-x-auto rounded-panel border border-border bg-card">
-            <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="border-b border-border bg-zinc-50/70 text-[11px] uppercase tracking-[0.14em] text-text-muted dark:bg-zinc-900">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+            <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b border-border text-[13px] text-muted">
                     <tr>
                         {columns.map((column) => (
-                            <th key={column.key} className={`px-5 py-4 font-bold ${column.className || ""}`}>
+                            <th key={column.key} scope="col" className={`whitespace-nowrap px-4 py-3 font-semibold sm:px-5 ${column.className || ""}`}>
                                 {column.label}
                             </th>
                         ))}
@@ -25,9 +27,9 @@ export default function DataTable<T>({
                 <tbody className="divide-y divide-border">
                     {rows.length ? (
                         rows.map((row, index) => (
-                            <tr key={index} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-900/50">
+                            <tr key={index} className="transition-colors hover:bg-track">
                                 {columns.map((column) => (
-                                    <td key={column.key} className={`px-5 py-4 ${column.className || ""}`}>
+                                    <td key={column.key} className={`px-4 py-3 sm:px-5 ${column.className || ""}`}>
                                         {column.render(row)}
                                     </td>
                                 ))}
@@ -35,7 +37,7 @@ export default function DataTable<T>({
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={columns.length} className="px-5 py-14 text-center text-text-muted">
+                            <td colSpan={columns.length} className="px-5 py-12 text-center text-muted">
                                 {empty}
                             </td>
                         </tr>

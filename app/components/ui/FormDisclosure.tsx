@@ -42,16 +42,16 @@ export default function FormDisclosure({
                 aria-expanded={open}
                 aria-controls={panelId}
                 onClick={onToggle}
-                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-track"
             >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-selected text-accent">
                     <Icon className="h-4 w-4" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold">{label}</span>
-                    {summary && <span className={cn("mt-0.5 block text-xs text-zinc-500", !open && "truncate")}>{summary}</span>}
+                    <span className="block text-[15px] font-semibold">{label}</span>
+                    {summary && <span className={cn("mt-0.5 block text-[13px] text-muted", !open && "truncate")}>{summary}</span>}
                 </span>
-                <ChevronDown className={cn("h-5 w-5 shrink-0 text-zinc-400 transition-transform", open && "rotate-180")} aria-hidden />
+                <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted transition-transform", open && "rotate-180")} aria-hidden />
             </button>
             {open && (
                 <div id={panelId} className="disclosure-enter space-y-4 border-t border-border px-4 pb-4 pt-4">

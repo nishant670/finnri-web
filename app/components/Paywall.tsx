@@ -22,37 +22,31 @@ export default function Paywall({ error, featureLabel, compact = false }: Paywal
     return (
         <section
             aria-label={allowancePaused ? `${feature} allowance` : `${feature} plan requirement`}
-            className={`rounded-2xl border p-5 ${allowancePaused
-                ? "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-100"
-                : "border-accent/25 bg-accent/5 text-zinc-900 dark:text-white"}`}
+            className={`flex items-start gap-3 rounded-2xl border p-4 sm:p-5 ${allowancePaused ? "border-border bg-track" : "border-accent/40 bg-selected"}`}
         >
-            <span className={`grid h-10 w-10 place-items-center rounded-xl ${allowancePaused ? "bg-blue-100 text-blue-600 dark:bg-blue-900/40" : "bg-accent/10 text-accent"}`}>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-card text-accent">
                 {allowancePaused ? <Clock3 className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
             </span>
-            <h3 className="mt-4 font-bold">
-                {allowancePaused ? `${feature} will be back soon` : `Unlock ${feature}`}
-            </h3>
-            <p className="mt-1 text-sm leading-6 opacity-75">
-                {allowancePaused
-                    ? resetTime ? `AI is back at ${resetTime}. You can keep entering transactions manually until then.` : "Your daily allowance will reset soon. You can keep working manually until then."
-                    : error.requiredPlan ? `Part of ${planDisplayName(error.requiredPlan)}.` : "Available on an upgraded Finnri account."}
-            </p>
-            {!allowancePaused && error.requiredCredits != null && (
-                <p className="mt-2 text-xs font-semibold opacity-70">
-                    Needs {error.requiredCredits} credit{error.requiredCredits === 1 ? "" : "s"}
-                    {error.availableCredits != null ? ` · ${error.availableCredits} available` : ""}
+            <div className="min-w-0">
+                <h3 className="font-bold">{allowancePaused ? `${feature} will be back soon` : `Unlock ${feature}`}</h3>
+                <p className="mt-0.5 text-sm leading-6 text-muted">
+                    {allowancePaused
+                        ? resetTime ? `AI is back at ${resetTime}. You can keep entering transactions by hand until then.` : "Your daily allowance resets soon. You can keep entering transactions by hand until then."
+                        : error.requiredPlan ? `Part of ${planDisplayName(error.requiredPlan)}.` : "Available with a Finnri pass."}
                 </p>
-            )}
-            {!allowancePaused && user?.is_guest && (
-                <button type="button" onClick={beginGuestClaim} className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-bold text-zinc-950">
-                    Sign in to continue
-                </button>
-            )}
-            {!allowancePaused && !user?.is_guest && !compact && (
-                <Link href="/dashboard/settings" className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-accent px-4 text-xs font-bold text-zinc-950">
-                    Review account options
-                </Link>
-            )}
+                {!allowancePaused && error.requiredCredits != null && (
+                    <p className="mt-1 text-[13px] font-semibold text-muted">
+                        Needs {error.requiredCredits} credit{error.requiredCredits === 1 ? "" : "s"}
+                        {error.availableCredits != null ? ` · ${error.availableCredits} available` : ""}
+                    </p>
+                )}
+                {!allowancePaused && user?.is_guest && (
+                    <button type="button" onClick={beginGuestClaim} className="mt-3 inline-flex h-10 items-center rounded-full bg-accent px-4 text-sm font-bold text-on-accent">Save your workspace to continue</button>
+                )}
+                {!allowancePaused && !user?.is_guest && !compact && (
+                    <Link href="/dashboard/billing" className="mt-3 inline-flex h-10 items-center rounded-full bg-accent px-4 text-sm font-bold text-on-accent">See passes</Link>
+                )}
+            </div>
         </section>
     );
 }

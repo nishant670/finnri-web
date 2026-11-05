@@ -8,7 +8,7 @@ import { ArrowRight, ExternalLink, Loader2, RefreshCw, Users } from "lucide-reac
 import { useAuth } from "@/app/context/AuthContext";
 import { apiErrorMessage, isApiUnreachable, SplitAPI, type SplitInvitePreview } from "@/app/lib/api";
 import { rememberAuthReturnTo } from "@/app/lib/auth-return";
-import { joinedGroupPath } from "@/app/lib/split-invite";
+import { androidInviteIntentURL, joinedGroupPath, playStoreInviteURL } from "@/app/lib/split-invite";
 import { PLAY_STORE_LISTED, PLAY_STORE_URL } from "@/app/lib/site";
 
 /**
@@ -34,6 +34,14 @@ export default function InviteClient({ token }: { token: string }) {
     const [accepting, setAccepting] = useState(false);
     const [acceptError, setAcceptError] = useState("");
     const deepLink = `finnri://invite/split/${encodeURIComponent(token)}`;
+    // Read after mount so the server render and the first client render agree.
+    const [isAndroid, setIsAndroid] = useState(false);
+    useEffect(() => { setIsAndroid(/Android/i.test(navigator.userAgent)); }, []);
+    // On Android the open button is an intent: the app if it is installed,
+    // otherwise the Play Store with this invite riding along, so the app opens
+    // straight to it after installing. Elsewhere it stays the plain scheme.
+    const androidIntent = PLAY_STORE_LISTED && isAndroid ? androidInviteIntentURL(PLAY_STORE_URL, token) : null;
+    const openAppHref = androidIntent ?? deepLink;
 
     const load = useCallback(async () => {
         setPhase({ name: "loading" });
@@ -114,7 +122,7 @@ export default function InviteClient({ token }: { token: string }) {
 
                     {phase.name === "ready" && (
                         <div className="mt-8 grid gap-3">
-                            <a href={deepLink} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent px-6 font-bold text-on-accent">Open in the Finnri app <ExternalLink className="h-4 w-4" /></a>
+                            <a href={openAppHref} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent px-6 font-bold text-on-accent">Open in the Finnri app <ExternalLink className="h-4 w-4" /></a>
                             <button disabled={accepting || authLoading} onClick={() => void continueOnWeb()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-border px-6 font-bold disabled:opacity-60">{accepting ? <Loader2 className="h-5 w-5 animate-spin" /> : authToken ? "Join on the web" : "Sign in and continue on the web"}<ArrowRight className="h-4 w-4" /></button>
                         </div>
                     )}
@@ -124,7 +132,7 @@ export default function InviteClient({ token }: { token: string }) {
                             <button onClick={() => void load()} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent px-6 font-bold text-on-accent">Try again <RefreshCw className="h-4 w-4" /></button>
                             {/* Worth offering even without a preview: the app holds the
                                 token and can resolve the invite on its own network. */}
-                            <a href={deepLink} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-border px-6 font-bold">Open in the Finnri app <ExternalLink className="h-4 w-4" /></a>
+                            <a href={openAppHref} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-border px-6 font-bold">Open in the Finnri app <ExternalLink className="h-4 w-4" /></a>
                         </div>
                     )}
 
@@ -139,7 +147,7 @@ export default function InviteClient({ token }: { token: string }) {
                         seen of Finnri, and it used to hide the only route into the
                         product behind a successful preview fetch. */}
                     {phase.name !== "loading" && (PLAY_STORE_LISTED ? (
-                        <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-12 items-center justify-center text-sm font-bold text-eyebrow hover:underline">Get Finnri on Google Play</a>
+                        <a href={phase.name === "unavailable" ? PLAY_STORE_URL : playStoreInviteURL(PLAY_STORE_URL, token)} target="_blank" rel="noreferrer" className="mt-5 inline-flex min-h-12 items-center justify-center text-sm font-bold text-eyebrow hover:underline">Get Finnri on Google Play</a>
                     ) : (
                         <Link href="/login" className="mt-5 inline-flex min-h-12 items-center justify-center text-sm font-bold text-eyebrow hover:underline">Use Finnri on the web</Link>
                     ))}

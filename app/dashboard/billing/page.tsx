@@ -161,7 +161,7 @@ export default function BillingScreen() {
 
             {!loading && !loadError && (
                 <section aria-labelledby="passes-heading">
-                    <SectionTitle id="passes-heading" title="Passes" detail="More AI credits, plus budgets, insights and reminders" />
+                    <SectionTitle id="passes-heading" title="Passes" detail="More AI credits for capture, scans and statements" />
                     <div className="grid gap-4 md:grid-cols-3">
                         {purchasable.map((plan) => (
                             <PlanCard

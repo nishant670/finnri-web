@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
     return (
         <LegalPage
             title="Privacy Policy"
-            effectiveDate="12 September 2026"
+            effectiveDate="8 November 2026"
             intro={<p>This policy explains what Finnri collects, why it is needed, when it is shared, and the choices available to you. It applies to Finnri&apos;s mobile app, web dashboard, and supporting services.</p>}
         >
             <section>
@@ -40,7 +40,8 @@ export default function PrivacyPolicyPage() {
             <section>
                 <h2>4. When information is shared</h2>
                 <p>We do not sell your personal or financial data. We share information only with service providers needed to operate Finnri—such as hosting, database, authentication, email or messaging, and AI-processing providers—or when required by law, necessary to protect users and the service, or connected with a business transfer subject to appropriate safeguards.</p>
-                <p className="mt-3">Split records are private ledger entries in your account. Finnri does not notify or transfer money to a friend merely because you add them to a split.</p>
+                <p className="mt-3">Split records are private ledger entries in your account. Finnri does not transfer money when you add a friend to a split. If someone you add to a group already has a Finnri account, they receive an invitation to join it.</p>
+                <p className="mt-3">If you allow notifications on your phone, they are delivered through Expo and Google Firebase Cloud Messaging. Those providers receive a device token and the notification&apos;s title and text, which can include an amount, a merchant, or a friend&apos;s name.</p>
             </section>
 
             <section>
@@ -57,7 +58,7 @@ export default function PrivacyPolicyPage() {
 
             <section>
                 <h2>7. Your choices and rights</h2>
-                <p>You may update your profile and records, export transaction views as CSV, withdraw from optional AI capture by using manual entry, sign out, or delete your account. Depending on applicable law, you may also request access, correction, erasure, or grievance handling for your personal data.</p>
+                <p>You may update your profile and records, export transaction views as CSV, withdraw from optional AI capture by using manual entry, turn notifications off in your phone&apos;s settings, sign out, or delete your account. Depending on applicable law, you may also request access, correction, erasure, or grievance handling for your personal data.</p>
                 <p className="mt-3">India&apos;s data-protection framework and its phased commencement are published by the <a href="https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa?pageTitle=Digital-Personal-Data-Protection-Rules-2025" target="_blank" rel="noreferrer">Ministry of Electronics and Information Technology</a>.</p>
             </section>
 

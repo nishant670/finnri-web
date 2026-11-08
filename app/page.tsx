@@ -41,7 +41,7 @@ const faqs = [
   { q: "How does voice input work?", a: "In the app, tap the mic and say it the way you’d tell a friend — “250 for lunch on UPI”. Finnri turns it into a draft and waits for you to check it before anything is saved." },
   { q: "What happens to voice and text drafts?", a: "Your voice is kept only long enough to turn it into text. Drafts you don’t save aren’t stored. When you do save a transaction, the words you used can stay with it, so you can always see where it came from." },
   { q: "Can I export my data?", a: "Yes. Export any transaction view from the web dashboard as a CSV file, on the free plan or a paid pass." },
-  { q: "Is Finnri free?", a: "Yes. Tracking, accounts, search, splits with friends and CSV export are free. Signing in with Google adds 1,000 AI credits to use over your first 30 days. Paid passes add more AI credits plus budgets, insights and subscription reminders." },
+  { q: "Is Finnri free?", a: "Yes. Tracking, accounts, search, budgets, insights, subscription reminders, splits with friends and CSV export are free. Signing in with Google adds 1,000 AI credits to use over your first 30 days. Paid passes add more AI credits." },
   { q: "Do paid passes renew automatically?", a: "No. Every pass is a one-time payment for a fixed period: 7, 30, 90 or 365 days. Nothing is debited again unless you choose to buy another pass." },
   { q: "Is there an iPhone app?", a: "Not yet. Finnri is Android-first, and the web dashboard works in any browser, including on an iPhone." },
 ];
@@ -335,7 +335,7 @@ export default async function Home() {
               </div>
             </BentoCard>
 
-            <BentoCard className="lg:col-span-2" icon={TrendingUp} title="Insights and budgets" tag="With a pass" body="Trends, unusual spends and category budgets, worked out only from records you’ve confirmed — so the numbers are ones you trust." delay={0}>
+            <BentoCard className="lg:col-span-2" icon={TrendingUp} title="Insights and budgets" body="Trends, unusual spends and category budgets, worked out only from records you’ve confirmed — so the numbers are ones you trust." delay={0}>
               <div className="mt-6 flex items-end gap-2 sm:gap-3" aria-hidden="true">
                 {[22, 34, 28, 46, 38, 30, 52, 44, 36, 64, 58, 80].map((height, index) => (
                   <span key={index} className="grow-y flex-1 rounded-t-lg" style={{ height: `${height * 1.4}px`, background: index === 11 ? "var(--accent)" : "var(--bar-dim)", "--grow-delay": `${200 + index * 50}ms` } as CSSProperties} />

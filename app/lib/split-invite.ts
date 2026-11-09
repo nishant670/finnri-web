@@ -35,3 +35,31 @@ export function withoutJoinedGroup(search: string): string {
 function isGroupID(value: number | null | undefined): value is number {
     return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
 }
+
+/**
+ * The Play Store link for someone installing Finnri from a group invite.
+ *
+ * Google Play keeps the `referrer` parameter and gives it to the app on its
+ * first run, so the app can open this invite rather than a generic welcome
+ * (finnri-app `lib/install-referrer-invite.ts` reads `invite=<token>`).
+ */
+export function playStoreInviteURL(playStoreURL: string, token: string): string {
+    const url = new URL(playStoreURL);
+    url.searchParams.set("referrer", `invite=${token}`);
+    return url.toString();
+}
+
+/**
+ * An Android intent link to the invite: Chrome opens the app when it is
+ * installed, and otherwise goes to the Play Store carrying the invite.
+ *
+ * `finnri://` alone does nothing at all on a phone without the app, which is
+ * everyone this page is for: App Links already send people who have the app
+ * straight into it. Returns null when the Play link names no package.
+ */
+export function androidInviteIntentURL(playStoreURL: string, token: string): string | null {
+    const pkg = new URL(playStoreURL).searchParams.get("id");
+    if (!pkg || !/^[A-Za-z0-9_.]+$/.test(pkg)) return null;
+    const fallback = encodeURIComponent(playStoreInviteURL(playStoreURL, token));
+    return `intent://invite/split/${encodeURIComponent(token)}#Intent;scheme=finnri;package=${pkg};S.browser_fallback_url=${fallback};end`;
+}

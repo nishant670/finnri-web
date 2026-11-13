@@ -13,6 +13,8 @@
   "include": [
     "app/lib/accounts.ts",
     "app/lib/accounts.test.ts",
+    "app/lib/guest-secret.ts",
+    "app/lib/guest-secret.test.ts",
 	"app/lib/admin-metrics.ts",
 	"app/lib/admin-metrics.test.ts",
     "app/lib/admin-proxy-headers.ts",

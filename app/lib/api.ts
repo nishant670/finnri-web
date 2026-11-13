@@ -9,7 +9,6 @@ export interface User {
     phone?: string;
     is_guest: boolean;
     has_pin: boolean;
-    device_id?: string;
     biometrics_enabled: boolean;
     created_at?: string;
 }
@@ -701,7 +700,7 @@ export function apiErrorMessage(error: unknown, fallback: string) {
 }
 
 export const AuthAPI = {
-    loginGuest: (deviceId?: string) => api.post<AuthResponse>("/v1/auth/guest", { device_id: deviceId }),
+    loginGuest: (deviceId: string, guestSecret: string) => api.post<AuthResponse>("/v1/auth/guest", { device_id: deviceId, guest_secret: guestSecret }),
     loginGoogle: (payload: { id_token: string; nonce?: string; guest_uuid?: string; device_id?: string; biometrics_enabled?: boolean }) =>
         api.post<AuthResponse>("/v1/auth/google", payload),
     identify: (identifier: string) => api.post<{ exists: boolean; is_guest?: boolean }>("/v1/auth/identify", { identifier }),

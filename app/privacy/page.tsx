@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
     return (
         <LegalPage
             title="Privacy Policy"
-            effectiveDate="8 November 2026"
+            effectiveDate="13 November 2026"
             intro={<p>This policy explains what Finnri collects, why it is needed, when it is shared, and the choices available to you. It applies to Finnri&apos;s mobile app, web dashboard, and supporting services.</p>}
         >
             <section>
@@ -29,6 +29,7 @@ export default function PrivacyPolicyPage() {
                 <p>We use this information to authenticate you, store and display the records you confirm, calculate totals and deterministic insights, operate budgets and reminders, provide split-ledger features, process exports, answer support requests, prevent abuse, and maintain the security and reliability of Finnri.</p>
                 <p className="mt-3">Finnri does not connect to your bank, request bank passwords, move money, or automatically import bank activity.</p>
                 <p className="mt-3">When enabled, Finnri uses Plausible Analytics for aggregate marketing-page and signup-funnel counts. Finnri sends only fixed event names, allow-listed page paths, and coarse sign-in or capture-method labels—never an account identifier, merchant, amount, note, or financial record. Plausible does not set analytics cookies or build a persistent user profile.</p>
+                <p className="mt-3">The Finnri app records which steps you reach—for example that onboarding was finished, an entry was saved by voice, or the plans sheet was shown—so we can see where the app is hard to use. Each record is a fixed step name with at most one short label such as “voice” or “google”, tied to your account and stored on Finnri’s own servers. It never contains an amount, a merchant, a note or anything you typed, it is not shared with any analytics provider, and it is deleted with your account and after about thirteen months.</p>
             </section>
 
             <section>

@@ -7,6 +7,7 @@ import {
     Activity,
     Bot,
     ChartNoAxesCombined,
+    CreditCard,
     LayoutDashboard,
     LogOut,
     Menu,
@@ -28,6 +29,7 @@ type NavItem = readonly [label: string, href: string, icon: LucideIcon];
 const NAV_GROUPS: ReadonlyArray<{ label: string; items: ReadonlyArray<NavItem> }> = [
     { label: "Business", items: [["Overview", "/admin", LayoutDashboard], ["Subscribers", "/admin/subscribers", ReceiptIndianRupee], ["Analytics", "/admin/analytics", ChartNoAxesCombined]] },
     { label: "People", items: [["Users", "/admin/users", Users], ["Feedback", "/admin/feedback", MessageSquareText]] },
+    { label: "Product", items: [["Card catalogue", "/admin/cards", CreditCard]] },
     { label: "System", items: [["AI & credits", "/admin/ai", Bot], ["Ops", "/admin/ops", Activity]] },
 ];
 

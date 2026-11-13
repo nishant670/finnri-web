@@ -275,7 +275,7 @@ export default function LoginPage() {
                             <span className="min-w-0 flex-1"><span className="block font-semibold">Continue as a guest</span><span className="block text-[13px] text-muted">Try everything first, no sign-up</span></span>
                             {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-muted" /> : <ArrowRight className="h-5 w-5 text-muted transition-transform group-hover:translate-x-0.5" />}
                         </button>
-                        <p className="border-t border-border pt-4 text-[13px] leading-5 text-muted">Coming from the app? Use the same Google account. If you signed up in the app with a PIN instead, keep using the app until email and phone sign-in come to the web.</p>
+                        <p className="border-t border-border pt-4 text-[13px] leading-5 text-muted">Coming from the app? Use the same Google account and everything you’ve logged is here.</p>
                     </div>}
 
                     {step === "identifier" && <form onSubmit={handleIdentify} className="space-y-4">

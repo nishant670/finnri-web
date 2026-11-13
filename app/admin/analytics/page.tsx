@@ -17,11 +17,16 @@ type Adoption = {
     features: { code: string; users: number; percent: number }[];
     guest_conversion: { converted: number; guest_rows_remaining: number; percent: number };
 };
+type ProductFunnel = {
+    people: number;
+    steps: { name: string; users: number; events: number; labels: { label: string; users: number; events: number }[] }[];
+};
 export default function AnalyticsPage() {
     const [activation, setActivation] = useState<Activation | null>(null);
     const [retention, setRetention] = useState<Retention | null>(null);
     const [engagement, setEngagement] = useState<Engagement | null>(null);
     const [adoption, setAdoption] = useState<Adoption | null>(null);
+    const [funnel, setFunnel] = useState<ProductFunnel | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     useEffect(() => {
@@ -40,6 +45,9 @@ export default function AnalyticsPage() {
             })
             .catch((reason) => setError(reason instanceof Error ? reason.message : "Unable to load analytics"))
             .finally(() => setLoading(false));
+        // Separate from the batch above: an API that predates this endpoint
+        // answers 404, and that must not blank the rest of the page.
+        AdminAPI.get<ProductFunnel>("analytics/product-funnel").then(setFunnel).catch(() => setFunnel(null));
     }, []);
     if (loading) return <PageSkeleton />;
     return (
@@ -88,6 +96,33 @@ export default function AnalyticsPage() {
                     <p className="mt-1 text-xs text-muted">Signup week × weeks since signup; cells are percent active.</p>
                     <div className="mt-5">
                         <CohortGrid cohorts={retention.cohorts} />
+                    </div>
+                </section>
+            )}
+            {funnel && (
+                <section className="min-w-0 rounded-2xl border border-border bg-card p-6">
+                    <h2 className="text-[17px] font-bold">In-app steps, last 30 days</h2>
+                    <p className="mt-1 text-xs text-muted">
+                        Recorded by the app itself: {funnel.people} people. Each step shows how many people reached it and how often.
+                    </p>
+                    <div className="mt-5 overflow-x-auto">
+                        <table className="w-full min-w-[520px] text-left text-sm">
+                            <thead className="text-xs text-muted">
+                                <tr><th className="pb-2 font-semibold">Step</th><th className="pb-2 font-semibold">People</th><th className="pb-2 font-semibold">Times</th><th className="pb-2 font-semibold">By kind</th></tr>
+                            </thead>
+                            <tbody>
+                                {funnel.steps.map((step) => (
+                                    <tr key={step.name} className="border-t border-border align-top">
+                                        <td className="py-2.5 font-semibold capitalize">{step.name.replaceAll("_", " ")}</td>
+                                        <td className="py-2.5 tabular-nums">{step.users}</td>
+                                        <td className="py-2.5 tabular-nums">{step.events}</td>
+                                        <td className="py-2.5 text-muted">
+                                            {step.labels.length ? step.labels.map((label) => `${label.label.replaceAll("_", " ")} ${label.users}`).join(" · ") : "—"}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </section>
             )}

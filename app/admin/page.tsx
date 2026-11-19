@@ -7,6 +7,7 @@ import StatTile from "@/app/components/admin/StatTile";
 import DateRangePicker from "@/app/components/admin/DateRangePicker";
 import TrendChart from "@/app/components/admin/TrendChart";
 import IncludeTestToggle from "@/app/components/admin/IncludeTestToggle";
+import AIUserTypeSplit, { AIByUserType } from "@/app/components/admin/AIUserTypeSplit";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { AdminAPI, inclusiveDateRange, withQuery } from "@/app/lib/admin-api";
 import { compactNumber, percent } from "@/app/lib/admin-metrics";
@@ -23,6 +24,7 @@ type Overview = {
         credits_used: number;
         estimated_cost_usd_micros: number;
         alerts: { code: string; message: string; severity: string }[];
+        by_user_type?: AIByUserType;
     };
     open_feedback: number;
 };
@@ -116,12 +118,12 @@ export default function AdminOverview() {
                         <StatTile
                             label="AI credits used"
                             value={compactNumber(data.ai.credits_used)}
-                            hint={`${data.ai.events.toLocaleString("en-IN")} usage events`}
+                            hint={`${data.ai.events.toLocaleString("en-IN")} usage events · all users`}
                         />
                         <StatTile
                             label="AI cost"
                             value={formatUSDMicros(data.ai.estimated_cost_usd_micros)}
-                            hint="Estimated provider cost"
+                            hint="Estimated provider cost · all users"
                         />
                     </section>
                     {data.ai.alerts?.length > 0 && (
@@ -139,6 +141,7 @@ export default function AdminOverview() {
                             </div>
                         </section>
                     )}
+                    <AIUserTypeSplit split={data.ai.by_user_type} />
                     <section className="grid gap-5 xl:grid-cols-2">
                         <article className="min-w-0 rounded-2xl border border-border bg-card p-5 sm:p-7">
                             <h2 className="text-[17px] font-bold">Signups</h2>

@@ -9,6 +9,9 @@ import { AdminAPI, AdminPage, withQuery } from "@/app/lib/admin-api";
 import { formatDate } from "@/app/lib/format";
 import IncludeTestToggle from "@/app/components/admin/IncludeTestToggle";
 import { testReasonLabel, useIncludeTest } from "@/app/lib/admin-test-users";
+import SelectionBar, { SelectBox } from "@/app/components/admin/SelectionBar";
+import BulkGiftDialog from "@/app/components/admin/BulkGiftDialog";
+import { useUserSelection } from "@/app/lib/admin-selection";
 
 type UserRow = {
     id: number;
@@ -34,6 +37,8 @@ export default function AdminUsersPage() {
     const [type, setType] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const selection = useUserSelection();
+    const [gifting, setGifting] = useState(false);
     const { includeTest, setIncludeTest, includeTestParam } = useIncludeTest();
     const load = useCallback(async () => {
         setLoading(true);
@@ -133,6 +138,27 @@ export default function AdminUsersPage() {
                         rows={rows}
                         columns={[
                             {
+                                key: "select",
+                                label: (
+                                    <SelectBox
+                                        label="Select everyone on this page"
+                                        checked={rows.length > 0 && rows.every((row) => selection.has(row.id))}
+                                        indeterminate={
+                                            rows.some((row) => selection.has(row.id)) && !rows.every((row) => selection.has(row.id))
+                                        }
+                                        onChange={() => selection.togglePage(rows)}
+                                    />
+                                ),
+                                className: "w-10",
+                                render: (row) => (
+                                    <SelectBox
+                                        label={`Select ${row.username}`}
+                                        checked={selection.has(row.id)}
+                                        onChange={() => selection.toggle(row)}
+                                    />
+                                ),
+                            },
+                            {
                                 key: "user",
                                 label: "User",
                                 render: (row) => (
@@ -213,6 +239,16 @@ export default function AdminUsersPage() {
                     </div>
                 </>
             )}
+            <SelectionBar count={selection.users.length} onGift={() => setGifting(true)} onClear={selection.clear} />
+            <BulkGiftDialog
+                open={gifting}
+                users={selection.users}
+                onClose={() => setGifting(false)}
+                onDone={() => {
+                    selection.clear();
+                    void load();
+                }}
+            />
         </div>
     );
 }

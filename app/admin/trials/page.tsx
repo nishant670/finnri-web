@@ -8,6 +8,9 @@ import IncludeTestToggle from "@/app/components/admin/IncludeTestToggle";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { AdminAPI, AdminPage, withQuery } from "@/app/lib/admin-api";
 import { useIncludeTest } from "@/app/lib/admin-test-users";
+import SelectionBar, { SelectBox } from "@/app/components/admin/SelectionBar";
+import BulkGiftDialog from "@/app/components/admin/BulkGiftDialog";
+import { useUserSelection } from "@/app/lib/admin-selection";
 import { formatDate } from "@/app/lib/format";
 
 type TrialRow = {
@@ -75,6 +78,9 @@ export default function AdminTrialsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [exporting, setExporting] = useState(false);
+    const [selectingAll, setSelectingAll] = useState(false);
+    const [gifting, setGifting] = useState(false);
+    const selection = useUserSelection();
     const { includeTest, setIncludeTest, includeTestParam } = useIncludeTest();
     const load = useCallback(async () => {
         setLoading(true);
@@ -103,18 +109,33 @@ export default function AdminTrialsPage() {
     const active = tabs.find((tab) => tab.code === status) ?? tabs[0];
     // The CSV is the outreach list, so it holds the whole tab, not the page on
     // screen: read every page at the API's largest page size.
+    async function loadWholeTab() {
+        const rows: TrialRow[] = [];
+        for (let next = 1; ; next++) {
+            const chunk = await AdminAPI.get<TrialsResponse>(
+                withQuery("trials", { status, days, page: next, page_size: 100, include_test: includeTestParam }),
+            );
+            rows.push(...chunk.users);
+            if (chunk.users.length === 0 || rows.length >= chunk.total) break;
+        }
+        return rows;
+    }
+    async function selectWholeTab() {
+        setSelectingAll(true);
+        try {
+            selection.addAll(await loadWholeTab());
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Couldn't select everyone");
+        } finally {
+            setSelectingAll(false);
+        }
+    }
     async function exportCSV() {
         if (!data) return;
         setExporting(true);
-        const rows: TrialRow[] = [];
+        let rows: TrialRow[] = [];
         try {
-            for (let next = 1; ; next++) {
-                const chunk = await AdminAPI.get<TrialsResponse>(
-                    withQuery("trials", { status, days, page: next, page_size: 100, include_test: includeTestParam }),
-                );
-                rows.push(...chunk.users);
-                if (chunk.users.length === 0 || rows.length >= chunk.total) break;
-            }
+            rows = await loadWholeTab();
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : "Export failed");
             return;
@@ -210,7 +231,18 @@ export default function AdminTrialsPage() {
                 ))}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted">{active.hint}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <p className="text-sm text-muted">{active.hint}</p>
+                    {data && data.total > 0 && (
+                        <button
+                            onClick={() => void selectWholeTab()}
+                            disabled={selectingAll}
+                            className="text-sm font-bold text-accent disabled:opacity-50"
+                        >
+                            {selectingAll ? "Selecting…" : `Select all ${data.total.toLocaleString("en-IN")}`}
+                        </button>
+                    )}
+                </div>
                 {status === "ending_soon" && (
                     <label className="flex items-center gap-2 text-sm font-semibold">
                         Ends within
@@ -241,6 +273,28 @@ export default function AdminTrialsPage() {
                     <DataTable
                         rows={data?.users ?? []}
                         columns={[
+                            {
+                                key: "select",
+                                label: (
+                                    <SelectBox
+                                        label="Select everyone on this page"
+                                        checked={(data?.users.length ?? 0) > 0 && (data?.users ?? []).every((row) => selection.has(row.id))}
+                                        indeterminate={
+                                            (data?.users ?? []).some((row) => selection.has(row.id)) &&
+                                            !(data?.users ?? []).every((row) => selection.has(row.id))
+                                        }
+                                        onChange={() => selection.togglePage(data?.users ?? [])}
+                                    />
+                                ),
+                                className: "w-10",
+                                render: (row) => (
+                                    <SelectBox
+                                        label={`Select ${row.username}`}
+                                        checked={selection.has(row.id)}
+                                        onChange={() => selection.toggle(row)}
+                                    />
+                                ),
+                            },
                             {
                                 key: "user",
                                 label: "User",
@@ -336,6 +390,16 @@ export default function AdminTrialsPage() {
                     </div>
                 </div>
             )}
+            <SelectionBar count={selection.users.length} onGift={() => setGifting(true)} onClear={selection.clear} />
+            <BulkGiftDialog
+                open={gifting}
+                users={selection.users}
+                onClose={() => setGifting(false)}
+                onDone={() => {
+                    selection.clear();
+                    void load();
+                }}
+            />
         </div>
     );
 }

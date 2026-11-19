@@ -6,13 +6,15 @@ import { AlertTriangle, ArrowRight, RefreshCw } from "lucide-react";
 import StatTile from "@/app/components/admin/StatTile";
 import DateRangePicker from "@/app/components/admin/DateRangePicker";
 import TrendChart from "@/app/components/admin/TrendChart";
+import IncludeTestToggle from "@/app/components/admin/IncludeTestToggle";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { AdminAPI, inclusiveDateRange, withQuery } from "@/app/lib/admin-api";
 import { compactNumber, percent } from "@/app/lib/admin-metrics";
+import { useIncludeTest } from "@/app/lib/admin-test-users";
 import { formatMinorMoney, formatUSDMicros, toLocalISO } from "@/app/lib/format";
 
 type Overview = {
-    users: { total: number; registered: number; guests: number; new: number; new_delta_percent: number };
+    users: { total: number; registered: number; guests: number; new: number; new_delta_percent: number; test?: number };
     activation_rate: number;
     engagement: { dau: number; wau: number; mau: number; stickiness: number };
     subscriptions: { active: number; modelled_mrr_minor: number; basis: string };
@@ -34,14 +36,15 @@ export default function AdminOverview() {
     const [aiSeries, setAISeries] = useState<Record<string, unknown>[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const { includeTest, setIncludeTest, includeTestParam } = useIncludeTest();
     const load = useCallback(async () => {
         setLoading(true);
         setError("");
         const window = inclusiveDateRange(range.start, range.end);
         try {
             const [overview, signup, ai] = await Promise.all([
-                AdminAPI.get<Overview>(withQuery("overview", window)),
-                AdminAPI.get<Series>(withQuery("analytics/signups", { ...window, bucket: "day" })),
+                AdminAPI.get<Overview>(withQuery("overview", { ...window, include_test: includeTestParam })),
+                AdminAPI.get<Series>(withQuery("analytics/signups", { ...window, bucket: "day", include_test: includeTestParam })),
                 AdminAPI.get<Series>(withQuery("ai/metrics/timeseries", { ...window, bucket: "day" })),
             ]);
             setData(overview);
@@ -52,7 +55,7 @@ export default function AdminOverview() {
         } finally {
             setLoading(false);
         }
-    }, [range]);
+    }, [range, includeTestParam]);
     useEffect(() => {
         void load();
     }, [load]);
@@ -68,6 +71,7 @@ export default function AdminOverview() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <DateRangePicker {...range} onChange={setRange} />
+                    <IncludeTestToggle value={includeTest} onChange={setIncludeTest} />
                     <button
                         onClick={() => void load()}
                         className="grid h-12 w-12 place-items-center rounded-xl border border-border bg-card"
@@ -86,9 +90,11 @@ export default function AdminOverview() {
                 <>
                     <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                         <StatTile
-                            label="Total users"
+                            label={includeTest ? "Total users" : "Real users"}
                             value={compactNumber(data.users.total)}
-                            hint={`${data.users.registered.toLocaleString("en-IN")} registered · ${data.users.guests.toLocaleString("en-IN")} guests`}
+                            hint={`${data.users.registered.toLocaleString("en-IN")} registered · ${data.users.guests.toLocaleString("en-IN")} guests${
+                                !includeTest && data.users.test ? ` · ${data.users.test.toLocaleString("en-IN")} test hidden` : ""
+                            }`}
                         />
                         <StatTile label="New this period" value={compactNumber(data.users.new)} delta={data.users.new_delta_percent} />
                         <StatTile

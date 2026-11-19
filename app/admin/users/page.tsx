@@ -76,13 +76,15 @@ export default function AdminUsersPage() {
                     </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
-                    <IncludeTestToggle
-                        value={includeTest}
-                        onChange={(value) => {
-                            setIncludeTest(value);
-                            setPage(1);
-                        }}
-                    />
+                    {type !== "test" && (
+                        <IncludeTestToggle
+                            value={includeTest}
+                            onChange={(value) => {
+                                setIncludeTest(value);
+                                setPage(1);
+                            }}
+                        />
+                    )}
                     <a
                         href="/api/admin/export/users.csv"
                         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-bold"

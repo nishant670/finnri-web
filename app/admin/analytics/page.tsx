@@ -31,12 +31,15 @@ export default function AnalyticsPage() {
         const window = dateWindow(90);
         const include_test = includeTestParam;
         Promise.all([
-            AdminAPI.get<Activation>(withQuery("analytics/activation", { cohort_start: window.start, cohort_end: window.end, include_test })),
+            AdminAPI.get<Activation>(
+                withQuery("analytics/activation", { cohort_start: window.start, cohort_end: window.end, include_test }),
+            ),
             AdminAPI.get<Retention>(withQuery("analytics/retention", { weeks: 12, include_test })),
             AdminAPI.get<Engagement>(withQuery("analytics/engagement", { ...window, include_test })),
             AdminAPI.get<Adoption>(withQuery("analytics/feature-adoption", { include_test })),
         ])
             .then(([a, r, e, f]) => {
+                setError("");
                 setActivation(a);
                 setRetention(r);
                 setEngagement(e);

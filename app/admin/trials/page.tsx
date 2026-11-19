@@ -74,6 +74,7 @@ export default function AdminTrialsPage() {
     const [data, setData] = useState<TrialsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [exporting, setExporting] = useState(false);
     const { includeTest, setIncludeTest, includeTestParam } = useIncludeTest();
     const load = useCallback(async () => {
         setLoading(true);
@@ -100,8 +101,26 @@ export default function AdminTrialsPage() {
         void load();
     }, [load]);
     const active = tabs.find((tab) => tab.code === status) ?? tabs[0];
-    function exportCSV() {
+    // The CSV is the outreach list, so it holds the whole tab, not the page on
+    // screen: read every page at the API's largest page size.
+    async function exportCSV() {
         if (!data) return;
+        setExporting(true);
+        const rows: TrialRow[] = [];
+        try {
+            for (let next = 1; ; next++) {
+                const chunk = await AdminAPI.get<TrialsResponse>(
+                    withQuery("trials", { status, days, page: next, page_size: 100, include_test: includeTestParam }),
+                );
+                rows.push(...chunk.users);
+                if (chunk.users.length === 0 || rows.length >= chunk.total) break;
+            }
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Export failed");
+            return;
+        } finally {
+            setExporting(false);
+        }
         const header = [
             "id",
             "username",
@@ -115,7 +134,7 @@ export default function AdminTrialsPage() {
             "push_enabled",
             "credit_limit_hits",
         ];
-        const lines = data.users.map((row) =>
+        const lines = rows.map((row) =>
             [
                 row.id,
                 row.username,
@@ -161,8 +180,8 @@ export default function AdminTrialsPage() {
                         }}
                     />
                     <button
-                        onClick={exportCSV}
-                        disabled={!data?.users.length}
+                        onClick={() => void exportCSV()}
+                        disabled={!data?.users.length || exporting || loading}
                         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-bold disabled:opacity-40"
                     >
                         <Download className="h-4 w-4" />
@@ -218,79 +237,81 @@ export default function AdminTrialsPage() {
                     Nobody in this list right now.
                 </div>
             ) : (
-                <DataTable
-                    rows={data?.users ?? []}
-                    columns={[
-                        {
-                            key: "user",
-                            label: "User",
-                            render: (row) => (
-                                <Link href={`/admin/users/${row.id}`} className="flex items-center gap-3 font-bold hover:text-accent">
-                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-selected text-accent">
-                                        <UserRound className="h-4 w-4" />
-                                    </span>
-                                    <span>
-                                        {row.username}
-                                        <small className="mt-0.5 block font-normal text-muted">
-                                            #{row.id} · {row.is_guest ? "Guest" : row.email || "Registered"}
-                                        </small>
-                                    </span>
-                                </Link>
-                            ),
-                        },
-                        {
-                            key: "trial",
-                            label: "Trial",
-                            render: (row) => <TrialCell row={row} />,
-                        },
-                        {
-                            key: "credits",
-                            label: "Trial credits left",
-                            className: "text-right",
-                            render: (row) =>
-                                row.trial_credits
-                                    ? `${row.trial_credits_left.toLocaleString("en-IN")} / ${row.trial_credits.toLocaleString("en-IN")}`
-                                    : "—",
-                        },
-                        {
-                            key: "ai",
-                            label: "AI reads",
-                            className: "text-right",
-                            render: (row) => row.ai_reads.toLocaleString("en-IN"),
-                        },
-                        {
-                            key: "entries",
-                            label: "Entries",
-                            className: "text-right",
-                            render: (row) => row.entries_count.toLocaleString("en-IN"),
-                        },
-                        {
-                            key: "limit",
-                            label: "Refused reads",
-                            className: "text-right",
-                            render: (row) => (row.credit_limit_hits ? row.credit_limit_hits : "—"),
-                        },
-                        {
-                            key: "active",
-                            label: "Last active",
-                            render: (row) => <span className="text-muted">{formatDate(row.last_active_at)}</span>,
-                        },
-                        {
-                            key: "push",
-                            label: "Push",
-                            render: (row) =>
-                                row.push_enabled ? (
-                                    <span className="inline-flex items-center gap-1 text-positive">
-                                        <BellRing className="h-4 w-4" /> On
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1 text-muted">
-                                        <BellOff className="h-4 w-4" /> Off
-                                    </span>
+                <div aria-busy={loading} className={loading ? "pointer-events-none opacity-50 transition-opacity" : "transition-opacity"}>
+                    <DataTable
+                        rows={data?.users ?? []}
+                        columns={[
+                            {
+                                key: "user",
+                                label: "User",
+                                render: (row) => (
+                                    <Link href={`/admin/users/${row.id}`} className="flex items-center gap-3 font-bold hover:text-accent">
+                                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-selected text-accent">
+                                            <UserRound className="h-4 w-4" />
+                                        </span>
+                                        <span>
+                                            {row.username}
+                                            <small className="mt-0.5 block font-normal text-muted">
+                                                #{row.id} · {row.is_guest ? "Guest" : row.email || "Registered"}
+                                            </small>
+                                        </span>
+                                    </Link>
                                 ),
-                        },
-                    ]}
-                />
+                            },
+                            {
+                                key: "trial",
+                                label: "Trial",
+                                render: (row) => <TrialCell row={row} />,
+                            },
+                            {
+                                key: "credits",
+                                label: "Trial credits left",
+                                className: "text-right",
+                                render: (row) =>
+                                    row.trial_credits
+                                        ? `${row.trial_credits_left.toLocaleString("en-IN")} / ${row.trial_credits.toLocaleString("en-IN")}`
+                                        : "—",
+                            },
+                            {
+                                key: "ai",
+                                label: "AI reads",
+                                className: "text-right",
+                                render: (row) => row.ai_reads.toLocaleString("en-IN"),
+                            },
+                            {
+                                key: "entries",
+                                label: "Entries",
+                                className: "text-right",
+                                render: (row) => row.entries_count.toLocaleString("en-IN"),
+                            },
+                            {
+                                key: "limit",
+                                label: "Refused reads",
+                                className: "text-right",
+                                render: (row) => (row.credit_limit_hits ? row.credit_limit_hits : "—"),
+                            },
+                            {
+                                key: "active",
+                                label: "Last active",
+                                render: (row) => <span className="text-muted">{formatDate(row.last_active_at)}</span>,
+                            },
+                            {
+                                key: "push",
+                                label: "Push",
+                                render: (row) =>
+                                    row.push_enabled ? (
+                                        <span className="inline-flex items-center gap-1 text-positive">
+                                            <BellRing className="h-4 w-4" /> On
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 text-muted">
+                                            <BellOff className="h-4 w-4" /> Off
+                                        </span>
+                                    ),
+                            },
+                        ]}
+                    />
+                </div>
             )}
             {data && data.total > pageSize && (
                 <div className="flex items-center justify-between text-xs text-muted">

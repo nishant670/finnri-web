@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, Save } from "lucide-react";
 import StatTile from "@/app/components/admin/StatTile";
+import AIUserTypeSplit, { AIByUserType } from "@/app/components/admin/AIUserTypeSplit";
 import TrendChart from "@/app/components/admin/TrendChart";
 import DataTable from "@/app/components/admin/DataTable";
 import RoleGate from "@/app/components/admin/RoleGate";
@@ -25,6 +26,7 @@ type Metrics = {
     by_model: { key: string; events: number; credits: number; estimated_cost_usd_micros: number }[];
     by_action: { key: string; events: number; credits: number }[];
     alerts: { code: string; message: string }[];
+    by_user_type?: AIByUserType;
 };
 type CreditSummary = {
     totals: { granted: number; consumed: number; expired: number; outstanding: number };
@@ -121,6 +123,7 @@ export default function AIPage() {
                             hint="Unexpired credit liability"
                         />
                     </section>
+                    <AIUserTypeSplit split={metrics.by_user_type} />
                     <section className="grid gap-5 xl:grid-cols-2">
                         <article className="min-w-0 rounded-2xl border border-border bg-card p-6">
                             <h2 className="text-[17px] font-bold">Credits over time</h2>

@@ -27,6 +27,10 @@ type UserRow = {
     ai_credits_used: number;
     is_test?: boolean;
     test_reason?: string;
+    platform?: string;
+    device?: string;
+    form_factor?: string;
+    app_version?: string;
 };
 export default function AdminUsersPage() {
     const [rows, setRows] = useState<UserRow[]>([]);
@@ -35,6 +39,7 @@ export default function AdminUsersPage() {
     const [q, setQ] = useState("");
     const [submitted, setSubmitted] = useState("");
     const [type, setType] = useState("");
+    const [platform, setPlatform] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const selection = useUserSelection();
@@ -52,6 +57,7 @@ export default function AdminUsersPage() {
                     page_size: 25,
                     sort: "last_active_desc",
                     include_test: includeTestParam,
+                    platform,
                 }),
             );
             setRows(result.users);
@@ -61,7 +67,7 @@ export default function AdminUsersPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, submitted, type, includeTestParam]);
+    }, [page, submitted, type, includeTestParam, platform]);
     useEffect(() => {
         void load();
     }, [load]);
@@ -122,6 +128,19 @@ export default function AdminUsersPage() {
                     <option value="registered">Registered</option>
                     <option value="guest">Guests</option>
                     <option value="test">Test accounts</option>
+                </select>
+                <select
+                    value={platform}
+                    onChange={(event) => {
+                        setPlatform(event.target.value);
+                        setPage(1);
+                    }}
+                    aria-label="Filter by app or website"
+                    className="min-h-11 rounded-xl border border-border bg-background px-4 text-sm font-semibold"
+                >
+                    <option value="">App or website</option>
+                    <option value="android">Android app</option>
+                    <option value="web">Website</option>
                 </select>
                 <button className="min-h-11 rounded-xl bg-accent px-6 text-sm font-bold text-on-accent">Search</button>
             </form>
@@ -190,6 +209,21 @@ export default function AdminUsersPage() {
                                         )}
                                     </span>
                                 ),
+                            },
+                            {
+                                key: "device",
+                                label: "Last used on",
+                                render: (row) =>
+                                    row.device ? (
+                                        <span className="block max-w-48">
+                                            <span className="block truncate font-semibold">{row.device}</span>
+                                            <small className="block text-muted">
+                                                {row.platform === "web" ? "Website" : row.app_version ? `App ${row.app_version}` : "App"}
+                                            </small>
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted">—</span>
+                                    ),
                             },
                             {
                                 key: "plan",

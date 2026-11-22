@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/app/lib/utils";
 
 declare global {
@@ -32,6 +32,10 @@ export default function GoogleSignInButton({ onCredential, onError, busy = false
     className?: string;
 }) {
     const ref = useRef<HTMLDivElement | null>(null);
+    // Google's script arrives a second or three after the page. Until it has
+    // drawn, the slot below was an empty gap above "or … Continue as a guest",
+    // which reads as if guest were the only way in.
+    const [drawn, setDrawn] = useState(false);
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     // The latest handlers, read when Google calls back, so a re-render never re-mounts the button.
     const handlers = useRef({ onCredential, onError });
@@ -46,7 +50,7 @@ export default function GoogleSignInButton({ onCredential, onError, busy = false
         const render = () => {
             if (!window.google?.accounts?.id || !ref.current) return false;
             const width = Math.min(Math.max(Math.floor(ref.current.getBoundingClientRect().width), 200), 400);
-            if (width === renderedWidth && ref.current.childElementCount > 0) return true;
+            if (width === renderedWidth && ref.current.childElementCount > 0) { setDrawn(true); return true; }
             renderedWidth = width;
             ref.current.innerHTML = "";
             window.google.accounts.id.initialize({
@@ -61,6 +65,7 @@ export default function GoogleSignInButton({ onCredential, onError, busy = false
             // through `.dark`; the device setting alone would ignore a chosen Light.
             const dark = document.documentElement.classList.contains("dark");
             window.google.accounts.id.renderButton(ref.current, { type: "standard", theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text, width });
+            setDrawn(true);
             return true;
         };
 
@@ -91,5 +96,12 @@ export default function GoogleSignInButton({ onCredential, onError, busy = false
     if (!clientId) {
         return <p className={cn("flex h-11 w-full items-center justify-center rounded-full border border-border bg-track text-sm font-semibold text-muted", className)}>Google sign-in isn’t set up here</p>;
     }
-    return <div ref={ref} className={cn("flex min-h-11 w-full justify-center [&>div]:!w-full [&_iframe]:!w-full", busy && "pointer-events-none opacity-60", className)} />;
+    return (
+        <div className={cn("relative min-h-11 w-full", busy && "pointer-events-none opacity-60", className)}>
+            {/* Holds the button's place and says what is coming. Not a control:
+                the real one is Google's, drawn over it by the div below. */}
+            {!drawn && <div aria-hidden className="absolute inset-0 flex h-11 items-center justify-center rounded-full border border-border bg-track text-sm font-semibold text-muted">Continue with Google…</div>}
+            <div ref={ref} className="relative flex min-h-11 w-full justify-center [&>div]:!w-full [&_iframe]:!w-full" />
+        </div>
+    );
 }

@@ -1,0 +1,44 @@
+name: CI
+
+# Lint, types, unit tests and a production build on every pull request.
+# Vercel still builds and deploys on its own; this is the gate before a merge.
+on:
+  pull_request:
+  push:
+    branches: [main, testing/receipts-and-statements]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # A production build refuses to run without the public host
+      # (app/lib/site.ts). Nothing is fetched from these at build time that
+      # the pages do not already fall back from.
+      NEXT_PUBLIC_SITE_URL: https://finnri.app
+      NEXT_PUBLIC_API_URL: https://api.finnri.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npx eslint
+      - name: Types
+        run: npx tsc --noEmit
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+      # Fails only on high or critical advisories in what ships to users.
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Coins, Gift, ShieldAlert, Undo2 } from "lucide-react";
+import { ArrowLeft, Coins, FlaskConical, Gift, ShieldAlert, Undo2 } from "lucide-react";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { useToast } from "@/app/components/ui/Toast";
@@ -11,9 +11,24 @@ import DataTable from "@/app/components/admin/DataTable";
 import RoleGate from "@/app/components/admin/RoleGate";
 import { AdminAPI, AdminAPIError } from "@/app/lib/admin-api";
 import { formatDate, formatDateRange, formatUSDMicros } from "@/app/lib/format";
+import { testReasonLabel, testReasonLabels } from "@/app/lib/admin-test-users";
 
+type Client = {
+    id: number;
+    platform: string;
+    form_factor: string;
+    device: string;
+    os: string;
+    app_version: string;
+    app_build: string;
+    variant: string;
+    is_test_device: boolean;
+    first_seen_at: string;
+    last_seen_at: string;
+};
 type Detail = {
     user: Record<string, unknown>;
+    clients?: Client[];
     summary: { plan_code: string; credits_remaining: number; entries_count: number; ai_credits_used: number };
     counts: Record<string, number>;
     feature_adoption: Record<string, boolean>;
@@ -87,6 +102,8 @@ export default function AdminUserDetail() {
     const [giftNote, setGiftNote] = useState("");
     const [giftKey, setGiftKey] = useState("");
     const [revoking, setRevoking] = useState<Pass | null>(null);
+    const [testReason, setTestReason] = useState("internal");
+    const [testChange, setTestChange] = useState<boolean | null>(null);
     const load = useCallback(async () => {
         setLoading(true);
         try {
@@ -177,6 +194,26 @@ export default function AdminUserDetail() {
             setBusy(false);
         }
     }
+    async function saveTestFlag() {
+        if (testChange === null) return;
+        setBusy(true);
+        try {
+            await AdminAPI.patch(`users/${id}/test`, testChange ? { is_test: true, reason: testReason } : { is_test: false });
+            toast({
+                title: testChange ? "Marked as test account" : "Counted as a real user",
+                description: testChange
+                    ? `User #${id} is now left out of admin numbers (${testReasonLabel(testReason)}).`
+                    : `User #${id} now counts in admin numbers.`,
+            });
+            setTestChange(null);
+            await load();
+        } catch (reason) {
+            setTestChange(null);
+            setError(describeError(reason, "Update failed"));
+        } finally {
+            setBusy(false);
+        }
+    }
     if (loading) return <PageSkeleton />;
     if (!detail) return <div className="rounded-2xl bg-negative/10 p-8 text-negative">{error || "User not found"}</div>;
     return (
@@ -192,6 +229,12 @@ export default function AdminUserDetail() {
                         <p className="mt-2 text-sm text-muted">
                             {String(user.email || user.phone || "Anonymous guest")} · Joined {formatDate(String(user.created_at || ""))}
                         </p>
+                        {Boolean(user.is_test) && (
+                            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-warning-surface px-3 py-1 text-xs font-bold text-warning">
+                                <FlaskConical className="h-3.5 w-3.5" />
+                                Test account · {testReasonLabel(String(user.test_reason || ""))} · not counted
+                            </p>
+                        )}
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                         <Mini label="Plan" value={detail.summary.plan_code || "Free"} />
@@ -225,6 +268,37 @@ export default function AdminUserDetail() {
                                 </div>
                             ))}
                         </div>
+                    </Panel>
+                    <Panel title="Apps and browsers">
+                        {detail.clients?.length ? (
+                            <div className="space-y-3">
+                                {detail.clients.map((client) => (
+                                    <div key={client.id} className="flex items-start justify-between gap-3 border-b border-border pb-3 text-sm last:border-b-0">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold">{client.device || "Unknown device"}</p>
+                                            <p className="text-xs text-muted">
+                                                {[
+                                                    client.platform === "web" ? "Website" : client.variant === "play" ? "Play Store app" : client.variant ? `${client.variant} build` : "App",
+                                                    client.app_version && `v${client.app_version}${client.app_build ? ` (${client.app_build})` : ""}`,
+                                                    client.os,
+                                                    client.form_factor !== "unknown" && client.form_factor,
+                                                    client.is_test_device && "Google test device",
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" · ")}
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 text-right text-xs text-muted">
+                                            Last {formatDate(client.last_seen_at)}
+                                            <br />
+                                            First {formatDate(client.first_seen_at)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted">Not seen on a recorded app or browser yet. Recording started with the November 2026 release.</p>
+                        )}
                     </Panel>
                     <Panel title="Recent activity">
                         <div className="space-y-3">
@@ -421,6 +495,48 @@ export default function AdminUserDetail() {
                 </Panel>
             )}
             {tab === "moderation" && (
+                <div className="space-y-5">
+                <Panel title="Real or test account">
+                    <p className="text-sm text-muted">
+                        {user.is_test
+                            ? `Left out of every admin number as a test account (${testReasonLabel(String(user.test_reason || ""))}). The account itself works as usual.`
+                            : "Counted as a real user. Mark Google's test devices, your own and family accounts as test so they stay out of the numbers. Their history is kept."}
+                    </p>
+                    <RoleGate minimum="support">
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                            {user.is_test ? (
+                                <button
+                                    onClick={() => setTestChange(false)}
+                                    className="min-h-11 rounded-full border border-border bg-card px-5 text-sm font-bold"
+                                >
+                                    Count as a real user
+                                </button>
+                            ) : (
+                                <>
+                                    <select
+                                        value={testReason}
+                                        onChange={(event) => setTestReason(event.target.value)}
+                                        aria-label="Why this is a test account"
+                                        className="min-h-11 rounded-xl border border-border bg-background px-4 text-sm font-semibold"
+                                    >
+                                        {Object.entries(testReasonLabels).map(([value, label]) => (
+                                            <option key={value} value={value}>
+                                                {label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={() => setTestChange(true)}
+                                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-bold text-on-accent"
+                                    >
+                                        <FlaskConical className="h-4 w-4" />
+                                        Mark as test account
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </RoleGate>
+                </Panel>
                 <Panel title="Active abuse blocks">
                     {detail.active_abuse_blocks.length ? (
                         <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-track p-4 font-mono text-xs">
@@ -433,7 +549,22 @@ export default function AdminUserDetail() {
                         </div>
                     )}
                 </Panel>
+                </div>
             )}
+            <ConfirmDialog
+                open={testChange !== null}
+                title={testChange ? "Mark as a test account?" : "Count as a real user?"}
+                description={
+                    testChange
+                        ? `User #${id} will be left out of every admin number as “${testReasonLabel(testReason)}”. Their data and history stay as they are. This is written to the audit log.`
+                        : `User #${id} will count in admin numbers again. This is written to the audit log.`
+                }
+                confirmLabel={testChange ? "Mark as test" : "Count as real"}
+                destructive={false}
+                busy={busy}
+                onClose={() => setTestChange(null)}
+                onConfirm={saveTestFlag}
+            />
             <ConfirmDialog
                 open={confirm}
                 title="Grant AI credits?"

@@ -46,6 +46,8 @@
     "app/lib/period.ts",
     "app/lib/period.test.ts",
     "app/lib/split-ledger.ts",
-    "app/lib/split-ledger.test.ts"
+    "app/lib/split-ledger.test.ts",
+    "app/lib/card-catalogue.ts",
+    "app/lib/card-catalogue.test.ts"
   ]
 }

@@ -7,6 +7,11 @@ import DataTable from "@/app/components/admin/DataTable";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { AdminAPI, AdminPage, withQuery } from "@/app/lib/admin-api";
 import { formatDate } from "@/app/lib/format";
+import IncludeTestToggle from "@/app/components/admin/IncludeTestToggle";
+import { testReasonLabel, useIncludeTest } from "@/app/lib/admin-test-users";
+import SelectionBar, { SelectBox } from "@/app/components/admin/SelectionBar";
+import BulkGiftDialog from "@/app/components/admin/BulkGiftDialog";
+import { useUserSelection } from "@/app/lib/admin-selection";
 
 type UserRow = {
     id: number;
@@ -20,6 +25,8 @@ type UserRow = {
     credits_remaining: number;
     entries_count: number;
     ai_credits_used: number;
+    is_test?: boolean;
+    test_reason?: string;
 };
 export default function AdminUsersPage() {
     const [rows, setRows] = useState<UserRow[]>([]);
@@ -30,12 +37,22 @@ export default function AdminUsersPage() {
     const [type, setType] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const selection = useUserSelection();
+    const [gifting, setGifting] = useState(false);
+    const { includeTest, setIncludeTest, includeTestParam } = useIncludeTest();
     const load = useCallback(async () => {
         setLoading(true);
         setError("");
         try {
             const result = await AdminAPI.get<AdminPage<{ users: UserRow[] }>>(
-                withQuery("users", { q: submitted, type, page, page_size: 25, sort: "last_active_desc" }),
+                withQuery("users", {
+                    q: submitted,
+                    type,
+                    page,
+                    page_size: 25,
+                    sort: "last_active_desc",
+                    include_test: includeTestParam,
+                }),
             );
             setRows(result.users);
             setTotal(result.total);
@@ -44,7 +61,7 @@ export default function AdminUsersPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, submitted, type]);
+    }, [page, submitted, type, includeTestParam]);
     useEffect(() => {
         void load();
     }, [load]);
@@ -58,15 +75,29 @@ export default function AdminUsersPage() {
             <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Users</h1>
-                    <p className="mt-2 text-sm text-muted">PII is masked in this list. Support-level detail views are audited.</p>
+                    <p className="mt-2 text-sm text-muted">
+                        PII is masked in this list. Support-level detail views are audited. Test accounts are hidden unless you include them
+                        or search for one.
+                    </p>
                 </div>
-                <a
-                    href="/api/admin/export/users.csv"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-bold"
-                >
-                    <Download className="h-4 w-4" />
-                    Export CSV
-                </a>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                    {type !== "test" && (
+                        <IncludeTestToggle
+                            value={includeTest}
+                            onChange={(value) => {
+                                setIncludeTest(value);
+                                setPage(1);
+                            }}
+                        />
+                    )}
+                    <a
+                        href="/api/admin/export/users.csv"
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-bold"
+                    >
+                        <Download className="h-4 w-4" />
+                        Export CSV
+                    </a>
+                </div>
             </header>
             <form onSubmit={search} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row">
                 <label className="relative flex-1">
@@ -90,6 +121,7 @@ export default function AdminUsersPage() {
                     <option value="">All users</option>
                     <option value="registered">Registered</option>
                     <option value="guest">Guests</option>
+                    <option value="test">Test accounts</option>
                 </select>
                 <button className="min-h-11 rounded-xl bg-accent px-6 text-sm font-bold text-on-accent">Search</button>
             </form>
@@ -105,6 +137,27 @@ export default function AdminUsersPage() {
                     <DataTable
                         rows={rows}
                         columns={[
+                            {
+                                key: "select",
+                                label: (
+                                    <SelectBox
+                                        label="Select everyone on this page"
+                                        checked={rows.length > 0 && rows.every((row) => selection.has(row.id))}
+                                        indeterminate={
+                                            rows.some((row) => selection.has(row.id)) && !rows.every((row) => selection.has(row.id))
+                                        }
+                                        onChange={() => selection.togglePage(rows)}
+                                    />
+                                ),
+                                className: "w-10",
+                                render: (row) => (
+                                    <SelectBox
+                                        label={`Select ${row.username}`}
+                                        checked={selection.has(row.id)}
+                                        onChange={() => selection.toggle(row)}
+                                    />
+                                ),
+                            },
                             {
                                 key: "user",
                                 label: "User",
@@ -126,8 +179,15 @@ export default function AdminUsersPage() {
                                 key: "kind",
                                 label: "Type",
                                 render: (row) => (
-                                    <span className="rounded-full bg-track px-2.5 py-1 text-xs font-bold">
-                                        {row.is_guest ? "Guest" : "Registered"}
+                                    <span className="flex flex-wrap gap-1.5">
+                                        <span className="rounded-full bg-track px-2.5 py-1 text-xs font-bold">
+                                            {row.is_guest ? "Guest" : "Registered"}
+                                        </span>
+                                        {row.is_test && (
+                                            <span className="rounded-full bg-warning-surface px-2.5 py-1 text-xs font-bold text-warning">
+                                                {testReasonLabel(row.test_reason)}
+                                            </span>
+                                        )}
                                     </span>
                                 ),
                             },
@@ -179,6 +239,16 @@ export default function AdminUsersPage() {
                     </div>
                 </>
             )}
+            <SelectionBar count={selection.users.length} onGift={() => setGifting(true)} onClear={selection.clear} />
+            <BulkGiftDialog
+                open={gifting}
+                users={selection.users}
+                onClose={() => setGifting(false)}
+                onDone={() => {
+                    selection.clear();
+                    void load();
+                }}
+            />
         </div>
     );
 }

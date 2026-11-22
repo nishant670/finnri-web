@@ -1,6 +1,6 @@
 import React from "react";
 
-export type DataColumn<T> = { key: string; label: string; render: (row: T) => React.ReactNode; className?: string };
+export type DataColumn<T> = { key: string; label: React.ReactNode; render: (row: T) => React.ReactNode; className?: string };
 
 /** The admin's one table style: quiet headers, rows that highlight, horizontal scroll on phones. */
 export default function DataTable<T>({

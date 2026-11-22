@@ -8,6 +8,8 @@ import StatTile from "@/app/components/admin/StatTile";
 import { PageSkeleton } from "@/app/components/ui/Skeleton";
 import { AdminAPI, dateWindow, withQuery } from "@/app/lib/admin-api";
 import { percent } from "@/app/lib/admin-metrics";
+import IncludeTestToggle from "@/app/components/admin/IncludeTestToggle";
+import { useIncludeTest } from "@/app/lib/admin-test-users";
 
 type Activation = { cohort_size: number; onboarded: number; steps: { code: string; label: string; users: number; percent?: number }[] };
 type Retention = { weeks: number; cohorts: { cohort_week: string; size: number; retention: number[] }[] };
@@ -29,15 +31,20 @@ export default function AnalyticsPage() {
     const [funnel, setFunnel] = useState<ProductFunnel | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const { includeTest, setIncludeTest, includeTestParam } = useIncludeTest();
     useEffect(() => {
         const window = dateWindow(90);
+        const include_test = includeTestParam;
         Promise.all([
-            AdminAPI.get<Activation>(withQuery("analytics/activation", { cohort_start: window.start, cohort_end: window.end })),
-            AdminAPI.get<Retention>("analytics/retention?weeks=12"),
-            AdminAPI.get<Engagement>(withQuery("analytics/engagement", window)),
-            AdminAPI.get<Adoption>("analytics/feature-adoption"),
+            AdminAPI.get<Activation>(
+                withQuery("analytics/activation", { cohort_start: window.start, cohort_end: window.end, include_test }),
+            ),
+            AdminAPI.get<Retention>(withQuery("analytics/retention", { weeks: 12, include_test })),
+            AdminAPI.get<Engagement>(withQuery("analytics/engagement", { ...window, include_test })),
+            AdminAPI.get<Adoption>(withQuery("analytics/feature-adoption", { include_test })),
         ])
             .then(([a, r, e, f]) => {
+                setError("");
                 setActivation(a);
                 setRetention(r);
                 setEngagement(e);
@@ -47,16 +54,21 @@ export default function AnalyticsPage() {
             .finally(() => setLoading(false));
         // Separate from the batch above: an API that predates this endpoint
         // answers 404, and that must not blank the rest of the page.
-        AdminAPI.get<ProductFunnel>("analytics/product-funnel").then(setFunnel).catch(() => setFunnel(null));
-    }, []);
+        AdminAPI.get<ProductFunnel>(withQuery("analytics/product-funnel", { include_test }))
+            .then(setFunnel)
+            .catch(() => setFunnel(null));
+    }, [includeTestParam]);
     if (loading) return <PageSkeleton />;
     return (
         <div className="space-y-7">
-            <header>
-                <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Analytics</h1>
-                <p className="mt-2 text-sm text-muted">
-                    Activation and retention are approximated from signups, sessions, entries, and AI usage—no screen-event pipeline.
-                </p>
+            <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <h1 className="font-display text-[30px] font-bold leading-tight max-lg:sr-only sm:text-[34px]">Analytics</h1>
+                    <p className="mt-2 text-sm text-muted">
+                        Activation and retention are approximated from signups, sessions, entries, and AI usage—no screen-event pipeline.
+                    </p>
+                </div>
+                <IncludeTestToggle value={includeTest} onChange={setIncludeTest} />
             </header>
             {error && <div className="rounded-xl bg-negative/10 p-4 text-negative">{error}</div>}
             {activation && adoption && (

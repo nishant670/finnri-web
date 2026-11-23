@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { categoryOptionsFor } from "./category-options";
 
-const canonical = ["Food & Drinks", "Transport", "Travel", "Shopping", "Bills", "Entertainment", "Family/Gifts", "Misc"];
+const canonical = ["Food & Drinks", "Transport", "Travel", "Shopping", "Bills", "Entertainment", "Health", "Family/Gifts", "Misc"];
 
 test("canonical category values are not duplicated with different casing", () => {
     assert.strictEqual(categoryOptionsFor(canonical, "travel"), canonical);

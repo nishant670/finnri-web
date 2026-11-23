@@ -1,5 +1,6 @@
 import {
     Briefcase,
+    BriefcaseMedical,
     Bus,
     FileText,
     Gift,
@@ -28,6 +29,8 @@ const VISUALS: Record<string, { icon: LucideIcon; hue: string }> = {
     shopping: { icon: ShoppingCart, hue: "#42A5F5" },
     bills: { icon: FileText, hue: "#26A69A" },
     entertainment: { icon: PlayCircle, hue: "#5C6BC0" },
+    // Built in since 2026-11-23 (medical-bag in the app).
+    health: { icon: BriefcaseMedical, hue: "#0097A7" },
     "family/gifts": { icon: Gift, hue: "#EC407A" },
     misc: { icon: MoreHorizontal, hue: "#90A4AE" },
     salary: { icon: Briefcase, hue: "#16A34A" },

@@ -85,7 +85,7 @@ const START_ENTRIES: Entry[] = [
 const START_SPEND: Record<string, number> = { "Food & Drinks": 3250, Shopping: 2000, Transport: 1890, Bills: 1000 };
 
 /** The demo's own categories, drawn with the app's nearest tile. */
-const TILE_FOR: Record<string, string> = { Groceries: "Shopping", Health: "Misc", Income: "Freelance", General: "Misc" };
+const TILE_FOR: Record<string, string> = { Groceries: "Shopping", Income: "Freelance", General: "Misc" };
 
 const rupees = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

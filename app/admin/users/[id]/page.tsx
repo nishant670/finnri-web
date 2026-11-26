@@ -13,8 +13,22 @@ import { AdminAPI, AdminAPIError } from "@/app/lib/admin-api";
 import { formatDate, formatDateRange, formatUSDMicros } from "@/app/lib/format";
 import { testReasonLabel, testReasonLabels } from "@/app/lib/admin-test-users";
 
+type Client = {
+    id: number;
+    platform: string;
+    form_factor: string;
+    device: string;
+    os: string;
+    app_version: string;
+    app_build: string;
+    variant: string;
+    is_test_device: boolean;
+    first_seen_at: string;
+    last_seen_at: string;
+};
 type Detail = {
     user: Record<string, unknown>;
+    clients?: Client[];
     summary: { plan_code: string; credits_remaining: number; entries_count: number; ai_credits_used: number };
     counts: Record<string, number>;
     feature_adoption: Record<string, boolean>;
@@ -254,6 +268,37 @@ export default function AdminUserDetail() {
                                 </div>
                             ))}
                         </div>
+                    </Panel>
+                    <Panel title="Apps and browsers">
+                        {detail.clients?.length ? (
+                            <div className="space-y-3">
+                                {detail.clients.map((client) => (
+                                    <div key={client.id} className="flex items-start justify-between gap-3 border-b border-border pb-3 text-sm last:border-b-0">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold">{client.device || "Unknown device"}</p>
+                                            <p className="text-xs text-muted">
+                                                {[
+                                                    client.platform === "web" ? "Website" : client.variant === "play" ? "Play Store app" : client.variant ? `${client.variant} build` : "App",
+                                                    client.app_version && `v${client.app_version}${client.app_build ? ` (${client.app_build})` : ""}`,
+                                                    client.os,
+                                                    client.form_factor !== "unknown" && client.form_factor,
+                                                    client.is_test_device && "Google test device",
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" · ")}
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 text-right text-xs text-muted">
+                                            Last {formatDate(client.last_seen_at)}
+                                            <br />
+                                            First {formatDate(client.first_seen_at)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted">Not seen on a recorded app or browser yet. Recording started with the November 2026 release.</p>
+                        )}
                     </Panel>
                     <Panel title="Recent activity">
                         <div className="space-y-3">

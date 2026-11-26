@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
     return (
         <LegalPage
             title="Privacy Policy"
-            effectiveDate="8 November 2026"
+            effectiveDate="22 November 2026"
             intro={<p>This policy explains what Finnri collects, why it is needed, when it is shared, and the choices available to you. It applies to Finnri&apos;s mobile app, web dashboard, and supporting services.</p>}
         >
             <section>
@@ -21,14 +21,17 @@ export default function PrivacyPolicyPage() {
                     <li><strong>AI capture inputs:</strong> text or voice you submit to create an editable transaction draft, together with technical usage totals needed to enforce trial credits and service limits.</li>
                     <li><strong>Support information:</strong> messages and details you choose to send when asking for help or providing feedback.</li>
                     <li><strong>Technical information:</strong> request timestamps, basic server logs, error information, and security events used to operate and protect the service.</li>
+                    <li><strong>App and device information:</strong> which app or browser you use Finnri on. For the app: the phone&apos;s make and model, Android version, Finnri app version and build, and whether it is a phone or tablet. For the website: the browser, operating system, and whether it is a phone, tablet or computer, as your browser reports it. We record when each was first and last used.</li>
                 </ul>
             </section>
 
             <section>
                 <h2>2. How we use information</h2>
                 <p>We use this information to authenticate you, store and display the records you confirm, calculate totals and deterministic insights, operate budgets and reminders, provide split-ledger features, process exports, answer support requests, prevent abuse, and maintain the security and reliability of Finnri.</p>
+                <p className="mt-3">We use app and device information to help when you report a problem (for example, to see which app version you are on), to decide which phones and app versions to test and support, to count how many people use the app and the website, and to recognise Google Play&apos;s automated test devices so they are not counted as people. It is not used for advertising, and it is never sold or shared.</p>
                 <p className="mt-3">Finnri does not connect to your bank, request bank passwords, move money, or automatically import bank activity.</p>
                 <p className="mt-3">When enabled, Finnri uses Plausible Analytics for aggregate marketing-page and signup-funnel counts. Finnri sends only fixed event names, allow-listed page paths, and coarse sign-in or capture-method labels—never an account identifier, merchant, amount, note, or financial record. Plausible does not set analytics cookies or build a persistent user profile.</p>
+                <p className="mt-3">The Finnri app records which steps you reach—for example that onboarding was finished, an entry was saved by voice, or the plans sheet was shown—so we can see where the app is hard to use. Each record is a fixed step name with at most one short label such as “voice” or “google”, tied to your account and stored on Finnri’s own servers. It never contains an amount, a merchant, a note or anything you typed, it is not shared with any analytics provider, and it is deleted with your account and after about thirteen months.</p>
             </section>
 
             <section>
@@ -52,7 +55,7 @@ export default function PrivacyPolicyPage() {
 
             <section>
                 <h2>6. Retention and deletion</h2>
-                <p>We retain account and financial records while your account is active so Finnri can provide the service. You can edit or delete individual transactions. Deleting your Finnri account permanently removes the authenticated profile and its owned entries, accounts, budgets, subscriptions, split-ledger records, quick prompts, notifications, and active authentication sessions from the service.</p>
+                <p>We retain account and financial records while your account is active so Finnri can provide the service. You can edit or delete individual transactions. Deleting your Finnri account permanently removes the authenticated profile and its owned entries, accounts, budgets, subscriptions, split-ledger records, quick prompts, notifications, app and device records, and active authentication sessions from the service.</p>
                 <p className="mt-3">Account deletion is available in the mobile app under Security &amp; Privacy. If you no longer have the app, use the <a href="/delete-account">public account-deletion request page</a>.</p>
             </section>
 

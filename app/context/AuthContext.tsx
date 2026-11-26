@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { AUTH_SESSION_EXPIRED_EVENT, User, AuthAPI } from "@/app/lib/api";
 import { useRouter } from "next/navigation";
+import { guestSecret } from "@/app/lib/guest-secret";
 
 interface AuthContextType {
     user: User | null;
@@ -100,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const storedDeviceId = localStorage.getItem("finnri_web_device_id");
         const deviceId = storedDeviceId || `web_${crypto.randomUUID()}`;
         localStorage.setItem("finnri_web_device_id", deviceId);
-        const res = await AuthAPI.loginGuest(deviceId);
+        const res = await AuthAPI.loginGuest(deviceId, guestSecret());
 
         const { token, user } = res.data;
         login(token, user);

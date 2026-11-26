@@ -13,6 +13,8 @@
   "include": [
     "app/lib/accounts.ts",
     "app/lib/accounts.test.ts",
+    "app/lib/guest-secret.ts",
+    "app/lib/guest-secret.test.ts",
 	"app/lib/admin-metrics.ts",
 	"app/lib/admin-metrics.test.ts",
     "app/lib/admin-proxy-headers.ts",
@@ -44,6 +46,8 @@
     "app/lib/period.ts",
     "app/lib/period.test.ts",
     "app/lib/split-ledger.ts",
-    "app/lib/split-ledger.test.ts"
+    "app/lib/split-ledger.test.ts",
+    "app/lib/card-catalogue.ts",
+    "app/lib/card-catalogue.test.ts"
   ]
 }

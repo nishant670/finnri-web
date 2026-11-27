@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Finnri | Financial insights and planning tools",
   description: "Understand your spending, review recurring patterns, and plan with Finnri’s dashboard.",
   manifest: "/manifest.webmanifest",
-  icons: { apple: "/apple-icon.png" },
+  // Icons come from file conventions: app/favicon.ico, app/icon.svg, app/apple-icon.png.
 };
 
 export const viewport = {

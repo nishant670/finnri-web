@@ -197,11 +197,15 @@ body {
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
 }
 
+/* The entrance moves content and never hides it: where animations are paused,
+   the page holds the first frame, so that frame has to be readable. The shift
+   is a fixed length so large and small lines move together without colliding. */
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(0.6em); filter: blur(6px); }
-  to { opacity: 1; transform: none; filter: none; }
+  from { transform: translateY(12px); }
 }
-.rise-in { animation: rise-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: var(--delay, 0ms); }
+@media (prefers-reduced-motion: no-preference) {
+  .rise-in { animation: rise-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; animation-delay: var(--delay, 0ms); }
+}
 
 @keyframes drift {
   0%, 100% { transform: translate3d(0, 0, 0); }
@@ -257,7 +261,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise-in, .drift, .mic-ring, .wave-bar, .scan-line, .caret, .row-in { animation: none !important; }
+  .drift, .mic-ring, .wave-bar, .scan-line, .caret, .row-in { animation: none !important; }
 }
 
 /* Calculator charts: what you put in (blue) against what the money earns or

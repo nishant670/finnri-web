@@ -288,7 +288,7 @@ function PlanCard({
             <ul className="mb-5 mt-4 space-y-1.5 text-sm">
                 <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />{plan.included_credits.toLocaleString("en-IN")} AI credits</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />Up to {plan.daily_credit_limit} credits a day</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />Budgets, insights and reminders</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-accent" />Card statement reads from screenshots</li>
             </ul>
             <button type="button" onClick={onBuy} disabled={disabled || !plan.checkout_enabled} className={cn("mt-auto w-full", current ? buttonSecondary : buttonPrimary, "h-11")}>
                 {isThisPlanBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}

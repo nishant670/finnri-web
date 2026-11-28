@@ -518,7 +518,7 @@ export default async function Home() {
                     <span className="rounded-full bg-gradient-to-r from-[var(--ink-from)] to-[var(--ink-to)] px-3 py-1 text-xs font-bold text-white shadow-sm">{launchOffer.label}</span>
                   )}
                 </div>
-                <p className="mt-1 text-muted">More AI credits, plus budgets, insights, weekly reviews and subscription reminders.</p>
+                <p className="mt-1 text-muted">More AI credits, a higher daily limit, and card statement reads from screenshots.</p>
                 <ul className="mt-5 divide-y divide-border rounded-2xl bg-background px-4 ring-1 ring-border">
                   {plans.map((plan) => {
                     const charged = plan.offer?.price_minor ?? plan.price_minor ?? 0;
